@@ -2,156 +2,218 @@
 \label{cha:Scaletta}
 
 \begin{itemize}
-  \item Introduction
-
-  \item RISC-V
+  \item Introduction:
     \begin{itemize}
-      \item Specifics
+      \item Content: This chapter introduces the background of the project and
+        its motivation. It should describe the overall purpose of the project and
+        why it is significant in the context of RISC-V development and security.
+        You could also briefly discuss the project’s objectives, your approach,
+        and the structure of the thesis.
 
-      \item Extensions
+      \item Sections to include:
+        \begin{itemize}
+          \item Motivation: Explain why RISC-V was chosen, its relevance in the industry,
+            and the importance of extending its security features.
 
-      \item Registers \& CSRs
+          \item Objectives: Outline what you aim to achieve with this project (e.g.,
+            developing a secure RISC-V platform).
 
-      \item Privilege levels
-
-      \item Interrupts and traps
-
-      \item PMP
+          \item Thesis Structure: Give a brief outline of how the thesis is
+            structured.
+        \end{itemize}
     \end{itemize}
 
-  \item Project
+  \item RISC-V: this chapter serves to give readers the necessary background on
+    RISC-V. It should cover the core components and architectural details,
+    setting the foundation for understanding the project specifics later on.
     \begin{itemize}
-      \item Formalization
+      \item Content and Sections:
 
-      \item Specifics
+        \begin{itemize}
+          \item Architecture Overview: A brief introduction to the RISC-V
+            architecture and its design philosophy.
 
-      \item Interrupts Service Routine
+          \item Specifics: Detailed explanation of the base instruction sets and
+            the modularity of RISC-V.
 
-      \item Shadow Stack
+          \item Extensions: Discuss the standard and optional extensions (e.g., M,
+            A, F, D extensions) and their importance.
 
-      \item PMP
+          \item Registers \& CSRs: Explain the general-purpose registers and
+            Control and Status Registers (CSRs) crucial for RISC-V operation.
 
-      \item controls
+          \item Privilege Levels: Detail the different privilege levels (user,
+            supervisor, and machine) and their roles in the RISC-V architecture.
 
-      \item PoC
+          \item Interrupts and Traps: Discuss how the RISC-V architecture
+            handles interrupts and traps, including exceptions.
 
-      \item PoW
+          \item Physical Memory Protection (PMP): Explain the PMP feature and
+            how it is used to manage memory access permissions, ensuring security.
+
+          \item Toolchain: Discuss the software toolchain used for development, including
+            the compiler, assembler, linker, debugger, and any simulation/emulation
+            tools (e.g., GCC, Spike, or QEMU). Explain how these tools interact
+            with the RISC-V platform and the project’s codebase.
+        \end{itemize}
     \end{itemize}
 
-  \item SBI Implementation
-
-  \item FreeRTOS Implementation
-
-  \item Future works
+  \item Project: In this chapter, you introduce your specific project, its goals,
+    and its design methodology. You should provide an overview of how your
+    implementation extends or modifies the RISC-V architecture to enhance
+    security or functionality.
     \begin{itemize}
-      \item Forward edge controls
+      \item Content and Sections:
 
-      \item SBI Implementation
+        \begin{itemize}
+          \item Formalization: Describe the formal specification of the project
+            and its theoretical foundations.
 
-      \item FreeRTOS Implementation
+          \item Specifics: Go into the details of your implementation and
+            modifications to the RISC-V architecture, highlighting any changes or
+            extensions made.
+
+          \item Interrupts Service Routine (ISR): Explain how interrupts are
+            managed in your project and any customizations you implemented for
+            security or efficiency.
+
+          \item Shadow Stack: Describe the shadow stack mechanism implemented
+            for protection against return-oriented programming (ROP) attacks and
+            other control-flow integrity issues.
+
+          \item CFG: Describe how the CFG is used to track and validate program
+            execution paths. Explain how it helps maintain control-flow integrity
+            by monitoring jumps and returns, ensuring they follow predefined
+            patterns and preventing malicious redirection of control flow.
+
+          \item PMP (Physical Memory Protection): Detail your PMP implementation
+            and how it secures the memory space in your project.
+
+          \item Forward and Backward Controls: Explain the security mechanisms
+            you implemented to protect against control-flow attacks (e.g., validating
+            jumps, function returns).
+
+          \item Proof of Concept (PoC): Illustrate a practical demonstration or
+            simulation of your project showcasing its features and functionality.
+
+          \item Proof of Work (PoW): If relevant, discuss any workload or performance
+            measurements you used to validate the efficiency or scalability of your
+            implementation.
+
+          \item Instrumentation: Detail the instrumentation techniques used to
+            gather runtime information about the system’s behavior. Explain how instrumentation
+            was used for debugging, testing, or verifying the correctness and security
+            of your implementation.
+        \end{itemize}
     \end{itemize}
 
-  \item Conclusions
+  \item Security Analysis and Validation: Adding this chapter helps to discuss
+    the security aspects of your implementation in more detail, evaluating its effectiveness
+    and potential vulnerabilities.
+    \begin{itemize}
+      \item Content:
+        \begin{itemize}
+          \item Threat Model: Define the threat model considered during
+            development (e.g., hardware attacks, software vulnerabilities).
+
+          \item Testing Methodologies: Describe how you tested the security
+            features of your implementation (e.g., using simulation tools or specific
+            attack scenarios).
+
+          \item Results and Analysis: Provide a detailed analysis of the
+            outcomes from your security tests, including any benchmarks or performance
+            metrics.
+
+          \item Limitations: Discuss the limitations of your security mechanisms
+            and areas for potential improvement.
+        \end{itemize}
+    \end{itemize}
+
+  \item Performance Analysis: This chapter assesses the performance of your
+    implementation, focusing on time and space efficiency, and evaluating any
+    overhead introduced by security mechanisms.
+
+    \begin{itemize}
+      \item Content:
+        \begin{itemize}
+          \item Time Performance: Measure the time overhead of your security
+            mechanisms (e.g., interrupt handling latency, shadow stack
+            operations) and compare it against a baseline (e.g., a standard RISC-V
+            implementation without these features).
+
+          \item Memory Overhead: Discuss the space overhead introduced by the
+            security features (e.g., memory used for the shadow stack, PMP
+            configuration data).
+
+          \item Optimization Techniques: Outline any optimization methods
+            applied to minimize performance costs and discuss their
+            effectiveness.
+
+          \item Results and Analysis: Present a detailed analysis of the
+            performance data, using graphs, tables, or benchmarks to visualize the
+            impact of the implemented features.
+        \end{itemize}
+    \end{itemize}
+
+  \item FreeRTOS: This chapter covers how you integrated FreeRTOS with your RISC-V
+    implementation. FreeRTOS is often used in embedded systems, and integrating
+    it can showcase your system’s compatibility and real-world application
+    potential.
+    \begin{itemize}
+      \item Content:
+        \begin{itemize}
+          \item Porting FreeRTOS: Explain the steps and challenges faced while
+            porting FreeRTOS to your customized RISC-V platform.
+
+          \item Tasks and Scheduling: Discuss how the tasks and scheduling are
+            handled within FreeRTOS on your system.
+
+          \item Interrupt Management: Detail how FreeRTOS interacts with the ISR
+            system you implemented.
+
+          \item Memory Management: Highlight how FreeRTOS uses PMP and other
+            security mechanisms in your system.
+        \end{itemize}
+    \end{itemize}
+
+  \item Future works: This chapter explores potential future improvements and
+    extensions for your project, based on the work completed so far.
+    \begin{itemize}
+      \item Content and Sections:
+
+        \begin{itemize}
+          \item Supervisor Binary Interface (SBI) Implementation: Discuss the
+            possibility of adding SBI support, explaining how it could enhance functionality
+            or performance.
+
+          \item FreeRTOS Implementation Enhancements: Outline additional
+            features or optimizations for the FreeRTOS integration, such as enhanced
+            scheduling algorithms or memory management improvements.
+
+          \item Additional Security Features: Suggest other security mechanisms
+            that could be integrated, such as advanced hardware security features
+            or cryptographic accelerators.
+        \end{itemize}
+    \end{itemize}
+
+  \item Conclusions: The concluding chapter should summarize the main
+    achievements of the project, the challenges encountered, and the lessons
+    learned.
+    \begin{itemize}
+      \item Content:
+        \begin{itemize}
+          \item Summary of Work: Briefly recap the objectives and the main
+            contributions of the thesis.
+
+          \item Reflection on Challenges: Reflect on the technical challenges
+            you faced and how they were addressed or resolved.
+
+          \item Implications and Impact: Discuss the impact of your work, both in
+            the academic field and potentially in industry.
+
+          \item Closing Thoughts: Offer any closing remarks on the significance
+            of open-source hardware (like RISC-V) in advancing technology and
+            security.
+        \end{itemize}
+    \end{itemize}
 \end{itemize}
-
-\begin{itemize}
-  \item 1. Introduction: Introduction to the RISC-V architecture and why it's
-    important in modern embedded systems. Discuss the motivation for the project,
-    such as enhancing security with Control Flow Integrity mechanisms like
-    shadow stacks. Define the goals of the project, including implementing a
-    shadow stack and analyzing the performance and security of RISC-V. Brief overview
-    of the thesis structure.
-
-  \item 2. RISC-V Architecture Overview
-    \begin{itemize}
-      \item 2.1 Architecture Specifics: A high-level overview of the RISC-V
-        Instruction Set Architecture (ISA), its open-source nature, modularity, and
-        scalability.
-
-      \item 2.2 Instruction Formats
-
-      \item 2.3 Extensions: Explanation of common RISC-V extensions (e.g., Atomic
-        instructions, Compressed instructions, Floating-point extensions) and
-        how they enhance the architecture.
-
-      \item 2.4 Registers and CSRs: Detailed description of RISC-V registers and
-        Control Status Registers (CSRs).
-
-      \item 2.5 Privilege Levels: Discussion on the privilege levels in RISC-V (User,
-        Supervisor, Machine Mode) and their role in system security.
-
-      \item 2.6 Interrupts and Traps: Description of RISC-V's interrupt handling
-        mechanism, traps, and the role of the Machine Trap-Vector Base-Address
-        Register (MTVEC).
-
-      \item 2.7 Physical Memory Protection (PMP): Explain PMP and how it
-        controls access to memory regions for enforcing security policies.
-
-      \item 2.8 RISC-V Toolchain
-    \end{itemize}
-
-  \item 3. Project Implementation
-    \begin{itemize}
-      \item 3.1 Formalization of the Problem: Define the core problem that the
-        project addresses (Control Flow Integrity through shadow stacks). Discuss
-        the relevance of preventing unauthorized address jumps.
-
-      \item 3.2 Project Specifics: Overview of how the project works, including initialization
-        and setup of the RISC-V environment for shadow stack implementation.
-
-      \item 3.3 Interrupt Service Routine (ISR): Detailed description of the ISR
-        implementation, how interrupts are handled, and their integration with
-        the shadow stack.
-
-      \item 3.4 Shadow Stack Implementation: Explain how the shadow stack is
-        implemented, how it maintains control flow integrity, and its
-        relationship with jump and return instructions.
-
-      \item 3.5 PMP Configuration: Explanation of the PMP settings used to
-        protect the shadow stack from unauthorized memory access.
-
-      \item 3.6 Security Controls: Describe the forward-edge and return-address
-        controls, Control Flow Graph (CFG) matching, and how these mechanisms
-        prevent exploitation.
-
-      \item 3.7 Instrumentation
-
-      \item 3.8 Proof of Concept (PoC): Present the prototype, testing methodologies,
-        and results that demonstrate the successful implementation of the
-        project.
-
-      \item 3.9 Proof of Work (PoW): Discuss the challenges encountered and the
-        approaches taken to overcome them during the implementation.
-    \end{itemize}
-
-  \item 4. Threat analysis: Introduce a short section where you outline the
-    types of security threats you’re defending against (e.g., return-oriented programming
-    (ROP), buffer overflows) and how the shadow stack specifically counters them.
-
-  \item 5. SBI (Supervisor Binary Interface) Implementation - Discuss the implementation
-    of the SBI in the project and how it handles system calls and traps in the RISC-V
-    environment.
-
-  \item 6. FreeRTOS Implementation - Explain the integration of the project with
-    FreeRTOS, focusing on task scheduling, memory protection, and how the shadow
-    stack operates within a real-time operating system.
-
-  \item 7. Future Work and Enhancements
-    \begin{itemize}
-      \item 7.1 Forward Edge Controls: Discuss future improvements to the
-        forward-edge controls in the system.
-
-      \item 7.2 Expanded SBI Implementation: Consider enhancements or additional
-        features in the SBI layer.
-
-      \item 7.3 Extended FreeRTOS Implementation: Potential improvements to the
-        FreeRTOS integration for better performance or security.
-    \end{itemize}
-
-  \item 8. Conclusions - Summarize the key findings of the project, its impact
-    on security for RISC-V systems, and areas where the work can be extended or applied
-    to other architectures.
-\end{itemize}
-
-Maybe from risc-v unpriv memory and another thing Look at priv ISA to see if
-there is anything
