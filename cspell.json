@@ -16,13 +16,19 @@
   ],
   "words": [
     "booktitle",
+    "CSRRC",
+    "CSRRS",
+    "CSRRW",
     "howpublished",
     "IMAFD",
     "latexmk",
     "microcontrollers",
+    "MPRV",
     "nonstopmode",
     "outdir",
     "postbuild",
-    "SIMD"
+    "SIMD",
+    "Xcfg",
+    "XLEN"
   ]
 }
