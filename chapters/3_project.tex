@@ -1,52 +1,437 @@
 \chapter{Control Flow Integrity Enforcer}
 \label{cha:project}
 
-\lipsum[1]
+In this chapter, we will see the project's goals and its design methodology. We
+will also see the key aspects that allow to ensure Control Flow Integrity.
 
 \section{Project Formalization}
 \label{sec:project_formalization}
 
-\lipsum[1]
+This project aims to enforce Control Flow Integrity on RISC-V-based microcontrollers.
+The basic idea of the project is to be able to run code in User mode and ensure
+that the expected execution path is followed. In other words, this project aims
+at running User code securely, protecting it from attacks such as Arbitrary code
+execution.
+
+This project makes use of RISC-V capabilities like the PMP and state-of-the-art solutions
+like a Shadow Stack and a Control Flow Graph to implement secure spaces of memory
+to ensure the correctness of the policies.
 
 \section{Project Specifics}
 \label{sec:project_specifics}
 
-\lipsum[1]
+In this Section, we will see the specifics of the project. All the development
+has been made on Espressif's \textit{ESP32-C3-DevKitM-1} \cite{esp32c3} and the basic
+configuration for bare-metal flashing is provided by Sergey Lyubka\cite{mdk}. Moreover,
+the chosen ISA is the \textit{RV32imc\_zicsr}, where \textit{zicsr} is used to import
+CSR instructions. Lastly, {riscv-unknown-gcc} toolchain has been used to cross-compile
+the code. However, given the openness and modularity of RISC-V, any of these
+settings can be modified according to one needs as the project has been
+developed following the idea of RISC-V about hardware abstraction.
 
-\section{Interrupts Service Routine}
-\label{sec:project_isr}
+\begin{wrapfigure}
+  {r}{.25\textwidth} %
+  \centering
+  \def\stackalignment{r}\stackunder{ \includegraphics[width=\linewidth]{images/workingtree.png} } %
+  {\scriptsize \parbox[t]{\linewidth}}
+  \caption{Project working tree}
+  \label{fig:workingtree}
+\end{wrapfigure}
 
-\lipsum[1]
+Figure \ref{fig:workingtree} depicts the working tree of the project, where:
+\begin{itemize}
+  \item esp32c3 contains the boot configuration and the linker script;
 
-\section{Shadow Stack}
-\label{sec:project_ss}
+  \item esputil contains Espressif's utils to manage the board;
 
-\lipsum[1]
-\section{Control Flow Graph (CFG)}
-\label{sec:project_cfg}
+  \item src/cfi/usercode contains the imported code that needs protection during
+    execution;
 
-\lipsum[1]
-\section{Physical Memory Protection (PMP)}
-\label{sec:project_pmp}
+  \item src/cfi contains the files used to implement the Shadow Stack, Control
+    Flow Graph, interrupt vector table and machine setup;
 
-\lipsum[1]
+  \item toolsExtra contains the Python files used to instrument and flash the code.
+\end{itemize}
 
-\section{Forward and Backward Edge Controls}
-\label{sec:project_controls}
+The scripts inside toolsExtra are used to compile, instrument, and run the code
+(detailed description in Section \ref{sec:project_instrumentation}). Moreover,
+the file \textit{CFGextractor.py} is used to extract a Control Flow Graph of the
+code.
 
-\lipsum[1]
+Inside src/cfi instead, we find the code responsible for managing the Machine
+mode operations. File \textit{main.c} is responsible for setting up interrupts, managing
+privilege modes, and setting up both the PMP (detailed description in Section \ref{sec:project_pmp})
+and the interrupt vector table (detailed description in Section \ref{sec:project_isr}).
+File \textit{intr\_vetor\_table.c} is responsible for managing interrupts and
+exceptions as well as performing controls on both forward and backward checks (detailed
+description in Section \ref{sec:project_controls}). Files \textit{cfg.c} and
+\textit{shadow\_stack.c} hold the Control Flow Graph and the Shadow Stack respectively
+(detailed description in Sections \ref{sec:project_cfg} and \ref{sec:project_ss}).
+Lastly, \textit{ij\_logger.c} is used to retrieve indirect jump addresses thanks
+to a logger.
 
 \section{Code Instrumentation}
 \label{sec:project_instrumentation}
 
-\lipsum[1]
+Code instrumentation plays a critical role in this project as it allows to modification
+of any code in a simple yet effective way. The whole instrumentation procedure
+is depicted in Figure \ref{fig:instrumentation}.
+
+\begin{figure}[htbp]
+  \centering
+  \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/instrumentation.png} } %
+  {\scriptsize }
+  \caption{Code Instrumentation Flow}
+  \label{fig:instrumentation}
+\end{figure}
+
+We can run \textit{flasher.py} with four commands:
+\begin{itemize}[noitemsep]
+  \item build: builds the source files to produce the binary;
+
+  \item run: builds and runs the binary on the board;
+
+  \item secure-build: instrument and builds the source files to produce the
+    secure binary;
+
+  \item secure-run: instrument, builds, and runs the secure binary on the board.
+\end{itemize}
+
+If we choose to instrument the code with secure-build or secure-run commands the
+following happens. All the source files are compiled into assembly files, then
+the user files are passed to \textit{instrumenter.py}. Firstly, the code is instrumented
+with logging capabilities to retrieve indirect jump destinations. This is done
+by searching indirect jump instruction (defined as \textit{jalr} in RISC-V) and adding
+the block of code depicted in Figure \ref{fig:loggingblock} before the jump.
+
+\begin{wrapfigure}
+  {r}{0.25\textwidth}
+  \setlength{\intextsep}{0pt}
+  \begin{minipage}{0.25\textwidth}
+    \begin{lstlisting}
+addi sp,sp,-40
+sw a5,4(sp)
+sw a4,8(sp)
+sw a2,12(sp)
+sw a1,16(sp)
+sw a0,20(sp)
+sw s0,24(sp)
+sw s1,28(sp)
+sw s2,32(sp)
+sw s3,36(sp)
+mv a1,dst_reg
+auipc a0,0
+addi a0,a0,38
+call print_reg
+lw a5,4(sp)
+lw a4,8(sp)
+lw a2,12(sp)
+lw a1,16(sp)
+lw a0,20(sp)
+lw s0,24(sp)
+lw s1,28(sp)
+lw s2,32(sp)
+lw s3,36(sp)
+addi sp,sp,40
+\end{lstlisting}
+  \end{minipage}
+  \caption{Logging code block}
+  \label{fig:loggingblock}
+\end{wrapfigure}
+
+This effectively allows us to save the state of the code and call the function
+\textit{print\_reg} passing the destination address and the program counter of the
+jump instruction as arguments. The function will then print a string such as
+\textit{Source: 0x40380100 - Destination: 0x40380200}. After this
+instrumentation, the assembly files are assembled and linked to produce the binary.
+If there are indirect jumps in the code we perform a ``simulation'' of the
+execution to retrieve the logging of the \textit{print\_reg} function.
+
+After that \textit{CFGextractor.py} is called which extracts the Control Flow
+Graph of the code. Once the CFG is extracted, it is injected into the code and
+the true instrumentation is made.
+
+Since we need to perform forward and backward controls we need to add code
+blocks before every direct jump, indirect jump, and return instructions. To do so,
+the assembly files are parsed, and, thanks to \textit{regex} functions we are able
+to add the code we need.
+
+Specifically, we need to add the code depicted in Figure \ref{fig:dirjumpblock}
+before direct jumps (encoded as \textit{jal} in RISC-V). With this, we load the address
+of the target function in register \textit{a7} and then we perform an ecall (detailed
+functioning explained in \ref{sec:project_isr}).
+
+For indirect jumps, we need to add the code depicted in Figure \ref{fig:indirjumpblock}.
+With this, we can load the destination address (stored in target\_register) and perform
+an ecall.
+
+Lastly, for return instructions (encoded as \textit{ret} in RISC-V), we need to
+add the code depicted in Figure \ref{fig:retblock}. With this, we can load the
+return address (stored in return\_address\_register) and perform an ecall. In Section
+\ref{sec:project_isr} we will see why, in this case, we need to add $1$ to the return
+address.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{lstlisting}
+la a7, target_function
+ecall
+jal instruction
+ \end{lstlisting}
+  \caption{Direct jump code block}
+  \label{fig:dirjumpblock}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{lstlisting}
+mv a7,target_register
+ecall
+jalr instruction
+ \end{lstlisting}
+  \caption{Indirect jump code block}
+  \label{fig:indirjumpblock}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{lstlisting}
+add a7,return_address_register, 1
+ecall
+add a7,return_address_register, -1
+ret instruction
+ \end{lstlisting}
+  \caption{Return code block}
+  \label{fig:retblock}
+\end{figure}
+
+After this second instrumentation, the assembly files are assembled and linked to
+produce the secure binary file, which is taken from \textit{flasher.py} and run on
+the board.
+
+\section{Interrupts Service Routine}
+\label{sec:project_isr}
+
+In this section, we will see how interrupts and exceptions are handled in this project.
+Most importantly we will see how forward and backward edge controls are enforced.
+
+The interrupt vector table is defined inside \textit{intr\_vector\_table.c}. As
+already explained its address is loaded in \textit{main.c} and stored inside mtvec
+(\ref{subsec:mtvec}) with MODE set to Vectored. This means that every
+asynchronous interrupt will set the program counter to the base address of the
+vector table plus $4$ times the cause of the interrupt. Any other interrupt and exception
+is trapped inside the function \textit{synchronous\_exception\_handler} which
+redirects to the correct function depending on the trap cause.
+
+Since ecalls are defined as exceptions in RISC-V, the interrupt vector table is responsible
+for managing them. However, since ecalls can be used for different purposes they
+are designed to be expandable. Table \ref{tab:ecalls} depicts the current
+allowed ecalls.
+
+\begin{table}
+  \centering
+  \begin{tabular}{|c|c|c|}
+    \hline
+    \textbf{Code} & \textbf{Use}     & \textbf{Description}                  \\
+    \hline
+    1             & Reserved         & Used to terminate execution           \\
+    \hline
+    address       & Forward control  & Used to check the destination address \\
+    \hline
+    address + 1   & Backward control & Used to check the return address      \\
+    \hline
+  \end{tabular}
+  \caption{Encoding of current Ecall values}
+  \label{tab:ecalls}
+\end{table}
+
+This design has been used to minimize the use of registers. Another solution
+would have been to use a register, say \textit{a7}, to hold the ecall code, and
+another register, say \textit{a6}, to hold the address to check. However, since addresses
+must be even we can encode in one register both the value of the ecall code and the
+address (Figure \ref{fig:ecall} shows the encoding of register \textit{a7}). When
+the interrupt vector table has to check which code is used we can just see if the
+value in \textit{a7} is even or odd and, depending on the result we can decide what
+operation to perform (even values will lead to a forward check while odd values
+will lead to a backward check). When we need to check for a return address we
+first subtract $1$ from it to obtain the original value of the address.
+
+Note that the use of register \textit{a7} for ecalls is purely a design choice and,
+to ensure that such register is not tampered with by the compiler it has been ``disabled'',
+meaning that the compiler will never use such register. This choice allows us to
+be sure that only the interrupt vector table and the code blocks that we inject
+modify the value of \textit{a7}.
+
+\begin{figure}[htbp]
+  \centering
+  \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/ecall_code.png} } %
+  {\scriptsize }
+  \caption{Encoding of register a7 during ecall}
+  \label{fig:ecall}
+\end{figure}
+
+To add new custom ecall codes we just need to put a control before we check if
+the code is even or not. Say that we want to add code $2$ to perform a specific operation.
+To do so, we just need to add a check like \textit{if(code == 2) $\rightarrow$
+perform operation}, if the check fails the code will eventually check if the code
+is even or not and perform the corresponding control.
+
+This implementation of the interrupt vector table effectively helps to implement
+the desired controls while leaving space for future functionalities.
+
+\section{Shadow Stack}
+\label{sec:project_ss}
+
+The file \textit{shadow\_stack.c} holds the configuration for the Shadow Stack.
+The development of the Shadow Stack took inspiration from the formally verified
+idea proposed by Matthieu Baty, Guillaume Hiet, and Pierre Wilke in their
+article \textit{Work in progress: A formally verified shadow stack for RISC-V} \cite{shadowstack}.
+
+The Shadow Stack is implemented as a standard Last-in-first-out stack (LIFO).
+This is because the last jump that is performed in a code will always be the
+first to return. This allowed us to build an effective and fast data structure that
+consumes a small amount of memory.
+
+The Shadow Stack allows two operations, \textit{push} and \textit{pop}. \textit{Push}
+is used when a direct or indirect jump is made. If such a jump is considered legal,
+its return address is pushed into the Shadow Stack and stored for later. Instead,
+\textit{pop}, is used when a return is made. An address is \textit{popped} from
+the Shadow Stack and a match between the popped value and the current return
+address is made to decide whether the return instruction is legal or not.
+
+\section{Control Flow Graph (CFG)}
+\label{sec:project_cfg}
+
+CFG: Describe how the CFG is used to track and validate program execution paths.
+Explain how it helps maintain control-flow integrity by monitoring jumps and returns,
+ensuring they follow predefined patterns, and preventing malicious redirection of
+control flow.
+
+\section{Physical Memory Protection (PMP)}
+\label{sec:project_pmp}
+
+In this project, the role of the PMP is to protect the Shadow Stack and the Control
+Flow Graph from unauthorized modifications. To ensure that both these data
+structures are secured four memory regions have been created. Each region's configuration
+can be seen in Table \ref{tab:pmpregions}
+
+\begin{table}
+  \centering
+  \begin{tabular}{|c|c|c|c|}
+    \hline
+    \textbf{Region Start}           & \textbf{Region End}           & \textbf{Type} & \textbf{Privileges} \\
+    \hline
+    0x00000000                      & End of .sdata region          & TOR           & R-W                 \\
+    \hline
+    Start of interrupt vector table & End of interrupt vector table & TOR           & R-W-X               \\
+    \hline
+    Start of Shadow Stack           & End of Control Flow Graph     & TOR           & R-W                 \\
+    \hline
+    Start of main                   & 0x90000000                    & TOR           & R-W-X               \\
+    \hline
+  \end{tabular}
+  \caption{PMP memory regions}
+  \label{tab:pmpregions}
+\end{table}
+
+The first region covers all the space between 0x00000000 and the end of the .sdata
+region with read and write privileges, since this region contains only static data
+there is no need to allow execution.
+
+The second region covers the interrupt vector table and its functions, since
+this region is accessed only in Machine mode and we need to execute instructions
+we need to provide read, write, and instruction execution privileges.
+
+The third region is the one that covers both the Shadow Stack and the Control
+Flow Graph. For this reason, we need to restrict privileges to read and write. We
+can't set this region as read-only since we need to modify the Shadow Stack during
+execution.
+
+The last region covers all the addresses from the start of the main function up to
+the end of the memory. This region also includes user code and, since we need to
+execute the code, we need to configure this region with read, write, and
+instruction execution privileges.
+
+This PMP configuration effectively helps to prevent unauthorized modifications
+to critical components such as the Shadow Stack and the Control Flow Graph. Thanks
+to this, we are sure that whatever value we read from these data structures will
+be safe and trustable.
+
+\section{Forward and Backward Edge Controls}
+\label{sec:project_controls}
+
+The most critical part of this project is about validating jump and return instructions
+and this is done inside the interrupt vector table.
+
+Forward edge controls are made thanks to the Control Flow Graph while backward edge
+controls are made thanks to the Shadow Stack.
+
+In this section, each control will be carefully explained to show how they work
+and why they provide a certain degree of security.
+
+\subsection{Forward Edge Controls}
+\label{subsec:forward}
+
+To perform a forward edge control we need three things. The first is the source
+address, the second is the destination address, and the third is an oracle that
+tells us if the pair source-destination is valid. As already explained the destination
+address is retrieved from \textit{a7} which is passed as the ecall code. The source
+register instead can be retrieved from mepc \ref{subsec:mepc}. As we have seen, when
+a trap is taken mepc holds the address of the instruction that was interrupted.
+Since the ecall generates the trap we can just add $4$ (size of the ecall) to
+the address stored in mepc to retrieve the source address. Now that we have the pair
+of addresses to check we can use the Control Flow Graph as the oracle. As
+already explained, the CFG is computed before compilation and is securely stored
+in a safe memory region so we can consider it as a trusted oracle.
+
+So, when we need to perform a forward edge control, we can just send the source and
+destination addresses to the \textit{check} function of the CFG. Such function performs
+a binary search inside the CFG to see whether that specific pair is part of the original
+CFG. If the search succeeds the function returns a positive value and the jump
+is considered legal while, if the search does not succeed the instruction is aborted
+and the execution terminates to prevent any possible damage.
+
+Whenever a forward edge control succeeds we know that the related jump instruction
+will eventually return so we need to store its return address inside the Shadow Stack.
+To do so, we need to retrieve the return address but, since a call will always
+return to its next instruction, we can just compute $source \ address + 2$ (size
+of \textit{jal} and \textit{jalr}) to retrieve it. After that, the address is pushed
+into the Shadow Stack, and the execution is resumed with the interrupted jump
+instruction.
+
+\subsection{Backward Edge Controls}
+\label{subsec:backward}
+
+To perform a backward edge control we need two things. The first is the
+destination address and the second is an oracle that tells us if such address is
+valid. As we have seen, the destination address is retrieved from \textit{a7} which
+is passed as the ecall code. In this case, the oracle is the Shadow Stack.
+
+So, when we need to perform a backward edge control, we can just pop an address from
+the Shadow Stack and match the destination address with the popped one. If the
+addresses are the same we consider the return instruction legal while, if they are
+different the execution is terminated.
+
+Whenever a backward edge control succeeds we must do nothing since the value has
+already been removed from the Shadow Stack and no other modifications are needed.
+Thus, the execution is resumed with the interrupted return instruction.
 
 \section{Proof of Concept (PoC)}
 \label{sec:project_poc}
 
-\lipsum[1]
+Proof of Concept (PoC): Illustrate a practical demonstration or simulation of your
+project showcasing its features and functionality.
+
+\begin{figure}[htbp]
+  \centering
+  \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/functioning.png} } %
+  {\scriptsize }
+  \caption{Functioning}
+  \label{fig:functioning}
+\end{figure}
 
 \section{Proof of Work (PoW)}
 \label{sec:project_pow}
 
-\lipsum[1]
+Proof of Work (PoW): If relevant, discuss any workload or performance measurements
+you used to validate the efficiency or scalability of your implementation.

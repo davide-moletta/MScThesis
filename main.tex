@@ -33,6 +33,24 @@
 \hypersetup{breaklinks=true}
 % List
 \usepackage{enumitem}
+\usepackage{listings}
+
+% Configuration for assembly code listings
+\lstset{ language=[x86masm]Assembler, basicstyle=\ttfamily\small, keywordstyle=
+\color{blue}
+\bfseries, commentstyle=
+\color{gray}
+, stringstyle=
+\color{red}
+, numberstyle=\tiny
+\color{gray}
+, numbers=left, stepnumber=1, numbersep=5pt, % Adjusted separation between numbers and code
+backgroundcolor=
+\color{lightgray!20}
+, frame=single, tabsize=4, captionpos=b, breaklines=true, breakatwhitespace=false,
+showspaces=false, showstringspaces=false, showtabs=false, morekeywords={jal, jalr, la, ecall, mv, call, auipc, addi, sw, lw},
+xleftmargin=10pt, % No additional left margin needed
+}
 
 % START: DELETE ME
 \usepackage{lipsum}

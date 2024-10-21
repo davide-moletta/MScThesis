@@ -11,20 +11,20 @@ researchers, developers, and companies to build custom processors without
 licensing fees.
 
 The core design philosophy behind RISC-V emphasizes simplicity, modularity, and
-extensibility. Its open nature make it a preferred platform for developing secure
+extensibility. Its open nature makes it a preferred platform for developing secure
 and innovative solutions.
 
-Note that in this thesis every information will refer to the 32-bit ISA as that is
-the one utilized for the project development. Also note that most of the
-information in this chapter are taken from both the Unprivileged and Privileged
-Specifications\cite{specifications} published from RISC-V International.
+In this thesis, every piece of information will refer to the 32-bit ISA utilized
+for the project development. Also, note that most of the information in this
+chapter is taken from both the Unprivileged and Privileged Specifications\cite{specifications}
+published from RISC-V International.
 
 \section{RISC-V Instruction Set Architecture Overview}
 \label{sec:riscv_isa}
 
 The RISC-V ISA is structured around a minimal base integer ISA, which is mandatory
-for all implementations. This base is designed with simplicity in mind, providing
-enough instructions for essential software tools while allowing for extensive customization
+for all implementations. This base is designed with simplicity, providing enough
+instructions for essential software tools while allowing for extensive customization
 and specialization through additional extensions.
 
 There are four main base ISAs within the RISC-V family: RV32I, RV64I, RV32E, and
@@ -33,8 +33,8 @@ and the number of available registers. These variations support different use ca
 from small microcontrollers (RV32E and RV64E) to larger systems (RV64I). Moreover,
 RISC-V International is currently working on a 128-bit ISA.
 
-These base ISAs can be expanded thanks to extensions which allows to modify the
-ISA according to the implementation needs.
+These base ISAs can be expanded thanks to extensions that allow modification of
+the ISA according to the implementation needs.
 
 To accommodate customization, RISC-V divides instruction encoding space into three
 categories: standard (defined by RISC-V International), reserved (for future use),
@@ -112,7 +112,7 @@ Additionally, RV32I includes formats \texttt{B} and \texttt{J} (shown in Figure
 hardware design. The immediate structure across formats is designed to minimize hardware
 complexity and overlap, focusing on efficiency for both compilation and runtime
 execution. Sign-extension and fixed bit positioning help reduce hardware costs and
-reducing complexity in simple implementations.
+reduce complexity in simple implementations.
 
 \begin{figure}[htbp]
   \centering
@@ -317,15 +317,15 @@ operation.
   \label{tab:csrop}
 \end{table}
 
-Out of all the CSRs only a few will be described since they will be necessary to
+Out of all the CSRs, only a few will be described since they will be necessary to
 understand the functioning of this project.
 
 \subsection{Machine Status Register (MSTATUS) CSR}
 \label{subsec:mstatus}
 
-The mstatus register keeps track of and controls the hart’s current operating state.
-This register will be used to manage interrupts and privilege levels. Figure \ref{fig:mstatus}
-depicts a representation of the mstatus CSR.
+The mstatus register keeps track of and controls the hart’s current operating
+state. This register will be used to manage interrupts and privilege levels.
+Figure \ref{fig:mstatus} depicts a representation of the mstatus CSR.
 
 \begin{figure}[htbp]
   \centering
@@ -338,9 +338,9 @@ depicts a representation of the mstatus CSR.
 \subsection{Machine Exception Program Counter (MEPC) CSR}
 \label{subsec:mepc}
 
-The mepc register is used, when a trap occurs, to store the address of the instruction
-that was interrupted. Figure \ref{fig:mepc} depicts a representation of the mepc
-CSR.
+The mepc register is used, when a trap occurs, to store the address of the
+instruction that was interrupted. Figure \ref{fig:mepc} depicts a representation
+of the mepc CSR.
 
 \begin{figure}[htbp]
   \centering
@@ -353,8 +353,8 @@ CSR.
 \subsection{Machine Cause Register (MCAUSE) CSR}
 \label{subsec:mcause}
 
-The mcause register is used, when a trap occurs, to store the code that
-indicates the event that caused the trap. All the possible codes can be seen in Table
+The mcause register is used, when a trap occurs, to store the code that indicates
+the event that caused the trap. All the possible codes can be seen in Table
 \ref{tab:causes}. Figure \ref{fig:mcause} depicts a representation of the mcause
 CSR.
 
@@ -454,13 +454,13 @@ CSR.
 \subsection{Machine Trap-Vector Base-Address Register (MTVEC) CSR}
 \label{subsec:mtvec}
 
-The mtvec register is used to store the address that holds the trap vector configuration.
-Figure \ref{fig:mtvec} depicts a representation of the mtvec CSR. The MODE field
-can be set according to Table \ref{tab:mode}. If we set the MODE to Vectored, all
-asynchronous interrupts will set the program counter to the base address encoded
-in mtvec plus $4$ times the cause of the interrupt (causes can be seen in Table
-\ref{tab:causes}). With MODE set to Direct instead, all traps set the program counter
-to the base address.
+The mtvec register is used to store the address that holds the trap vector
+configuration. Figure \ref{fig:mtvec} depicts a representation of the mtvec CSR.
+The MODE field can be set according to Table \ref{tab:mode}. If we set the MODE to
+Vectored, all asynchronous interrupts will set the program counter to the base
+address encoded in mtvec plus $4$ times the cause of the interrupt (causes can be
+seen in Table \ref{tab:causes}). With MODE set to Direct instead, all traps set
+the program counter to the base address.
 
 \begin{figure}[htbp]
   \centering
@@ -490,23 +490,23 @@ to the base address.
 \section{RISC-V Physical Memory Protection (PMP)}
 \label{sec:riscv_pmp}
 
-RISC-V provides an optional Physical Memory Protection (PMP) unit which allows
-to configure access privileges (read, write, and execute) for each physical
-memory region. The PMP ensures secure processing and helps to contain faults.
+RISC-V provides an optional Physical Memory Protection (PMP) unit that allows to
+configure access privileges (read, write, and execute) for each physical memory region.
+The PMP ensures secure processing and helps to contain faults.
 
-PMP checks are applied at all accesses in S or U mode. Optionally, PMP checks may
-additionally apply to M-mode accesses, in which case the PMP registers
-themselves are locked, so that even M-mode software cannot change them until the
-hart is reset. Each PMP check results either in a violation which is trapped at
-the processor or in a granted permission.
+PMP checks are applied at all accesses in S or U mode. Optionally, PMP checks
+may additionally apply to M-mode accesses, in which case the PMP registers themselves
+are locked, so that even M-mode software cannot change them until the hart is
+reset. Each PMP check results either in a violation which is trapped at the processor
+or in a granted permission.
 
 \subsection{PMP CSRs}
 
 Each PMP entry is described by an 8-bit configuration register (pmpXcfg) and one
-32-bit address register (pmpaddrX). Sixteen CSRs, pmpcfg0–pmpcfg15, hold the
-configurations pmp0cfg–pmp63cfg for the 64 PMP entries (as shown in Figure \ref{fig:pmpcfgs}).
-Each PMP address (pmpaddr0-pmpaddr63) encodes bits 33-2 of a 34-bit physical address
-as shown in Figure \ref{fig:pmpaddr}.
+32-bit address register (pmpaddrX). Sixteen CSRs, pmpcfg0–pmpcfg15, hold the configurations
+pmp0cfg–pmp63cfg for the 64 PMP entries (as shown in Figure \ref{fig:pmpcfgs}).
+Each PMP address (pmpaddr0-pmpaddr63) encodes bits 33-2 of a 34-bit physical
+address as shown in Figure \ref{fig:pmpaddr}.
 
 Each PMP configuration register (Figure \ref{fig:pmpconf}) contains:
 \begin{itemize}
@@ -551,8 +551,7 @@ Each PMP configuration register (Figure \ref{fig:pmpconf}) contains:
 \label{subsec:pmpaddressmatching}
 
 The A field in a PMP entry’s configuration register encodes the address-matching
-mode of the associated PMP address register (encoding shown in Table
-\ref{tab:addressmatching}).
+mode of the associated PMP address register (encoding shown in Table \ref{tab:addressmatching}).
 
 \begin{table}
   \centering
@@ -591,20 +590,20 @@ modes are supported:
 \subsection{PMP Matching Logic}
 \label{subsec:matchinglogic}
 
-PMP entries are statically prioritized. The lowest-numbered PMP entry that
-matches any byte of an access determines whether that access succeeds or fails. The
-matching PMP entry must match all bytes of an access, or the access fails, irrespective
-of the L, R, W, and X bits. For example, if a PMP entry is configured to match
-the four-byte range 0xC–0xF, then an 8-byte access to the range 0x8–0xF will fail,
-assuming that PMP entry is the highest-priority entry that matches those
-addresses.
+PMP entries are statically prioritized. The lowest-numbered PMP entry that matches
+any byte of an access determines whether that access succeeds or fails. The
+matching PMP entry must match all bytes of an access, or the access fails,
+irrespective of the L, R, W, and X bits. For example, if a PMP entry is configured
+to match the four-byte range 0xC–0xF, then an 8-byte access to the range 0x8–0xF
+will fail, assuming that such PMP entry is the highest-priority entry that matches
+those addresses.
 
-If a PMP entry matches all bytes of an access, then the L, R, W, and X bits
-determine whether the access succeeds or fails. If the L bit is clear and the privilege
-mode of the access is M, the access succeeds. Otherwise, if the L bit is set or
-the privilege mode of the access is S or U, then the access succeeds only if the
-R, W, or X bit corresponding to the access type is set.
+If a PMP entry matches all bytes of an access, then the L, R, W, and X bits determine
+whether the access succeeds or fails. If the L bit is clear and the privilege
+mode of the access is M, the access succeeds. Otherwise, if the L bit is set or the
+privilege mode of the access is S or U, then the access succeeds only if the R, W,
+or X bit corresponding to the access type is set.
 
-If no PMP entry matches an S-mode or U-mode access, but at least one PMP entry
-is implemented, the access fails. Failed accesses generate a load, store, or
-instruction access exception.
+If no PMP entry matches an S-mode or U-mode access, but at least one PMP entry is
+implemented, the access fails. Failed accesses generate a load, store, or instruction
+access exception.
