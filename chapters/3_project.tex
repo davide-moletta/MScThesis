@@ -108,7 +108,7 @@ the block of code depicted in Figure \ref{fig:loggingblock} before the jump.
   {r}{0.25\textwidth}
   \setlength{\intextsep}{0pt}
   \begin{minipage}{0.25\textwidth}
-    \begin{lstlisting}
+    \begin{lstlisting}[style=Assembly]
 addi sp,sp,-40
 sw a5,4(sp)
 sw a4,8(sp)
@@ -173,7 +173,7 @@ address.
 
 \begin{figure}[htbp]
   \centering
-  \begin{lstlisting}
+  \begin{lstlisting}[style=Assembly]
 la a7, target_function
 ecall
 jal instruction
@@ -184,7 +184,7 @@ jal instruction
 
 \begin{figure}[htbp]
   \centering
-  \begin{lstlisting}
+  \begin{lstlisting}[style=Assembly]
 mv a7,target_register
 ecall
 jalr instruction
@@ -195,7 +195,7 @@ jalr instruction
 
 \begin{figure}[htbp]
   \centering
-  \begin{lstlisting}
+  \begin{lstlisting}[style=Assembly]
 add a7,return_address_register, 1
 ecall
 add a7,return_address_register, -1
@@ -302,10 +302,48 @@ address is made to decide whether the return instruction is legal or not.
 \section{Control Flow Graph (CFG)}
 \label{sec:project_cfg}
 
-CFG: Describe how the CFG is used to track and validate program execution paths.
-Explain how it helps maintain control-flow integrity by monitoring jumps and returns,
-ensuring they follow predefined patterns, and preventing malicious redirection of
-control flow.
+The Control Flow Graph of the binary is extracted during the instrumentation phase.
+As we have seen, if there are indirect jumps the script performs a simulation run
+to retrieve source and destination addresses of each indirect jump. If there is
+a simulation, the output is parsed to store the addresses in a list. After that,
+the static extraction begins, in which we examine the dump file of the binary to
+retrieve the source and destination addresses of each direct call. After all the
+addresses have been gathered, the lists are ordered and injected in the file
+\textit{cfg.c} which holds the configuration for the Control Flow Graph.
+
+In this file, we can see the structure of the Control Flow Graph which is an
+array where each position is occupied by a pair \textit{source-destination}.
+Since the CFG will not change during execution we can define it statically and
+provide no functions to add or remove elements. The only available function is \textit{check}
+which asks for a pair of addresses as input and determines whether such a pair
+is part of the CFG or not. The check is implemented using a binary search function
+and the comparison is made using the function depicted in Figure \ref{fig:binsearch}.
+With this function, the binary search first searches for the source address and,
+only when found it searches for the destination address.
+
+This implementation of the Control Flow Graph effectively reduces space
+consumption to the bare minimum while providing a fast checking method ($\mathcal{O}
+(\log{n})$). Another solution could be to use a Hash Table to store the addresses.
+In this case, we would reduce the time required to access the CFG to $\mathcal{O}
+(1)$. However, this works only with big enough Hash Tables, otherwise, we could face
+many collisions, and the time required to find the correct entry would increase.
+Still, this alternative solution could be perfect for situations in which we
+care more about time than space.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{lstlisting}[style=CStyle]
+int compare(const int* A, const int* B) {
+  for (int i = 0; i < 2; ++i) {
+    if (A[i] < B[i]) return -1;
+    if (A[i] > B[i]) return 1;
+  }
+  return 0;
+}
+ \end{lstlisting}
+  \caption{Comparison for binary search}
+  \label{fig:binsearch}
+\end{figure}
 
 \section{Physical Memory Protection (PMP)}
 \label{sec:project_pmp}
@@ -419,8 +457,8 @@ Thus, the execution is resumed with the interrupted return instruction.
 \section{Proof of Concept (PoC)}
 \label{sec:project_poc}
 
-Proof of Concept (PoC): Illustrate a practical demonstration or simulation of your
-project showcasing its features and functionality.
+In this section we will see why the provided solution works with a proof of
+concept.
 
 \begin{figure}[htbp]
   \centering
@@ -433,5 +471,6 @@ project showcasing its features and functionality.
 \section{Proof of Work (PoW)}
 \label{sec:project_pow}
 
-Proof of Work (PoW): If relevant, discuss any workload or performance measurements
-you used to validate the efficiency or scalability of your implementation.
+Proof of Work (PoW): If relevant, discuss any workload or performance
+measurements you used to validate the efficiency or scalability of your
+implementation.

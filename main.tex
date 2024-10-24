@@ -35,22 +35,34 @@
 \usepackage{enumitem}
 \usepackage{listings}
 
-% Configuration for assembly code listings
-\lstset{ language=[x86masm]Assembler, basicstyle=\ttfamily\small, keywordstyle=
+\lstdefinestyle{Assembly}{ backgroundcolor=
+\color{lightgray!20}
+, commentstyle=
+\color{green}
+, keywordstyle=
 \color{blue}
-\bfseries, commentstyle=
+, numberstyle=\tiny
 \color{gray}
 , stringstyle=
 \color{red}
+, numbers=left, stepnumber=1, numbersep=5pt, frame=single, tabsize=4, captionpos=b,
+breaklines=true, breakatwhitespace=false, showspaces=false, showstringspaces=false,
+showtabs=false, morekeywords={jal, jalr, la, ecall, mv, call, auipc, addi, sw, lw},
+xleftmargin=10pt }
+
+\lstdefinestyle{CStyle}{ backgroundcolor=
+\color{lightgray!20}
+, commentstyle=
+\color{green}
+, keywordstyle=
+\color{blue}
 , numberstyle=\tiny
 \color{gray}
-, numbers=left, stepnumber=1, numbersep=5pt, % Adjusted separation between numbers and code
-backgroundcolor=
-\color{lightgray!20}
-, frame=single, tabsize=4, captionpos=b, breaklines=true, breakatwhitespace=false,
-showspaces=false, showstringspaces=false, showtabs=false, morekeywords={jal, jalr, la, ecall, mv, call, auipc, addi, sw, lw},
-xleftmargin=10pt, % No additional left margin needed
-}
+, stringstyle=
+\color{red}
+, numbers=left, stepnumber=1, numbersep=5pt, frame=single, tabsize=4, captionpos=b,
+breaklines=true, breakatwhitespace=false, showspaces=false, showstringspaces=false,
+showtabs=false, xleftmargin=10pt, language=C }
 
 % START: DELETE ME
 \usepackage{lipsum}
@@ -92,8 +104,6 @@ xleftmargin=10pt, % No additional left margin needed
   \input{etc/abstract.tex}
 
   % Chapters
-  \input{chapters/examples.tex}
-  \input{chapters/Scaletta.tex}
   \input{chapters/1_introduction.tex}
   \input{chapters/2_riscv.tex}
   \input{chapters/3_project.tex}
