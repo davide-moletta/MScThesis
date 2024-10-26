@@ -1,12 +1,50 @@
 \chapter{Performance Analysis}
 \label{cha:pa}
 
-\lipsum[1]
+In this chapter, we will examine the project's performance. Firstly, we will see
+the difference in execution time between a secured binary and a non-secure one.
+Secondly, we will see the difference in size between the binaries. Lastly, we will
+see an analysis of the obtained results as well as some optimization ideas to further
+improve the performance of the project.
 
 \section{Time Performances}
 \label{sec:pa_time}
 
-\lipsum[1]
+To perform a correct analysis of the performances of the project regarding the
+execution time we compiled and run $13$ algorithms plus $4$ variations with
+indirect jumps. All tests have been conducted on the aforementioned Espressif's board
+(test result can be seen in Figures \ref{fig:lowtime} and \ref{fig:hightime}).
+
+As we can see in Table \ref{tab:times}, in most cases the time overhead is not
+significant as it affects the fourth or fifth digit.
+
+It is straightforward to understand why this happens for algorithms like \textit{Binary
+Search} and \textit{Duff's Device} since we perform few jumps and most of the
+computation is performed inside a loop so, the overhead given by the instrumentation
+is unnoticeable if compared to the total execution time.
+
+Instead, examples like \textit{Prime} and \textit{Recursive} are a bit trickier.
+Since these algorithms work with a recursive approach we expect to perform many jumps
+and, as a consequence, we expect the time required for the context switch and the
+edge controls to be somewhat impactful. However, results show that even in these
+cases the difference is barely noticeable. This could be due to the processor's
+frequency which, in the case of Espressif's ESP32-C3, is $160$MHz. This means
+that even if we add many instructions the processor is still able to perform
+them in a similar time. For example, the \textit{Recursion} algorithm performs around
+$4000$ jumps and $4000$ returns which translates to around $8000$ controls and $1
+6000$ context switches. However, if we compare those numbers to the $160$ million
+operations that the processor can perform in a second we see why the time overhead
+is so small.
+
+A peculiar case is the one of the \textit{Fibonacci} algorithm, in this case, we
+can see that the overhead is enormous ($1523.24\%$). The possible reason for this
+is that this algorithm makes two recursive calls each time so we end up with a staggering
+amount of jumps and returns. This leads to many controls and the execution is
+strongly affected by this.
+
+These results show that the instrumentation's time overhead is almost
+unnoticeable in many cases. However, depending on the algorithm it could affect
+the performances heavily.
 
 \begin{figure}[htbp]
   \centering
@@ -69,6 +107,17 @@
   \label{tab:times}
 \end{table}
 
+Lastly, in Table \ref{tab:othertimes} we can see the time required to instrument
+the code, extract the CFG, and perform the simulation. As we can see the instrumentation
+and CFG extraction phases require less than a fraction of a second to finish.
+However, we must take into consideration that the tested algorithms are composed
+of few lines of code and the situation could change if we wish to instrument a firmware
+composed of thousands of lines. The simulation instead requires a lot of time, even
+algorithms that run in a second or less require a few seconds to simulate. This
+is due to the logging required to extract the indirect jump destinations that
+affect the time performances seriously. However, we can accept this result since
+the simulation is run only once and the logging is removed from the final binary.
+
 \begin{table}
   \centering
   \begin{tabular}{|c|c|c|c|}
@@ -110,14 +159,38 @@
     Tarai                & 0.00198                      & no ind jumps            & 0.00152                     \\
     \hline
   \end{tabular}
-  \caption{Comparison of execution times}
+  \caption{Comparison of instrumentation phases}
   \label{tab:othertimes}
 \end{table}
 
 \section{Memory Overhead}
 \label{sec:pa_memory}
 
-\lipsum[1]
+In this section, we will see how the project affects the size of the produced binary
+(test results can be seen in Figure \ref{fig:binsize}).
+
+As we can see in Table \ref{tab:binsize}, in most cases the size of the binary
+increases by $\sim 10\%$. This is due to the Shadow Stack, CFG, and the instructions
+added during instrumentation.
+
+As for the time analysis, there are some exceptions. \textit{Prime}, \textit{Recursion}
+and their indirect variations present an overhead of $200\%$ or more. This happens
+because these recursive algorithms perform all the jumps and then all the returns.
+This means we must allocate a shadow stack big enough to store all the return
+addresses. For example, we have seen that the \textit{Recursive} algorithm performs
+around $4000$ jumps, this means that we must create a Shadow Stack that can
+store $4000$ addresses. Given that an address is stored as an \textit{unsigned
+int}, we can easily see that a Shadow Stack that can store $4000$ addresses occupies
+$4000*4 \ (size \ of \ an \ unsigned \ int) = 16000$ Bytes. Now, if we take the size
+of the binary for the \textit{Recursive} algorithm we can calculate
+$19808 - 16000 = 3808$, so we can see that apart from the Shadow Stack the binary
+has an overhead similar to the other ones.
+
+Note that this problem is related strictly to recursive algorithms as they perform
+a high number of jumps and then they start performing the first return instruction.
+However, we could have a similar problem with the Control Flow Graph as for a big
+binary like a firmware we can have many different jump instructions and, as a
+consequence, the CFG would increase in size.
 
 \begin{figure}[htbp]
   \centering
@@ -172,12 +245,49 @@
   \label{tab:binsize}
 \end{table}
 
-\section{Optimization Techniques}
-\label{sec:pa_optimization}
-
-\lipsum[1]
-
 \section{Results and Analysis}
 \label{sec:pa_results}
 
-\lipsum[1]
+In this section, we will discuss the obtained result and showcase the weak point
+of the project. As we have seen in the previous sections the project
+performances are not impacting the normal performances of the non-secure binary.
+Overall the project suffers an acceptable overhead both in terms of time and space
+but has some edge cases where this becomes too big.
+
+In the case of recursive algorithms, we have seen that the time overhead grows
+exponentially due to the high number of control transfer functions. Also, the
+size of the binary grows as we need a bigger Shadow Stack to store all the
+addresses needed to perform the edge controls. However, in the next section, we will
+see some optimization techniques that could be applied to the project to reduce the
+impact on size and time in these cases.
+
+Moreover, we have seen that if the code is composed of thousands of lines it is
+likely that the Control Flow Graph will be very big. This is because if we have many
+jump instructions from different sources to different destinations we must store
+each pair, thus the space occupied by the CFG grows.
+
+\section{Optimization Techniques}
+\label{sec:pa_optimization}
+
+In this section, we will see some optimizations that could be applied to the
+project to make it less impactful on the code.
+
+Firstly, in a situation where we need to store a high amount of addresses for a recursive
+algorithm, we could modify the Shadow Stack in the following way. If we see that
+a function calls itself many times we could store the address one time and,
+instead of popping it each time we could just peek at it. In this way, we could
+still perform the control but we would need to store the address only once, then
+if we need to check a different address we could pop the ``recursive'' address and
+then pop the following one to see if it matches the one we are checking. With
+such modification, we could effectively reduce the amount of space occupied by the
+Shadow Stack without impacting the security features that the project provides.
+
+Lastly, to optimize the Control Flow Graph in peculiar cases (like the aforementioned
+firmware one) we could use a Hash Table as already explained in Section
+\ref{sec:project_cfg}. As already explained, this solution consumes a lot of
+space to prevent collisions but, if the CFG is very big we could at least improve
+the time performances.
+
+In conclusion, we have seen that the project offers good performances but it has
+some edge cases where it impacts the performances in a severe way. However, it
+could be fine-tuned to adapt to such specific situations.
