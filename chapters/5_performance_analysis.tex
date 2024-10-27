@@ -7,13 +7,16 @@ Secondly, we will see the difference in size between the binaries. Lastly, we wi
 see an analysis of the obtained results as well as some optimization ideas to further
 improve the performance of the project.
 
+To perform a correct analysis of the performances of the project regarding the execution
+time we compiled and run $13$ algorithms plus $4$ variations with indirect jumps.
+All tests have been conducted on the aforementioned Espressif's board.
+
 \section{Time Performances}
 \label{sec:pa_time}
 
-To perform a correct analysis of the performances of the project regarding the
-execution time we compiled and run $13$ algorithms plus $4$ variations with
-indirect jumps. All tests have been conducted on the aforementioned Espressif's board
-(test result can be seen in Figures \ref{fig:lowtime} and \ref{fig:hightime}).
+In this section, we will see how the project affects the execution time of the
+code (test results can be seen in Figure 5.3). (test result can be seen in
+Figures \ref{fig:lowtime} and \ref{fig:hightime}).
 
 As we can see in Table \ref{tab:times}, in most cases the time overhead is not
 significant as it affects the fourth or fifth digit.

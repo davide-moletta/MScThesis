@@ -457,20 +457,82 @@ Thus, the execution is resumed with the interrupted return instruction.
 \section{Proof of Concept (PoC)}
 \label{sec:project_poc}
 
-In this section we will see why the provided solution works with a proof of
-concept.
+In this section, we will see why the proposed solution effectively provides security
+capabilities to a non-trusted and insecure code. Figure \ref{fig:functioning}
+depicts an abstraction of the project's flow.
 
 \begin{figure}[htbp]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/functioning.png} } %
   {\scriptsize }
-  \caption{Functioning}
+  \caption{Abstraction of the flow of execution}
   \label{fig:functioning}
 \end{figure}
 
-\section{Proof of Work (PoW)}
-\label{sec:project_pow}
+We have already seen that the \textit{Boot and Startup} and \textit{Machine code
+init} sections are used to configure the board and the machine configuration respectively.
+This part of the code is trusted so we are sure the machine will be configured
+properly. The only way to corrupt this part of the execution would be to modify the
+source code before compilation but, this is out of the project's scope.
 
-Proof of Work (PoW): If relevant, discuss any workload or performance
-measurements you used to validate the efficiency or scalability of your
-implementation.
+The same is true for the \textit{CFI Enforcer} section which is responsible for managing
+edge controls as well as other interrupts and exceptions. Even in this case, the
+source code has to be modified to tamper with the security features.
+
+On the other hand, the \textit{User code} section is untrusted and we can't make
+any assumptions on its functioning. The code could be well-written and somewhat
+secure but it could be full of flaws and we must prevent any attack that could
+be perpetrated through it. To do so, we use forward and backward edge controls
+together with the Shadow Stack and the Control Flow Graph.
+
+As already said, the Shadow Stack and the CFG are the most critical points of the
+project. We must secure them since they serve as oracles and we must be able to
+trust the data they contain. Since the CFG is configured statically we are sure that
+it can't be modified during execution, the Shadow Stack instead is designed to
+change since we need to push and pop values from it. However, since we protected
+the Shadow Stack with the PMP we can be sure that only privileged code has
+access to it and any other access generates a trap that is handled through the
+interrupt vector table. This means that, even if one tries to add or remove
+values from the stack the operation will be aborted immediately and our trust in
+the Shadow Stack remains intact.
+
+Now we will go through every possible scenario that could happen during a normal
+execution.
+
+As soon as a forward edge control is requested we check that the pair source-destination
+is valid thanks to the CFG. Let's say that an attacker tampered with the code to
+perform an unauthorized jump, in this case, the CFG will not contain such a pair
+since we said that it can't be modified. In this case, the unauthorized jump is detected
+and the code terminates immediately. Instead, if the pair is legal according to the
+CFG the jump is considered safe and the return address is pushed into the Shadow
+Stack. Note that since we compute the return address each time instead of
+trusting the one provided by the user code we are sure that the value inserted
+in the stack is correct and we can trust it.
+
+If a backward edge control is requested instead, we check that the return address
+provided by the user code is the one we are expecting by popping the last value that
+was inserted in the Shadow Stack. Again, let's say that an attacker tampered with
+the code to perform an unauthorized return, in this case, the addresses will not
+match and the execution is terminated. Note that the fact that we can trust the
+Shadow Stack is highly dependent on the configuration of the PMP. This is because,
+without a proper configuration, it would be possible for an attacker to push a value
+into the Shadow Stack and then tamper with the return address to effectively return
+to an unauthorized address.
+
+Moreover, when we try to push a value into a full Shadow Stack the execution is
+terminated. This is needed because if we are not able to push the address into the
+Shadow Stack we will not be able to make the next backward edge control and thus,
+the security would be compromised. Note that the same happens when we try to pop
+a value from an empty Shadow Stack since this means that we are checking a return
+instruction that was never meant to be performed.
+
+Lastly, we could design the enforcement of the backward edge controls in another
+way. If we need to control a return address and there is a mismatch we could force
+the user code to return to the address stored in the Shadow Stack which we know is
+safe. While this solution enforces Control Flow Integrity securely we can't be
+sure that the stack (referring to the normal stack used to store registers) has
+not been compromised and thus, terminating execution is a much safer choice.
+
+So, we have seen that this project effectively enforces Control Flow Integrity
+on an untrusted user application and that its security functionalities work as
+expected to prevent any attempt to perform unauthorized operations.

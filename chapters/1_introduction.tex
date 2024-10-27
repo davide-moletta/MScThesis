@@ -1,2 +1,30 @@
 \chapter{Introduction}
 \label{cha:introduction}
+
+In recent years the world of embedded devices grew exponentially, they are now integral
+part of our everyday life. From home assistants to smart furniture, embedded devices
+are used in many fields to accomplish diverse tasks. Moreover, they are often connected
+to the internet creating what is nowadays called Internet of Things (IoT). Given
+the amount of devices and, in some cases, their importance the interest of
+attackers in these small computers grew together with their use. Creating botnets,
+exfiltrating sensitive information and disrupting systems are only few of the
+possible reasons an attacker could be interested in taking control over an
+embedded device. This brings significant security issues that make the security analysis
+of embedded devices important.
+
+In this thesis we will see project name, an infrastructure designed to protect
+RISC-V based microcontrollers. The focus of this project is to provide essential
+security features to any unsafe code running on an embedded device. The main
+objective is to enforce Control Flow Integrity (CFI) to ensure that the program
+follows the expected paths and that its execution isn't hijacked.
+
+In the following chapter an introduction to the RISC-V Instruction Set
+Architecture (ISA) will be discussed, showcasing the main concept needed to understand
+the infrastructure underlying the project. After that, the project's implementation
+will be shown, highlighting its security features and how they are developed. Moreover,
+a Proof of Concept (PoC) will demonstrate how the project addresses threats and
+why it works. Furthermore, we will see a threat analysis and a performance
+analysis in which the weak points of the project are depicted. In these sections
+we will also see why the project effectively poses as a possible solution for the
+protection of embedded devices. Lastly, we will see how FreeRTOS could be implemented
+into the project to allow more complex programs to run in the secure environment.

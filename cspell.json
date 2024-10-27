@@ -28,6 +28,7 @@
     "CSRRS",
     "CSRRW",
     "ecalls",
+    "exfiltrating",
     "Guilaume",
     "Guillaume",
     "Hiet",
@@ -40,6 +41,7 @@
     "lightgray",
     "Lyubka",
     "Matthieu",
+    "microcontroller",
     "microcontrollers",
     "MPRV",
     "nonstopmode",
@@ -59,6 +61,7 @@
     "Wilke",
     "Xcfg",
     "xleftmargin",
-    "XLEN"
+    "XLEN",
+    "Xuan"
   ]
 }

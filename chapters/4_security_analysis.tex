@@ -1,14 +1,109 @@
 \chapter{Threat Analysis}
 \label{cha:ta}
 
+This chapter discusses the security assumptions, testing methodologies, and
+threat resilience of the project. The threat model focuses on mitigating unauthorized
+control flow changes in embedded systems, primarily targeting embedded
+microcontrollers running untrusted code. Results from simulated attacks and testing
+procedures demonstrate the enforcer's effectiveness in preserving CFI while noting
+certain limitations and potential areas for improvement.
+
 \section{Threat Model}
 \label{sec:ta_model}
+
+The project assumes an attacker can inject or modify code within user-mode
+applications on a RISC-V processor but cannot alter the control flow enforcer
+itself or modify privileged memory regions without triggering traps. Specific assumptions
+about the threat model include:
+
+\begin{itemize}
+  \item Adversarial Capabilities: an attacker can attempt arbitrary jumps and
+    returns, bypassing the usual program flow through techniques like stack manipulation
+    or by leveraging vulnerabilities in user code. However, they cannot execute code
+    at the privileged Machine (M-mode) level or alter protected memory regions without
+    generating traps;
+
+  \item Control Flow Modification: the system protects against unauthorized
+    jumps and returns, ensuring that all control transfers adhere to the pre-defined
+    Control Flow Graph and Shadow Stack constraints. This model includes forward-edge
+    checks (for jumps) and backward-edge checks (for returns);
+
+  \item Memory Integrity: the Physical Memory Protection configuration ensures
+    that critical data structures, including the CFG and Shadow Stack, are
+    inaccessible to untrusted applications. This setup is crucial to maintaining
+    CFI, as it ensures the integrity of the ``oracle'' data structures that
+    validate legitimate control flows.
+\end{itemize}
+
+However, this threat model does not cover direct hardware-level attacks, such as
+physical tampering, or attacks that compromise the system before initialization.
 
 \section{Testing Methodologies}
 \label{sec:ta_methodologies}
 
-\section{Results and Analysis}
-\label{sec:ta_analysis}
+To assess the robustness of the project, we conducted tests using various static
+and dynamic techniques. These tests verified the effectiveness of forward and
+backward edge controls, memory protection, and the system's handling of edge
+cases.
+
+Manual static analysis was conducted to cover all the expected cases and to make
+design choices. This analysis led to the actual implementation of the project where
+all the ``standard'' routes have been manually vetted to determine their correctness.
+
+Furthermore, we performed dynamic testing of edge controls to test their
+secureness. This analysis has been performed by injecting in the code instructions
+to modify the jump and return addresses. With such instructions, we tried to perform
+unauthorized control transfers and, in all cases the Control Flow Integrity
+Enforcer was able to detect the instruction and prevent the control transfer. During
+this phase, we also tested the trustfulness of the Shadow Stack and Control Flow
+Graph and, both the structures resulted in secure and correct decisions on whether
+an instruction was legal or not.
+
+Moreover, we conducted some tests to check the PMP configuration. Such tests involved
+trying to access secure parts of the memory from the user code. As a result, we determined
+that each access both in read and write mode resulted in the generation of a trap.
+This testing validated that PMP effectively restricts access, protecting the integrity
+of the Shadow Stack and Control Flow Graph.
+
+Lastly, we performed tests on edge cases. These tests were conducted to verify system
+behavior under peculiar circumstances such as an empty or full Shadow Stack.
+Test results show that the system is capable of managing such edge cases and can
+be trusted even in unexpected situations.
 
 \section{Limitations}
 \label{sec:ta_limitations}
+
+While the project demonstrates substantial threat resilience, certain
+limitations remain.
+
+As we will see in the next chapter, the Shadow Stack requirements for deeply recursive
+functions present a scalability issue, especially in memory-constrained
+environments. Recursive functions with large call depths may cause the Shadow Stack
+to overflow, which could halt execution prematurely. Even if this does not affect
+security it could prevent the utilization of the project in microcontrollers with
+very small memory capabilities.
+
+Moreover, as this threat model does not address hardware-level attacks, it does not
+cover scenarios where attackers may physically tamper with the microcontroller.
+To protect against such attacks, additional hardware-based security mechanisms would
+be necessary.
+
+Furthermore, there could be edge cases that have not been discovered which could
+lead to potential exploitations of the project. However, these can be discovered
+through exhaustive testing.
+
+Lastly, we can't know if vulnerabilities related to the RISC-V Instruction Set Architecture
+could lead to the exploitation of the user code. In such case, we can't be sure that
+the project will be able to protect the Control Flow Integrity and prevent exploitation.
+For example, the recently discovered hardware vulnerability in \textit{T-Head's
+XuanTie C910 and C920} CPUs named ``\textit{GhostWrite}'' \cite{riscvuzz} allow an
+attacker with limited privileges to read and write from and to physical memory.
+This type of vulnerability could not be prevented with the project's security
+features.
+
+In summary, the project provides robust protection against unauthorized control flows
+in RISC-V microcontrollers, particularly effective in embedded environments
+where code integrity is paramount. While the model is limited in handling recursion-heavy
+applications and relies on PMP for data protection, it nonetheless establishes a
+secure foundation for CFI, with the potential for further optimization in future
+iterations.
