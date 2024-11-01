@@ -1,30 +1,77 @@
 \chapter{Introduction}
 \label{cha:introduction}
 
-In recent years the world of embedded devices grew exponentially, they are now integral
-part of our everyday life. From home assistants to smart furniture, embedded devices
-are used in many fields to accomplish diverse tasks. Moreover, they are often connected
-to the internet creating what is nowadays called Internet of Things (IoT). Given
-the amount of devices and, in some cases, their importance the interest of
-attackers in these small computers grew together with their use. Creating botnets,
-exfiltrating sensitive information and disrupting systems are only few of the
-possible reasons an attacker could be interested in taking control over an
-embedded device. This brings significant security issues that make the security analysis
-of embedded devices important.
+In recent years, the world of embedded devices has experienced exponential growth,
+with these small computing units becoming a fundamental part of daily life. From
+smart home assistants and appliances to integrated furniture, embedded devices
+are now widely deployed across various domains, performing a wide array of tasks
+and transforming everyday environments. A defining feature of these devices is
+their connectivity, as many of them are linked to the Internet, creating what is
+known as the Internet of Things (IoT). The ``\textit{State of IoT Summer 2024}''
+report showed that, by the end of $2023$, there were $16.6$ billion connected
+devices and this number is expected to grow to $18.8$ billion during $2024$\footnote{\url{https://iot-analytics.com/number-connected-iot-devices/}}.
 
-In this thesis we will see project name, an infrastructure designed to protect
-RISC-V based microcontrollers. The focus of this project is to provide essential
-security features to any unsafe code running on an embedded device. The main
-objective is to enforce Control Flow Integrity (CFI) to ensure that the program
-follows the expected paths and that its execution isn't hijacked.
+While the Internet of Things amplifies the usefulness and capabilities of embedded
+devices, it also introduces potential vulnerabilities as they can easily be
+reached by outside threats. Given their prevalence and, in some cases, their critical
+functions, embedded devices have become attractive targets for attackers who
+exploit their accessibility and computational limitations. Threat actors may seek
+to compromise these devices to create botnets, exfiltrate sensitive data, or disrupt
+systems, among other malicious purposes. In $2022$ there were approximately $112$
+million IoT cyberattacks\footnote{\url{https://1nce.com/en-us/resources/news/blog/iot-cybersecurity-landscape}}
+while, in the first half of $2024$, we saw a $107\%$ increase in attacks as
+stated by the ``\textit{2024 Mid-Year Cyber Threat Report}''\footnote{\url{https://www.sonicwall.com/threat-report}}
+published from \textit{SonicWall}. These numbers underscore the urgent need for
+robust security measures, making the study and implementation of security protocols
+for embedded devices a pressing research area.
 
-In the following chapter an introduction to the RISC-V Instruction Set
-Architecture (ISA) will be discussed, showcasing the main concept needed to understand
-the infrastructure underlying the project. After that, the project's implementation
-will be shown, highlighting its security features and how they are developed. Moreover,
-a Proof of Concept (PoC) will demonstrate how the project addresses threats and
-why it works. Furthermore, we will see a threat analysis and a performance
-analysis in which the weak points of the project are depicted. In these sections
-we will also see why the project effectively poses as a possible solution for the
-protection of embedded devices. Lastly, we will see how FreeRTOS could be implemented
-into the project to allow more complex programs to run in the secure environment.
+However, the problem is that many embedded devices have limited hardware
+resources as they may be designed to carry out simple tasks. This means that we must
+apply security measures that are within the device's capabilities without affecting
+its performance. This is a challenge because, in specific cases, we may need to
+design tailored security features to protect devices.
+
+In this thesis, we introduce \textit{project name}, an infrastructure aimed at securing
+RISC-V-based microcontrollers. The primary goal of this project is to establish
+essential security features that can safeguard any potentially unsafe code
+running on an embedded device. Central to this security solution is the enforcement
+of Control Flow Integrity (CFI), which ensures that the program's execution
+follows its intended path and prevents unauthorized control flow alterations. By
+implementing CFI, \textit{project name} can detect and mitigate control-flow hijacking
+attacks, enhancing the overall security of the system.
+
+The structure of this thesis is organized to facilitate a comprehensive
+understanding of both the theoretical and practical aspects of the project. The following
+chapter begins with an introduction to the RISC-V Instruction Set Architecture (ISA),
+presenting the foundational concepts necessary for understanding the
+architectural structure of \textit{project name}. A detailed overview of the
+project's implementation then follows, where specific security features and mechanisms
+designed to counteract common attack vectors are discussed. This section will
+include explanations of the steps taken to fortify RISC-V microcontrollers
+against unauthorized control-flow tampering.
+
+Furthermore, a Proof of Concept (PoC) is included to demonstrate the practical application
+and effectiveness of \textit{project name} in real-world scenarios. This PoC will
+exemplify how the project addresses critical security threats, illustrating its
+impact on device resilience and system integrity. A subsequent threat analysis will
+examine the types of attacks the project is designed to defend against,
+assessing its effectiveness and identifying any potential vulnerabilities that
+may need further consideration. A performance analysis is also provided, where
+the trade-offs between security and system efficiency are evaluated. This analysis
+will help highlight the strengths and limitations of the project and explain why
+it represents a feasible solution for enhancing the security of embedded devices.
+
+Finally, the thesis explores the potential integration of \textit{FreeRTOS}, a
+widely-used real-time operating system for embedded devices, into \textit{project
+name}. This integration could extend the project's applicability, enabling more
+complex programs to operate within the secure environment provided by the
+infrastructure. By supporting an established OS like \textit{FreeRTOS}, the project
+could broaden its reach and utility, making it suitable for a larger variety of
+use cases in the embedded device domain.
+
+In summary, this thesis presents a novel approach to securing RISC-V microcontrollers,
+leveraging Control Flow Integrity to protect against control-flow attacks and
+providing a secure foundation for running potentially unsafe code. Through detailed
+technical exploration, demonstration, and analysis, this work aims to contribute
+a significant advancement to the field of embedded device security, addressing both
+current and emerging threats in the IoT landscape.
