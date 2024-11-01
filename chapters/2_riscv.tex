@@ -1,118 +1,141 @@
 \chapter{RISC-V}
 \label{cha:riscv}
 
-This chapter provides a detailed background on the RISC-V ISA and the aspects
-that are necessary to understand the underlying infrastructure of the project.
+\textit{RISC-V} is an open standard Instruction Set Architecture (ISA) based on the
+principles of Reduced Instruction Set Computing (RISC). Unlike proprietary ISAs
+like \textit{x86} and \textit{ARM}, \textit{RISC-V} is designed to be open and
+free, enabling anyone to develop compatible hardware and software without licensing
+fees. This openness makes it highly appealing for academia, research, and
+commercial applications, as companies can design custom processors tailored to specific
+applications while avoiding vendor lock-in.
 
-RISC-V is an open-source, modular Instruction Set Architecture (ISA) developed by
-the University of California, Berkeley\cite{riscv}. Unlike proprietary ISAs such
-as ARM and x86, RISC-V is designed to be flexible and extensible, enabling
-researchers, developers, and companies to build custom processors without
-licensing fees.
+The \textit{RISC-V} ISA has been defined as an interface to a wide variety of
+implementations rather than as the design of a particular hardware. This means that
+the same ISA can be used with many processors and it is not tailored to a specific
+one leaving space to customization, flexibility, and reusability.
 
-The core design philosophy behind RISC-V emphasizes simplicity, modularity, and
-extensibility. Its open nature makes it a preferred platform for developing secure
-and innovative solutions.
+In the following sections we provide a detailed background on the \textit{RISC-V}
+ISA and the aspects that are necessary to understand the underlying
+infrastructure of the project\footnote{Every information will refer to the $32$-bit
+\textit{RV32I} ISA since it is the one utilized in the project.}\footnote{Most
+of the information in this chapter is taken from both the Unprivileged and
+Privileged Specifications\cite{specifications} published from \textit{RISC-V}
+International.}.
 
-In this thesis, every piece of information will refer to the 32-bit ISA utilized
-for the project development. Also, note that most of the information in this
-chapter is taken from both the Unprivileged and Privileged Specifications\cite{specifications}
-published from RISC-V International.
-
-\section{RISC-V Instruction Set Architecture Overview}
+\section{RISC-V ISA Overview}
 \label{sec:riscv_isa}
 
-The RISC-V ISA is structured around a minimal base integer ISA, which is mandatory
-for all implementations. This base is designed with simplicity, providing enough
-instructions for essential software tools while allowing for extensive customization
-and specialization through additional extensions.
+The \textit{RISC-V} ISA is structured around a minimal base integer ISA, which is
+mandatory for all implementations. Even if we refer to the ``base integer ISA''
+there are actually four base ISAs within the \textit{RISC-V} family: \textit{RV32I},
+\textit{RV64I}, \textit{RV32E}, and \textit{RV64E}, each differing primarily in
+the width of integer registers ($32$ or $64$ bits) and the number of available
+registers (\textit{E} ISAa support half the number of registers). These
+variations support different use cases, from small microcontrollers (\textit{RV32E}
+and \textit{RV64E}) to larger systems (\textit{RV64I}). Moreover, RISC-V
+International is currently working on a $128$-bit ISA known as \textit{RV128I}.
 
-There are four main base ISAs within the RISC-V family: RV32I, RV64I, RV32E, and
-RV64E, each differing primarily in the width of integer registers (32 or 64 bits)
-and the number of available registers. These variations support different use cases,
-from small microcontrollers (RV32E and RV64E) to larger systems (RV64I). Moreover,
-RISC-V International is currently working on a 128-bit ISA.
+These base ISAs are designed to provide the bare minimum instructions for essential
+software tools while allowing for extensive customization and specialization through
+additional extensions.
 
-These base ISAs can be expanded thanks to extensions that allow modification of
-the ISA according to the implementation needs.
+To accommodate customization, \textit{RISC-V} divides each instruction-set encoding
+space into three categories:
+\begin{itemize}[noitemsep]
+  \item Standard extensions and encodings are defined by \textit{RISC-V
+    International}. Such extensions are designed to not conflict with each other;
 
-To accommodate customization, RISC-V divides instruction encoding space into three
-categories: standard (defined by RISC-V International), reserved (for future use),
-and custom (for vendor-specific extensions). This segmentation supports the creation
-of specialized ISAs without conflicting with the core architecture.
+  \item Reserved encodings are currently not defined and are saved for future use;
+
+  \item Custom encodings are made available for vendor-specific non-standard extensions.
+\end{itemize}
+This segmentation supports the creation of specialized ISAs without conflicting
+with the core architecture.
 
 \section{RISC-V Extensions}
 \label{sec:riscv_extensions}
 
-RISC-V’s standard extensions are officially supported and maintained by RISC-V
-International. They add functionality to the base ISA while ensuring compatibility
-across different implementations. These extensions are designed to enhance
-performance, reduce power consumption, or expand the processor's capability to
-handle specific tasks efficiently (standard extensions can be seen in Table \ref{tab:extensions}).
+\textit{RISC-V}'s standard extensions are officially supported and maintained by
+\textit{RISC-V International}. They add functionality to the base ISA while
+ensuring compatibility across different implementations. These extensions are designed
+to enhance performance, reduce power consumption, or expand the processor's capability
+to handle specific tasks efficiently (standard extensions can be seen in Table
+\ref{tab:extensions}).
 
-Standard extensions can be used together to obtain the needed capabilities for
-each specific situation. Moreover, RISC-V’s open architecture allows for the
+Standard extensions can be used together to obtain the needed capabilities for each
+specific situation. Moreover, \textit{RISC-V}'s open architecture allows for the
 creation of custom extensions, enabling developers to implement specialized instructions
 for domain-specific optimizations. However, while these custom extensions provide
 powerful optimizations, they are not standardized, so compatibility across different
 implementations is not guaranteed.
 
+The ISA used in this project is \textit{RV32IMC\_ZICSR} where \textit{RV32I} stands
+for the base integer ISA, \textit{M} is used to provide multiplication and division
+instructions, and \textit{C} is used to provide compressed instructions which are
+useful in restricted environments like embedded devices. \textit{ZICSR} is an additional
+extension that will be discussed later.
+
 \begin{table}
   \centering
   \begin{tabular}{|c|c|}
     \hline
-    \textbf{Extension} & \textbf{Description}                \\
+    \textbf{Extension Code} & \textbf{Description}                \\
     \hline
-    A                  & Atomic instructions                 \\
+    A                       & Atomic instructions                 \\
     \hline
-    B                  & Bit manipulation                    \\
+    B                       & Bit manipulation                    \\
     \hline
-    C                  & Compressed instructions             \\
+    C                       & Compressed instructions             \\
     \hline
-    D                  & Double-precision floating-point     \\
+    D                       & Double-precision floating-point     \\
     \hline
-    F                  & Single-precision floating-point     \\
+    F                       & Single-precision floating-point     \\
     \hline
-    G                  & Shorthand for IMAFD extensions      \\
+    G                       & Shorthand for IMAFD extensions      \\
     \hline
-    H                  & Hypervisor extension                \\
+    H                       & Hypervisor extension                \\
     \hline
-    J                  & Dynamically translated languages    \\
+    J                       & Dynamically translated languages    \\
     \hline
-    L                  & Decimal floating-point              \\
+    L                       & Decimal floating-point              \\
     \hline
-    M                  & Integer multiplication and division \\
+    M                       & Integer multiplication and division \\
     \hline
-    N                  & User-level interrupts               \\
+    N                       & User-level interrupts               \\
     \hline
-    P                  & Packed-SIMD instructions            \\
+    P                       & Packed-SIMD instructions            \\
     \hline
-    Q                  & Quad-precision floating-point       \\
+    Q                       & Quad-precision floating-point       \\
     \hline
-    S                  & Supervisor mode                     \\
+    S                       & Supervisor mode                     \\
     \hline
-    T                  & Transactional memory                \\
+    T                       & Transactional memory                \\
     \hline
-    V                  & Vector operations                   \\
+    V                       & Vector operations                   \\
     \hline
   \end{tabular}
-  \caption{RISC-V standard extensions}
+  \caption{\textit{RISC-V} Standard Extensions}
   \label{tab:extensions}
 \end{table}
 
 \section{RISC-V Base Instruction Formats}
 \label{sec:riscv_bif}
 
-The base RV32I ISA uses four main instruction formats: \texttt{R}, \texttt{I},
-\texttt{S}, and \texttt{U}, all fixed at 32 bits and aligned to a four-byte
-boundary in memory (shown in Figure \ref{fig:instrformats}).
+The base \textit{RISC-V} ISA has fixed-length $32$-bit instructions that must be
+aligned to a four-byte boundary in memory. However, the \textit{C} extension for
+compressed instructions relaxes this requirement and allows to include $16$-bit long
+instructions aligned at a two-byte boundary.
 
-Additionally, RV32I includes formats \texttt{B} and \texttt{J} (shown in Figure
-\ref{fig:extrainstrformats}), which vary in immediate encoding to optimize
-hardware design. The immediate structure across formats is designed to minimize hardware
-complexity and overlap, focusing on efficiency for both compilation and runtime
-execution. Sign-extension and fixed bit positioning help reduce hardware costs and
-reduce complexity in simple implementations.
+The base \textit{RV32I} ISA uses four main instruction formats: \textit{R}, \textit{I},
+\textit{S}, and \textit{U}, all fixed at $32$ bits in length (shown in Figure
+\ref{fig:instrformats}).
+
+Additionally, RV32I includes formats \texttt{B} and \texttt{J} (shown in Figure \ref{fig:extrainstrformats}),
+which vary in immediate encoding to optimize hardware design. The immediate
+structure across formats is designed to minimize hardware complexity and overlap,
+focusing on efficiency for both compilation and runtime execution. Sign-extension
+and fixed bit positioning help reduce hardware costs and reduce complexity in
+simple implementations.
 
 \begin{figure}[htbp]
   \centering
@@ -129,6 +152,21 @@ reduce complexity in simple implementations.
   \caption{RISC-V Extra Instruction Formats}
   \label{fig:extrainstrformats}
 \end{figure}
+
+The \textit{RISC-V} ISA keeps the source (\textit{RS1} and \textit{RS2}) and destination
+(\textit{RD}) registers in the same position to simplify instruction decoding. Immediate
+values (\textit{IMM}) are always sign-extended and generally stored in the most
+significant available bits. Lastly, \textit{FUNCT3}, \textit{FUNCT7} and \textit{OPCODE}
+are used to define the operation.
+
+\subsection{Control Transfer Instructions}
+\label{subsec:riscv_controltransfer}
+
+\subsubsection{Unconditional Jumps}
+\label{subsubsec:riscv_unconditionalj}
+
+\subsubsection{Conditional Branches}
+\label{subsubsec:riscv_conditionalb}
 
 \section{RISC-V Exceptions, Traps and Interrupts}
 \label{sec:riscv_eti}
