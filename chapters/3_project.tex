@@ -1,42 +1,53 @@
 \chapter{Control Flow Integrity Enforcer}
 \label{cha:project}
 
-In this chapter, we will see the project's goals and its design methodology. We
-will also see the key aspects that allow to ensure Control Flow Integrity.
+This chapter focuses on \textit{project name}'s implementation. We will see the
+goals and specifics of the project as well as a detailed description of every
+key aspect of the development. Lastly, a Proof of Concept is discussed to prove
+the functioning and security capabilities of \textit{project name}.
 
 \section{Project Formalization}
 \label{sec:project_formalization}
 
-This project aims to enforce Control Flow Integrity on RISC-V-based microcontrollers.
-The basic idea of the project is to be able to run code in User mode and ensure
-that the expected execution path is followed. In other words, this project aims
-at running User code securely, protecting it from attacks such as Arbitrary code
-execution.
+This project aims at providing a secure infrastructure for embedded devices
+based on the \textit{RISC-V} ISA. The main goal is to protect the device from
+control-flow attacks such as Return-Oriented Programming (ROP) attacks. To do so,
+\textit{project name} provides a Control Flow Integrity (CFI) Enforcer which ensures
+that the software follows the expected path. Moreover, it provides instrumenting
+capabilities to automatize the implementation of any code.
 
-This project makes use of RISC-V capabilities like the PMP and state-of-the-art solutions
-like a Shadow Stack and a Control Flow Graph to implement secure spaces of memory
-to ensure the correctness of the policies.
+Control Flow Integrity is a security technique that does not allow control transfers
+that are not part of the Control Flow Graph (CFG) of the binary.
+
+\textit{project name} makes it possible to run untrusted code in a secure
+environment protecting the execution path of the software and ensures that any
+attack attempt will be detected by the CFI Enforcer and thus, the device will not
+be compromised.
+
+This project makes use of \textit{RISC-V} capabilities like the PMP to implement
+secure spaces of memory. It also utilizes state-of-the-art solutions like a Shadow
+Stack and a Control Flow Graph to ensure the correctness of the policies.
 
 \section{Project Specifics}
 \label{sec:project_specifics}
 
-In this Section, we will see the specifics of the project. All the development
-has been made on Espressif's \textit{ESP32-C3-DevKitM-1} \cite{esp32c3} and the basic
-configuration for bare-metal flashing is provided by Sergey Lyubka\cite{mdk}. Moreover,
-the chosen ISA is the \textit{RV32imc\_zicsr}, where \textit{zicsr} is used to import
-CSR instructions. Lastly, {riscv-unknown-gcc} toolchain has been used to cross-compile
-the code. However, given the openness and modularity of RISC-V, any of these
-settings can be modified according to one needs as the project has been
-developed following the idea of RISC-V about hardware abstraction.
-
 \begin{wrapfigure}
-  {r}{.25\textwidth} %
+  {l}{.3\textwidth}
   \centering
-  \def\stackalignment{r}\stackunder{ \includegraphics[width=\linewidth]{images/workingtree.png} } %
-  {\scriptsize \parbox[t]{\linewidth}}
+  \def\stackalignment{l}\stackunder{ \includegraphics[width=\linewidth]{images/workingtree.png} } %
+  {\scriptsize \parbox[t]{\linewidth}{}}
   \caption{Project working tree}
   \label{fig:workingtree}
 \end{wrapfigure}
+
+In this Section, we will see the specifics of the project. All the development has
+been made on Espressif's \textit{ESP32-C3-DevKitM-1} \cite{esp32c3} and the
+basic configuration for bare-metal flashing is provided by Sergey Lyubka\cite{mdk}.
+Moreover, the chosen ISA is the \textit{RV32imc\_zicsr}, where \textit{zicsr} is
+used to import CSR instructions. Lastly, {riscv-unknown-gcc} toolchain has been
+used to cross-compile the code. However, given the openness and modularity of
+RISC-V, any of these settings can be modified according to one needs as the project
+has been developed following the idea of RISC-V about hardware abstraction.
 
 Figure \ref{fig:workingtree} depicts the working tree of the project, where:
 \begin{itemize}
@@ -177,7 +188,7 @@ address.
 la a7, target_function
 ecall
 jal instruction
- \end{lstlisting}
+\end{lstlisting}
   \caption{Direct jump code block}
   \label{fig:dirjumpblock}
 \end{figure}
