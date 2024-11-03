@@ -389,7 +389,7 @@ and the code blocks that we inject modify the value of \textit{a7}.
 If one wish to add a new custom \textit{ECALL} code for other purposes he just
 need to put a control before the code checks if the code is even or not. Say that
 we want to add code $2$ to perform a specific operation. To do so, we just need to
-add a check like \textit{else if(code == 2) \{perform operation\}} after the
+add a check like \textit{else if(ecode == 2) \{perform operation\}} after the
 first check, if the check fails the code will eventually check if the code is even
 or not and perform the corresponding control.
 
