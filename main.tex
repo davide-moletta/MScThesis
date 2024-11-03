@@ -35,6 +35,7 @@
 \usepackage{enumitem}
 \usepackage{listings}
 
+\usepackage{xcolor}
 \usepackage{hhline}
 
 \lstdefinestyle{Assembly}{ backgroundcolor=
@@ -65,6 +66,48 @@ xleftmargin=10pt }
 , numbers=left, stepnumber=1, numbersep=5pt, frame=single, tabsize=4, captionpos=b,
 breaklines=true, breakatwhitespace=false, showspaces=false, showstringspaces=false,
 showtabs=false, xleftmargin=10pt, language=C }
+
+\lstdefinelanguage[RISC-V]{Assembler}{ alsoletter={.}, % allow dots in keywords
+alsodigit={0x}, % hex numbers are numbers too!
+morekeywords=[1]{ % instructions
+lb, lh, lw, lbu, lhu, sb, sh, sw, sll, slli, srl, srli, sra, srai, add, addi, sub, lui, auipc, xor, xori, or, ori, and, andi, slt, slti, sltu, sltiu, beq, bne, blt, bge, bltu, bgeu, j, jr, jal, jalr, ret, scall, break, nop },
+morekeywords=[2]{ % sections of our code and other directives
+.align, .ascii, .asciiz, .byte, .data, .double, .extern, .float, .globl, .half, .kdata, .ktext, .set, .space, .text, .word },
+morekeywords=[3]{ % registers
+zero, ra, sp, gp, tp, s0, fp, t0, t1, t2, t3, t4, t5, t6, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, a0, a1, a2, a3, a4, a5, a6, a7 },
+morecomment=[l]{;}, % mark ; as line comment start
+morecomment=[l]{\#}, % as well as # (even though it is unconventional)
+morestring=[b]", % mark " as string start/end
+morestring=[b]' % also mark ' as string start/end
+}
+
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{ basicstyle=\ttfamily, % very small code
+breaklines=true, % break long lines
+commentstyle=\itshape
+\color{green!50!black}
+, % comments are green
+keywordstyle=[1]
+\color{blue!80!black}
+, % instructions are blue
+keywordstyle=[2]
+\color{orange!80!black}
+, % sections/other directives are orange
+keywordstyle=[3]
+\color{red!50!black}
+, % registers are red
+stringstyle=
+\color{mauve}
+, % strings are from the telekom
+identifierstyle=
+\color{teal}
+, % user declared addresses are teal
+frame=l, % black line on the left side of code
+language=[RISC-V]Assembler, % all code is RISC-V
+tabsize=4, % indent tabs with 4 spaces
+showstringspaces=false % do not replace spaces with weird underlines
+}
 
 % Document
 \begin{document}

@@ -19,6 +19,10 @@ capabilities to automatize the implementation of any code.
 Control Flow Integrity is a security technique that does not allow control transfers
 that are not part of the Control Flow Graph (CFG) of the binary.
 
+Another goal of this project is to be as lightweight as possible to meet the performance
+requirements of less powerful devices. Thus, great importance is given to optimization
+of both space and time consumption.
+
 \textit{project name} makes it possible to run untrusted code in a secure
 environment protecting the execution path of the software and ensures that any
 attack attempt will be detected by the CFI Enforcer and thus, the device will not
@@ -32,94 +36,119 @@ Stack and a Control Flow Graph to ensure the correctness of the policies.
 \label{sec:project_specifics}
 
 \begin{wrapfigure}
-  {l}{.3\textwidth}
+  {l}{.25\textwidth}
   \centering
   \def\stackalignment{l}\stackunder{ \includegraphics[width=\linewidth]{images/workingtree.png} } %
-  {\scriptsize \parbox[t]{\linewidth}{}}
-  \caption{Project working tree}
+  {\scriptsize }
+  \caption{Working Tree}
   \label{fig:workingtree}
 \end{wrapfigure}
 
-In this Section, we will see the specifics of the project. All the development has
-been made on Espressif's \textit{ESP32-C3-DevKitM-1} \cite{esp32c3} and the
-basic configuration for bare-metal flashing is provided by Sergey Lyubka\cite{mdk}.
-Moreover, the chosen ISA is the \textit{RV32imc\_zicsr}, where \textit{zicsr} is
-used to import CSR instructions. Lastly, {riscv-unknown-gcc} toolchain has been
-used to cross-compile the code. However, given the openness and modularity of
-RISC-V, any of these settings can be modified according to one needs as the project
-has been developed following the idea of RISC-V about hardware abstraction.
+The project has been developed on \textit{Espressif's ESP32-C3-DevKitM-1}
+\cite{esp32c3} and the basic configuration for bare-metal flashing on such board
+is derived by Sergey Lyubka's project \textit{mdk}\cite{mdk}. Lastly, the
+\textit{riscv-none-elf}\cite{toolchain} toolchain has been used to cross-compile
+the code. However, since the project has been developed following the ideas of
+\textit{RISC-V} about hardware abstraction any of these settings can be modified
+according to one needs\footnote{Note that if we wish to change the target board,
+all vendor-specific files needed to flash the code must replace \textit{Espressif}'s
+files}.
 
 Figure \ref{fig:workingtree} depicts the working tree of the project, where:
 \begin{itemize}
-  \item esp32c3 contains the boot configuration and the linker script;
+  \item \textit{esp32} contains the boot configuration and linker script for
+    general \textit{Espressif}'s boards;
 
-  \item esputil contains Espressif's utils to manage the board;
+  \item \textit{esp32c3} contains the boot configuration and linker script for
+    the \textit{ESP32-C3};
 
-  \item src/cfi/usercode contains the imported code that needs protection during
-    execution;
+  \item \textit{esputil} contains \textit{Espressif}'s utils used to manage the board;
 
-  \item src/cfi contains the files used to implement the Shadow Stack, Control
+  \item \textit{src/cfi/usercode} contains the untrusted code that needs
+    protection during execution. The code inside this folder will be the target for
+    code instrumentation;
+
+  \item \textit{src/cfi} contains the source files for the Shadow Stack, Control
     Flow Graph, interrupt vector table and machine setup;
 
-  \item toolsExtra contains the Python files used to instrument and flash the code.
+  \item \textit{toolsExtra} contains the Python scripts used to instrument, build,
+    and flash the code.
 \end{itemize}
 
-The scripts inside toolsExtra are used to compile, instrument, and run the code
-(detailed description in Section \ref{sec:project_instrumentation}). Moreover,
-the file \textit{CFGextractor.py} is used to extract a Control Flow Graph of the
+The scripts inside \textit{toolsExtra} are used to compile, instrument, and run
+the code (detailed description in Section \ref{sec:project_instrumentation}). Moreover,
+the file \textit{CFGextractor.py} is used to extract the Control Flow Graph of the
 code.
 
-Inside src/cfi instead, we find the code responsible for managing the Machine
-mode operations. File \textit{main.c} is responsible for setting up interrupts, managing
-privilege modes, and setting up both the PMP (detailed description in Section \ref{sec:project_pmp})
-and the interrupt vector table (detailed description in Section \ref{sec:project_isr}).
-File \textit{intr\_vetor\_table.c} is responsible for managing interrupts and
-exceptions as well as performing controls on both forward and backward checks (detailed
-description in Section \ref{sec:project_controls}). Files \textit{cfg.c} and
-\textit{shadow\_stack.c} hold the Control Flow Graph and the Shadow Stack respectively
-(detailed description in Sections \ref{sec:project_cfg} and \ref{sec:project_ss}).
-Lastly, \textit{ij\_logger.c} is used to retrieve indirect jump addresses thanks
-to a logger.
+Inside \textit{src/cfi} instead, we find the code responsible for managing the machine
+mode operations. File \textit{main.c} is responsible for setting up interrupts,
+managing privilege modes, and setting up both the PMP (detailed description in
+Section \ref{sec:project_pmp}) and the interrupt vector table (detailed
+description in Section \ref{sec:project_isr}). File \textit{intr\_vector\_table.c}
+is responsible for managing interrupts and exceptions as well as performing controls
+on both forward and backward checks (detailed description in Section
+\ref{sec:project_controls}). Files \textit{cfg.c} and \textit{shadow\_stack.c}
+hold the Control Flow Graph and the Shadow Stack configurations respectively (detailed
+description in Sections \ref{sec:project_cfg} and \ref{sec:project_ss}). Lastly,
+\textit{ij\_logger.c} is used to retrieve indirect jump addresses thanks to a logger.
 
 \section{Code Instrumentation}
 \label{sec:project_instrumentation}
 
-Code instrumentation plays a critical role in this project as it allows to modification
-of any code in a simple yet effective way. The whole instrumentation procedure
-is depicted in Figure \ref{fig:instrumentation}.
+Code instrumentation is the process of modifying software (usually binary or assembly
+code) by inserting instructions to perform specific tasks such as a performance
+analysis. Instrumentation plays a critical role in this project as it allows to modify
+the untrusted code in a simple yet effective way. Moreover, this automatize the process
+leading to faster development and lower number of errors. The whole
+instrumentation procedure is depicted in Figure \ref{fig:instrumentation}.
 
 \begin{figure}[htbp]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/instrumentation.png} } %
   {\scriptsize }
-  \caption{Code Instrumentation Flow}
+  \caption{Flow of the Code Instrumentation Procedure}
   \label{fig:instrumentation}
 \end{figure}
 
-We can run \textit{flasher.py} with four commands:
+The script \textit{flasher.py} can be run with the command \textit{python3
+flasher.py [command]}, where \textit{command} can be:
 \begin{itemize}[noitemsep]
-  \item build: builds the source files to produce the binary;
+  \item \textit{build}: for building the source files and producing the binary;
 
-  \item run: builds and runs the binary on the board;
+  \item \textit{run}: for building and running the binary on the target device;
 
-  \item secure-build: instrument and builds the source files to produce the
-    secure binary;
+  \item \textit{clear}: for clearing output files in the directory;
 
-  \item secure-run: instrument, builds, and runs the secure binary on the board.
+  \item \textit{secure-build}: for instrumenting and building the source files and
+    producing the secure binary;
+
+  \item \textit{secure-run}: for instrumenting, building, and running the secure
+    binary on the target device.
 \end{itemize}
 
-If we choose to instrument the code with secure-build or secure-run commands the
-following happens. All the source files are compiled into assembly files, then
-the user files are passed to \textit{instrumenter.py}. Firstly, the code is instrumented
-with logging capabilities to retrieve indirect jump destinations. This is done
-by searching indirect jump instruction (defined as \textit{jalr} in RISC-V) and adding
-the block of code depicted in Figure \ref{fig:loggingblock} before the jump.
+As we can see the instrumentation only happens with \textit{secure-build} and
+\textit{secure-run} commands. Normal building and running commands have been
+implemented to make a comparison between an untrusted code and the trusted one.
+
+\subsection{Instrumentation for logging}
+\label{subsec:logging}
+
+If we run \textit{flasher.py} with \textit{secure} commands the instrumentation phase
+follows the steps described below.
+
+All source files are compiled into assembly files with the toolchain, then the
+untrusted user files are passed to \textit{instrumenter.py}. Firstly, the code is
+instrumented with logging capabilities to retrieve indirect jump destinations.
+This is done by searching indirect jump instruction (\textit{JALR}) with the regex
+\textit{$\backslash$b(jalr)$\backslash$b$\backslash$s+($\backslash$w+)} which
+retrieves any occurrence of \textit{jalr \{register\}}\footnote{Usually the
+compiler uses register \textit{a5} for \textit{JALR} instructions.}.
 
 \begin{wrapfigure}
   {r}{0.25\textwidth}
   \setlength{\intextsep}{0pt}
   \begin{minipage}{0.25\textwidth}
-    \begin{lstlisting}[style=Assembly]
+    \begin{lstlisting}[style=Assembly, caption = Logging code block, label={lst:loggingblock}]
 addi sp,sp,-40
 sw a5,4(sp)
 sw a4,8(sp)
@@ -130,7 +159,7 @@ sw s0,24(sp)
 sw s1,28(sp)
 sw s2,32(sp)
 sw s3,36(sp)
-mv a1,dst_reg
+mv a1,{register}
 auipc a0,0
 addi a0,a0,38
 call print_reg
@@ -144,151 +173,260 @@ lw s1,28(sp)
 lw s2,32(sp)
 lw s3,36(sp)
 addi sp,sp,40
-\end{lstlisting}
+jalr {register}
+    \end{lstlisting}
   \end{minipage}
-  \caption{Logging code block}
-  \label{fig:loggingblock}
 \end{wrapfigure}
 
-This effectively allows us to save the state of the code and call the function
-\textit{print\_reg} passing the destination address and the program counter of the
-jump instruction as arguments. The function will then print a string such as
-\textit{Source: 0x40380100 - Destination: 0x40380200}. After this
-instrumentation, the assembly files are assembled and linked to produce the binary.
-If there are indirect jumps in the code we perform a ``simulation'' of the
+Once we retrieve the source register for the \textit{JALR} instruction we add
+the block of code depicted in Listing \ref{lst:loggingblock} before the jump. This
+effectively allows us to save the state of the machine and call the function \textit{print\_reg}
+passing the destination address and the program counter of the \textit{JALR} instruction
+as arguments. The destination address is simply stored in the source register
+while the source address is computed by loading the current program counter with
+\textit{auipc a0, 0} and by adding $38$\footnote{Note that $38$ is the distance
+in Bytes from the instruction that load the \textit{pc} to the \textit{JALR}
+instruction.} to it. The \textit{print\_reg} function, when called, will then
+print a string like \textit{Source: 0x40380100 - Destination:0x40380200}.
+
+\subsection{Control Flow Graph Extraction}
+\label{subsec:project_cfgextraction}
+
+As soon as the first instrumentation is completed, the assembly files are assembled
+and linked to produce the binary. If, during instrumentation, we have found that
+there are indirect jumps in the code we perform a ``simulation''\footnote{The
+simulation consists in running the code on the target device transparently.} of the
 execution to retrieve the logging of the \textit{print\_reg} function.
 
-After that \textit{CFGextractor.py} is called which extracts the Control Flow
-Graph of the code. Once the CFG is extracted, it is injected into the code and
-the true instrumentation is made.
+After that \textit{CFGextractor.py} is called to extract the Control Flow Graph of
+the user code. The extraction is divided in two phases:
+\begin{itemize}
+  \item Dynamic phase: in the dynamic phase we parse the output retrieved from
+    the simulation to create source-destination pairs of addresses. Note that in
+    this phase addresses are also adjusted by removing the size of the logging block
+    from their value. This is done because, during the simulation we injected the
+    logging block before each jump, thus increasing the size of the binary. For each
+    address we count the number of blocks that appeared before it and we compute
+    $\textit{final\_address}= \textit{retrieved\_value}- (\textit{block\_size}* \textit
+    {block\_number})$;
 
-Since we need to perform forward and backward controls we need to add code
-blocks before every direct jump, indirect jump, and return instructions. To do so,
-the assembly files are parsed, and, thanks to \textit{regex} functions we are able
-to add the code we need.
+  \item Static phase: in the static phase we simply parse the dump file obtained
+    with \textit{riscv-none-elf-objdump} searching for \textit{JAL} instructions.
+    These direct jump are statically defined so we can retrieve them with the dump
+    file. Each time a \textit{JAL} instruction is found the pair source-destination
+    is added to the CFG.
+\end{itemize}
 
-Specifically, we need to add the code depicted in Figure \ref{fig:dirjumpblock}
-before direct jumps (encoded as \textit{jal} in RISC-V). With this, we load the address
-of the target function in register \textit{a7} and then we perform an ecall (detailed
-functioning explained in \ref{sec:project_isr}).
+Once the Control Flow Graph is extracted, all the pairs are ordered in ascending
+ordered firstly by source and then by destination. This is because with indirect
+jump instructions we could have that more destinations could share the same
+source. After that, execution is returned to \textit{instrumenter.py}.
 
-For indirect jumps, we need to add the code depicted in Figure \ref{fig:indirjumpblock}.
-With this, we can load the destination address (stored in target\_register) and perform
-an ecall.
+\subsection{Instrumentation for forward and backward edge controls}
+\label{subsec:project_instrcontrols}
 
-Lastly, for return instructions (encoded as \textit{ret} in RISC-V), we need to
-add the code depicted in Figure \ref{fig:retblock}. With this, we can load the
-return address (stored in return\_address\_register) and perform an ecall. In Section
-\ref{sec:project_isr} we will see why, in this case, we need to add $1$ to the return
-address.
+In this last instrumentation phase we need to add code blocks that allows us to
+perform forward and backward edge controls. Such blocks must be added before every
+direct jump, indirect jump, and return instruction. To do so, we parse the assembly
+files, and, search for the target instructions thanks to the regex functions depicted
+in Table \ref{tab:regexes}.
 
-\begin{figure}[htbp]
+\begin{table}
   \centering
-  \begin{lstlisting}[style=Assembly]
-la a7, target_function
+  \begin{tabular}{|c|c|}
+    \hline
+    \textbf{Regex}                                                                      & \textbf{Use}                            \\
+    \hhline{==} \textit{$\backslash$b(call)$\backslash$b$\backslash$s+($\backslash$w+)} & Used to find \textit{JAL} instructions  \\
+    \hline
+    \textit{$\backslash$b(jalr)$\backslash$b$\backslash$s+($\backslash$w+)}             & Used to find \textit{JALR} instructions \\
+    \hline
+    \textit{$\backslash$b(jr)$\backslash$b$\backslash$s+($\backslash$w+)}               & Used to find \textit{RET} instructions  \\
+    \hline
+  \end{tabular}
+  \caption{Regex functions used to find target instructions}
+  \label{tab:regexes}
+\end{table}
+
+Depending on the instruction we find during parsing we do the following:
+\begin{itemize}
+  \item \textit{JAL} instructions: if we find a direct jump instruction we need to
+    add the code depicted in Listing \ref{lst:dirjumpblock} before the target.
+    This code loads the address of the target function in register \textit{a7} and
+    then performs and \textit{ECALL} instruction (detailed functioning explained
+    in \ref{sec:project_isr});
+
+  \item \textit{JALR} instructions: if we find an indirect jump instruction we need
+    to add the code depicted in Listing \ref{lst:indirjumpblock} before the target.
+    This code copies the address stored in the target register into register
+    \textit{a7} and then performs and \textit{ECALL} instruction;
+
+  \item \textit{RET} instructions: if we find a return instruction we need to add
+    the code depicted in Listing \ref{lst:retblock} before the target. This code
+    copies the return address stored in the return address register into
+    register \textit{a7} and then performs and \textit{ECALL} instruction. In Section
+    \ref{sec:project_isr} we will see why, in this case, we need to add $1$ to the
+    return address.
+\end{itemize}
+
+\begin{lstlisting}[style=Assembly, caption = Direct jump code block, label={lst:dirjumpblock}]
+la a7, {target_function}
 ecall
-jal instruction
+jal {target_function}
 \end{lstlisting}
-  \caption{Direct jump code block}
-  \label{fig:dirjumpblock}
-\end{figure}
 
-\begin{figure}[htbp]
-  \centering
-  \begin{lstlisting}[style=Assembly]
-mv a7,target_register
+\begin{lstlisting}[style=Assembly, caption = Indirect jump code block, label={lst:indirjumpblock}]
+mv a7, {target_register}
 ecall
-jalr instruction
- \end{lstlisting}
-  \caption{Indirect jump code block}
-  \label{fig:indirjumpblock}
-\end{figure}
+jalr {target_register}
+\end{lstlisting}
 
-\begin{figure}[htbp]
-  \centering
-  \begin{lstlisting}[style=Assembly]
-add a7,return_address_register, 1
+\begin{lstlisting}[style=Assembly, caption = Return code block, label={lst:retblock}]
+addi a7, {return_address_register}, 1
 ecall
-add a7,return_address_register, -1
-ret instruction
- \end{lstlisting}
-  \caption{Return code block}
-  \label{fig:retblock}
-\end{figure}
+addi {return_address_register}, a7, -1
+ret {return_address_register}
+\end{lstlisting}
 
-After this second instrumentation, the assembly files are assembled and linked to
-produce the secure binary file, which is taken from \textit{flasher.py} and run on
-the board.
+In the last step of the instrumentation we inject the previously crafted Control
+Flow Graph into the \textit{cfg.c} file.
+
+After this second instrumentation ends, the modified assembly files are assembled
+and linked by \textit{flasher.py} to produce the secure binary file. Lastly, if
+we used the \textit{secure-run} command, the binary file is flashed on the
+target device for execution.
 
 \section{Interrupts Service Routine}
 \label{sec:project_isr}
 
-In this section, we will see how interrupts and exceptions are handled in this project.
-Most importantly we will see how forward and backward edge controls are enforced.
+In this section, we will see how the interrupt vector table is implemented and
+how interrupts and exceptions are handled in this project. Most importantly we will
+see how forward and backward edge controls are enforced.
 
-The interrupt vector table is defined inside \textit{intr\_vector\_table.c}. As
-already explained its address is loaded in \textit{main.c} and stored inside mtvec
-(\ref{subsec:mtvec}) with MODE set to Vectored. This means that every
-asynchronous interrupt will set the program counter to the base address of the
-vector table plus $4$ times the cause of the interrupt. Any other interrupt and exception
-is trapped inside the function \textit{synchronous\_exception\_handler} which
-redirects to the correct function depending on the trap cause.
+The interrupt vector table is defined inside \textit{intr\_vector\_table.c}. As already
+explained its address is loaded in \textit{main.c} and stored inside \textit{mtvec}
+(\ref{subsec:mtvec}) with \textit{MODE} set to vectored. This means that every asynchronous
+interrupt will set the program counter to the base address of the vector table plus
+$4$ times the cause of the interrupt. Any other interrupt and exception is
+trapped inside the function \textit{synchronous\_exception\_handler} which redirects
+to the correct function depending on the trap cause. Listing \ref{lst:intrtable}
+depicts the actual implementation of the interrupt vector table.
 
-Since ecalls are defined as exceptions in RISC-V, the interrupt vector table is responsible
-for managing them. However, since ecalls can be used for different purposes they
-are designed to be expandable. Table \ref{tab:ecalls} depicts the current
-allowed ecalls.
+Most of the exceptions and interrupts are not currently handled and, when invoked,
+they just log a message describing which trap was taken. Afterward, the
+execution is resumed. This design choice has been made for two reasons. The
+first being that such implementation would be out of scope since we aim at
+providing the bare minimum implementation for enforcing Control Flow Integrity. The
+second instead is that we do not need those handler and we leave space for implementation-specific
+requirements. For example, if an implementation makes use of external interrupts,
+the developer would just need to insert the desired handling in the correct
+function inside the \textit{intr\_vector\_table.c} file. As explained, this implementation
+provides the required security features while leaving space for customization.
+
+Since \textit{ECALLS} are defined as exceptions in \textit{RISC-V}, the
+interrupt vector table is responsible for managing them. For this reason, the
+only implemented function in the interrupt vector table is the handler for U-mode
+\textit{ECALL}s. This implementation is tailored for managing forward and backward
+edge controls. However, since \textit{ECALL}s can be used for different purposes
+the handler is designed to be expandable. Table \ref{tab:ecalls} depicts the
+current allowed ecalls.
 
 \begin{table}
   \centering
   \begin{tabular}{|c|c|c|}
     \hline
-    \textbf{Code} & \textbf{Use}     & \textbf{Description}                  \\
+    \textbf{Code}                & \textbf{Use}     & \textbf{Description}                  \\
+    \hhline{===} $1$             & Reserved         & Used to terminate execution           \\
     \hline
-    1             & Reserved         & Used to terminate execution           \\
+    \textit{destination address} & Forward control  & Used to check the destination address \\
     \hline
-    address       & Forward control  & Used to check the destination address \\
-    \hline
-    address + 1   & Backward control & Used to check the return address      \\
+    $\textit{return address}+ 1$ & Backward control & Used to check the return address      \\
     \hline
   \end{tabular}
   \caption{Encoding of current Ecall values}
   \label{tab:ecalls}
 \end{table}
 
-This design has been used to minimize the use of registers. Another solution
-would have been to use a register, say \textit{a7}, to hold the ecall code, and
-another register, say \textit{a6}, to hold the address to check. However, since addresses
-must be even we can encode in one register both the value of the ecall code and the
-address (Figure \ref{fig:ecall} shows the encoding of register \textit{a7}). When
-the interrupt vector table has to check which code is used we can just see if the
-value in \textit{a7} is even or odd and, depending on the result we can decide what
-operation to perform (even values will lead to a forward check while odd values
-will lead to a backward check). When we need to check for a return address we
-first subtract $1$ from it to obtain the original value of the address.
+\begin{lstlisting}[style=CStyle, caption = Interrput Vector Table, label={lst:intrtable}]
+void interrupt_vector_table(void) {
+  asm volatile("j synchronous_exception_handler");
+  asm volatile("j isr_supervisor_software");
+  asm volatile("j isr_reserved");
+  asm volatile("j isr_machine_software");
+  asm volatile("j isr_user_timer");
+  asm volatile("j isr_supervisor_timer");
+  asm volatile("j isr_reserved");
+  asm volatile("j isr_machine_timer");
+  asm volatile("j isr_user_external");
+  asm volatile("j isr_supervisor_external");
+  asm volatile("j isr_reserved");
+  asm volatile("j isr_machine_external");
+  asm volatile("j isr_reserved");
+}
+\end{lstlisting}
 
-Note that the use of register \textit{a7} for ecalls is purely a design choice and,
-to ensure that such register is not tampered with by the compiler it has been ``disabled'',
-meaning that the compiler will never use such register. This choice allows us to
-be sure that only the interrupt vector table and the code blocks that we inject
-modify the value of \textit{a7}.
+Currently, the U-mode \textit{ECALL} handler is implemented as depicted in
+Listing \ref{lst:ecallhandler}. As it is possible to see we encoded the \textit{ECALL}
+code and the address required for control integrity checks into a single value. This
+design has been used to minimize the use of registers. Another solution would
+have been to use a register, say \textit{a7}, to hold the \textit{ECALL} code, and
+another register, say \textit{a6}, to hold the address to check. However, since
+legal addresses must be even we can encode in one register both the value of the
+\textit{ECALL} code and the address (Figure \ref{fig:ecall} shows the encoding
+of register \textit{a7}). When the interrupt vector table needs to check which code
+is used we can just see if the value in \textit{a7}\footnote{In Listing
+\ref{lst:ecallhandler} register \textit{a7} is represented by the parameter \textit{ecode}.}
+is even or odd and, depending on the result we can decide which operation to
+perform (even values will lead to a forward edge check while odd values will lead
+to a backward edge check). When we need to check for a return address we first subtract
+$1$ from it to obtain the original value of the address and then we perform the control.
+
+Note that the use of register \textit{a7} to hold \textit{ECALL} codes is purely
+a design choice and, to ensure that such register is not tampered with by the
+compiler it has been ``disabled'', meaning that the compiler will never use such
+register. This choice allows us to be sure that only the interrupt vector table
+and the code blocks that we inject modify the value of \textit{a7}.
+
+If one wish to add a new custom \textit{ECALL} code for other purposes he just
+need to put a control before the code checks if the code is even or not. Say that
+we want to add code $2$ to perform a specific operation. To do so, we just need to
+add a check like \textit{else if(code == 2) \{perform operation\}} after the
+first check, if the check fails the code will eventually check if the code is even
+or not and perform the corresponding control.
+
+It is easy to see how this implementation effectively addresses the problem and does
+not suffer from possible future customization of the interrupt vector table.
+
+\begin{lstlisting}[style=CStyle, caption = U-mode \textit{ECALL} handler, label={lst:ecallhandler}]
+void esr_handler_U_mode_ecall(u_int ecode, u_int mepc)
+{
+  if (ecode == 1)
+  {
+    // Terminate execution
+  }
+  else if ((ecode % 2) == 0)
+  {
+    // Forward edge control
+  }
+  else if ((ecode % 2) != 0)
+  {
+    // Backward edge control
+  } else
+  {
+    // Undefined ecall code
+  }
+}
+\end{lstlisting}
 
 \begin{figure}[htbp]
   \centering
-  \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/ecall_code.png} } %
-  {\scriptsize }
+  \includegraphics[width=.9\linewidth]{images/ecall_code.png}
   \caption{Encoding of register a7 during ecall}
   \label{fig:ecall}
 \end{figure}
 
-To add new custom ecall codes we just need to put a control before we check if
-the code is even or not. Say that we want to add code $2$ to perform a specific operation.
-To do so, we just need to add a check like \textit{if(code == 2) $\rightarrow$
-perform operation}, if the check fails the code will eventually check if the code
-is even or not and perform the corresponding control.
-
-This implementation of the interrupt vector table effectively helps to implement
-the desired controls while leaving space for future functionalities.
+Forward edge controls are performed thanks to the Control Flow Graph and are further
+explained in section \ref{sec:project_cfg} while backward edge controls are performed
+thanks to the Shadow Stack and are further explained in section \ref{sec:project_ss}.
 
 \section{Shadow Stack}
 \label{sec:project_ss}
