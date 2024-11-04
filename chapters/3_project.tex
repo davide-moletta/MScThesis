@@ -431,57 +431,103 @@ thanks to the Shadow Stack and are further explained in section \ref{sec:project
 \section{Shadow Stack}
 \label{sec:project_ss}
 
-The file \textit{shadow\_stack.c} holds the configuration for the Shadow Stack.
-The development of the Shadow Stack took inspiration from the formally verified
-idea proposed by Matthieu Baty, Guillaume Hiet, and Pierre Wilke in their
-article \textit{Work in progress: A formally verified shadow stack for RISC-V} \cite{shadowstack}.
+In this project the Shadow Stack holds the values of return addresses and it is
+used to check the correctness of each \textit{RET} instruction. File \textit{shadow\_stack.c}
+holds the configuration for the Shadow Stack. The development of the Shadow
+Stack took inspiration from the formally verified idea proposed by Matthieu Baty,
+Guillaume Hiet, and Pierre Wilke in their article \textit{Work in progress: A formally
+verified shadow stack for RISC-V} \cite{shadowstack}. In their article, they demonstrate
+how this data structure could be implemented in \textit{RISC-V}, also they show how
+the Shadow Stack should be implemented to ensure its correctness.
 
-The Shadow Stack is implemented as a standard Last-in-first-out stack (LIFO).
-This is because the last jump that is performed in a code will always be the
-first to return. This allowed us to build an effective and fast data structure that
-consumes a small amount of memory.
+The Shadow Stack is implemented as a standard Last-In-First-Out stack (\textit{LIFO}).
+This design choice has been made to provide a data structure with fast lookups ($\mathcal{O}
+(1)$) while maintaining the ability to use less space when return addresses are not
+needed. This implementation is possible only because the last jump instruction
+that is performed in a code will always be the first to return. Otherwise, it
+would be necessary to store the return addresses and their relative jump
+instruction to know which address we need to check. This allowed us to build an effective
+and fast data structure that consumes a variable amount of memory.
 
-The Shadow Stack allows two operations, \textit{push} and \textit{pop}. \textit{Push}
-is used when a direct or indirect jump is made. If such a jump is considered legal,
-its return address is pushed into the Shadow Stack and stored for later. Instead,
-\textit{pop}, is used when a return is made. An address is \textit{popped} from
-the Shadow Stack and a match between the popped value and the current return
-address is made to decide whether the return instruction is legal or not.
+The Shadow Stack is statically defined as a struct that contains an array that can
+hold up to $63$ addresses and a pointer to the top index of the stack (Listing
+\ref{lst:ss} shows the described struct). Moreover, the Shadow Stack allows two operations,
+\textit{push} and \textit{pop} where:
+\begin{itemize}
+  \item \textit{Push} is used after a forward edge control is made. If such control
+    succeeds then, the return address related with the jump instruction is
+    pushed into the Shadow Stack and stored\footnote{Addresses are stored in the
+    Shadow Stack as \textit{unsigned integers}.} for later use. In this case, we
+    just get the top of the stack and determine if it is full. If the Shadow
+    Stack is full, we terminate execution as we can't provide data for the next backward
+    edge control. Otherwise, the address is added to the top of the stack;
+
+  \item \textit{Pop}, is used when a backward edge control is made. When this
+    happens, an address is removed form the top of the Shadow Stack. Afterwards,
+    we match the removed address with the current return address to decide whether
+    the return instruction is considered legal or not\footnote{Note that when we
+    use \textit{pop} we actually remove the element from the stack since we won't
+    need it in future and, by doing this, we can free some space.}. Note that before
+    removing the address we check if the Shadow Stack is empty and, if that is
+    the case, we terminate execution since the code is trying to perform an unexpected
+    return instruction.
+\end{itemize}
+
+The Shadow Stack provides no other functions for two main reasons. Firstly, with
+\textit{push} and \textit{pop} we have all we need to effectively make the
+controls we need and, adding extra functions could lead to unexpected situations.
+Secondly, adding more functions would increase the binary size.
+
+\begin{lstlisting}[style=CStyle, caption = Shadow Stack definition, label={lst:ss}]
+#define MAX_SIZE 63
+
+typedef struct {
+    unsigned int addresses[MAX_SIZE];
+    int top;
+} SStack;
+\end{lstlisting}
 
 \section{Control Flow Graph (CFG)}
 \label{sec:project_cfg}
 
-The Control Flow Graph of the binary is extracted during the instrumentation phase.
-As we have seen, if there are indirect jumps the script performs a simulation run
-to retrieve source and destination addresses of each indirect jump. If there is
-a simulation, the output is parsed to store the addresses in a list. After that,
-the static extraction begins, in which we examine the dump file of the binary to
-retrieve the source and destination addresses of each direct call. After all the
-addresses have been gathered, the lists are ordered and injected in the file
+In this project the Control Flow Graph holds the pair source-destination for each
+direct and indirect jump of the code and it is used to check the correctness of each
+\textit{JAL} and \textit{JALR} instruction. As already said the CFG of the
+binary is extracted during the instrumentation phase and injected in the file
 \textit{cfg.c} which holds the configuration for the Control Flow Graph.
 
-In this file, we can see the structure of the Control Flow Graph which is an
-array where each position is occupied by a pair \textit{source-destination}.
+It is worth noting that the CFG is related only to control transfer instructions
+of the untrusted code. This is because we need to enforce Control Flow Integrity
+only on U-mode code, thus not saving the CFG of all the binary helps in saving space.
+Moreover, the Control Flow Graph does not hold the values of return addresses,
+this is because return instructions are checked thanks to the Shadow Stack, thus
+we do not need to save those values in the CFG.
+
+Inside \textit{cfg.c}, we can see the structure of the Control Flow Graph which is
+an array where each position is occupied by a pair \textit{source-destination}. The
+only available function is \textit{check} which asks for a pair of addresses as
+input and determines whether such a pair is part of the CFG or not. \textit{check}
+is implemented using a custom binary search function and the comparison is made
+using the function depicted in Figure \ref{lst:binsearch}. With this function,
+the binary search first searches for the source address and, only when found it searches
+for the destination address. If a match is found the function returns a positive
+value and the jump instruction is considered legal.
+
 Since the CFG will not change during execution we can define it statically and
-provide no functions to add or remove elements. The only available function is \textit{check}
-which asks for a pair of addresses as input and determines whether such a pair
-is part of the CFG or not. The check is implemented using a binary search function
-and the comparison is made using the function depicted in Figure \ref{fig:binsearch}.
-With this function, the binary search first searches for the source address and,
-only when found it searches for the destination address.
+provide no functions to add or remove elements. Again, the reason behind this
+choice is to reduce memory usage and to avoid the implementation of unused
+functions.
 
 This implementation of the Control Flow Graph effectively reduces space
-consumption to the bare minimum while providing a fast checking method ($\mathcal{O}
-(\log{n})$). Another solution could be to use a Hash Table to store the addresses.
-In this case, we would reduce the time required to access the CFG to $\mathcal{O}
-(1)$. However, this works only with big enough Hash Tables, otherwise, we could face
-many collisions, and the time required to find the correct entry would increase.
-Still, this alternative solution could be perfect for situations in which we
-care more about time than space.
+consumption to the bare minimum while providing fast lookups ($\mathcal{O}(\log{n}
+)$). Another solution could be to use a Hash Table to store the addresses. In
+this case, we would reduce the time required to access the CFG to $\mathcal{O}(1)$.
+However, this works only with big enough Hash Tables, otherwise, we could face many
+collisions, and the time required to find the correct entry would increase. Still,
+this alternative solution could be perfect for situations in which we care more
+about time than space.
 
-\begin{figure}[htbp]
-  \centering
-  \begin{lstlisting}[style=CStyle]
+\begin{lstlisting}[style=CStyle, caption= Comparison for binary search, label={lst:binsearch}]
 int compare(const int* A, const int* B) {
   for (int i = 0; i < 2; ++i) {
     if (A[i] < B[i]) return -1;
@@ -489,60 +535,129 @@ int compare(const int* A, const int* B) {
   }
   return 0;
 }
- \end{lstlisting}
-  \caption{Comparison for binary search}
-  \label{fig:binsearch}
-\end{figure}
+\end{lstlisting}
+
+\section{Memory Layout}
+\label{sec:layout}
+
+In this section we discuss the memory layout of the binary. Listing \ref{lst:linker}
+depicts a simplified version of the linker script used when we need to compile the
+binary. As we can see each part of the code has been divided into separate
+sections. In particular we have:
+\begin{itemize}[noitemsep]
+  \item Section \textit{.interrupt\_vector\_table} holds the interrupt vector
+    table described in \ref{lst:intrtable};
+
+  \item Section \textit{.intr\_service\_routines} holds the handlers for every
+    exception and interrupt;
+
+  \item Section \textit{.shadow\_stack} holds the Shadow Stack configuration;
+
+  \item Section \textit{.cfg} holds the Control Flow Graph configuration;
+
+  \item Section \textit{.machine\_setup} holds the boot setup and the \textit{main.c}
+    functions;
+
+  \item Section \textit{.text} holds the untrusted code;
+
+  \item Section \textit{.ij\_logger} holds the function to log indirect jump
+    addresses during the simulation.
+\end{itemize}
+
+This configuration has been implemented to increase granularity between all the parts
+of the code. Moreover, as we will see later, this makes it easier to configure
+an effective Physical Memory Protection.
+
+\begin{lstlisting}[style=CStyle, caption= Simplified linker script, label={lst:linker}]
+MEMORY {
+  iache (rwx) : ORIGIN = 0x4037c000, LENGTH = 16k
+  iram  (rwx) : ORIGIN = 0x40380400, LENGTH = 32k
+  dram  (rw)  : ORIGIN = 0x3fc80000 + LENGTH(iram), LENGTH = 128k
+}
+
+ENTRY(_start)
+
+SECTIONS {
+  .interrupt_vector_table: {*(.interrupt_vector_table)} > iram
+
+  .intr_service_routines: {*(.intr_service_routines)} > iram
+
+  .shadow_stack: {*(.shadow_stack)} > iram
+
+  .cfg: {*(.cfg)} > iram
+
+  .machine_setup: {*(.machine_setup)} > iram
+
+  .text: {*(.text) *(.text*)} > iram
+
+  .ij_logger: {*(.ij_logger)} > iram
+
+  .data: {*(.data*) *(.sdata*) *(.srodata*) *(.rodata*)} > dram
+}
+\end{lstlisting}
+
+As we can see, execution starts at function \textit{\_start} which is located inside
+\textit{boot.c}. Such function initializes the device and transfers execution to
+the \textit{main.c} file which sets up all the M-mode configuration before
+starting the user code.
 
 \section{Physical Memory Protection (PMP)}
 \label{sec:project_pmp}
 
-In this project, the role of the PMP is to protect the Shadow Stack and the Control
-Flow Graph from unauthorized modifications. To ensure that both these data
-structures are secured four memory regions have been created. Each region's configuration
-can be seen in Table \ref{tab:pmpregions}
+In this project, the role of Physical Memory Protection is to protect the Shadow
+Stack and the Control Flow Graph from unauthorized access and modifications. To ensure
+that both these data structures are secured four memory regions have been created.
+Each region's configuration can be seen in Table \ref{tab:pmpregions}.
 
-\begin{table}
-  \centering
-  \begin{tabular}{|c|c|c|c|}
-    \hline
-    \textbf{Region Start}           & \textbf{Region End}           & \textbf{Type} & \textbf{Privileges} \\
-    \hline
-    0x00000000                      & End of .sdata region          & TOR           & R-W                 \\
-    \hline
-    Start of interrupt vector table & End of interrupt vector table & TOR           & R-W-X               \\
-    \hline
-    Start of Shadow Stack           & End of Control Flow Graph     & TOR           & R-W                 \\
-    \hline
-    Start of main                   & 0x90000000                    & TOR           & R-W-X               \\
-    \hline
-  \end{tabular}
-  \caption{PMP memory regions}
-  \label{tab:pmpregions}
-\end{table}
+The first region covers all the space between $0x00000000$ and the end of the
+\textit{.data} region. This part of memory has been granted with read and write
+privileges, since this region contains only static data there is no need to allow
+execution.
 
-The first region covers all the space between 0x00000000 and the end of the .sdata
-region with read and write privileges, since this region contains only static data
-there is no need to allow execution.
-
-The second region covers the interrupt vector table and its functions, since
-this region is accessed only in Machine mode and we need to execute instructions
-we need to provide read, write, and instruction execution privileges.
+The second region covers the interrupt vector table and all the exception and interrupts
+handlers, since this region is accessed only in Machine mode and we need to
+execute instructions we need to provide read, write, and instruction execution
+privileges.
 
 The third region is the one that covers both the Shadow Stack and the Control
 Flow Graph. For this reason, we need to restrict privileges to read and write. We
 can't set this region as read-only since we need to modify the Shadow Stack during
-execution.
+execution. Note that the \textit{.shadow\_stack} and \textit{.cfg} sections only
+cover the data structures related to the Shadow Stack and Control Flow Graph
+respectively. \textit{Push}, \textit{pop}, and \textit{check} are categorized as
+``handlers'', thus those functions are inserted in the \textit{.intr\_service\_routine}
+section. This is because we need instruction execution privileges for said functions
+to work.
 
-The last region covers all the addresses from the start of the main function up to
-the end of the memory. This region also includes user code and, since we need to
-execute the code, we need to configure this region with read, write, and
+The fourth and last region covers all the addresses from the start of the main function
+up to the end of the memory. This region also includes user code and, since we need
+to execute the code, we need to configure this region with read, write, and
 instruction execution privileges.
 
 This PMP configuration effectively helps to prevent unauthorized modifications
 to critical components such as the Shadow Stack and the Control Flow Graph. Thanks
 to this, we are sure that whatever value we read from these data structures will
-be safe and trustable.
+be safe and trustable. Note that any access made from U-mode to the third memory
+region will result in either an \textit{Instruction Access Fault} or an \textit{Illegal
+Instruction}.
+
+\begin{table}
+  \centering
+  \begin{tabular}{|c|c|c|c|c|}
+    \hline
+    \textbf{Region}    & \textbf{Region Start}                             & \textbf{Region End}              & \textbf{Type} & \textbf{Privileges} \\
+    \hhline{=====} $1$ & $0x00000000$                                      & \textit{.data} ($0x40380400$)    & TOR           & R-W                 \\
+    \hline
+    $2$                & \textit{.interrupt\_vector\_table} ($0x40380400$) & \textit{.intr\_service\_routine} & TOR           & R-W-X               \\
+    \hline
+    $3$                & \textit{.shadow\_stack}                           & \textit{.cfg}                    & TOR           & R-W                 \\
+    \hline
+    $4$                & \textit{.machine\_setup}                          & $0x90000000$                     & TOR           & R-W-X               \\
+    \hline
+  \end{tabular}
+  \caption{PMP memory regions}
+  \label{tab:pmpregions}
+\end{table}
 
 \section{Forward and Backward Edge Controls}
 \label{sec:project_controls}
