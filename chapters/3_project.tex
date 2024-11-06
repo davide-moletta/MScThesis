@@ -662,11 +662,13 @@ Instruction}.
 \section{Forward and Backward Edge Controls}
 \label{sec:project_controls}
 
-The most critical part of this project is about validating jump and return instructions
-and this is done inside the interrupt vector table.
+The most critical job of \textit{project name} is validating jump and return
+instructions and this is done inside the interrupt vector table. Given the delicacy
+of Control Flow Integrity and its importance for this project great attention has
+been given to the correct implementation of forward and backward edge controls.
 
-Forward edge controls are made thanks to the Control Flow Graph while backward edge
-controls are made thanks to the Shadow Stack.
+Forward edge controls are performed thanks to the Control Flow Graph while backward
+edge controls are performed thanks to the Shadow Stack.
 
 In this section, each control will be carefully explained to show how they work
 and why they provide a certain degree of security.
@@ -674,45 +676,57 @@ and why they provide a certain degree of security.
 \subsection{Forward Edge Controls}
 \label{subsec:forward}
 
-To perform a forward edge control we need three things. The first is the source
-address, the second is the destination address, and the third is an oracle that
-tells us if the pair source-destination is valid. As already explained the destination
-address is retrieved from \textit{a7} which is passed as the ecall code. The source
-register instead can be retrieved from mepc \ref{subsec:mepc}. As we have seen, when
-a trap is taken mepc holds the address of the instruction that was interrupted.
-Since the ecall generates the trap we can just add $4$ (size of the ecall) to
-the address stored in mepc to retrieve the source address. Now that we have the pair
-of addresses to check we can use the Control Flow Graph as the oracle. As
-already explained, the CFG is computed before compilation and is securely stored
-in a safe memory region so we can consider it as a trusted oracle.
+To perform a forward edge control we need three things. Firstly, we need the source
+address of the jump instruction, secondly we need the destination address of
+said instruction, lastly, we need a trusted oracle that tells us if the pair
+source-destination is legal. As already explained the destination address is retrieved
+from \textit{a7} which is passed as the \textit{ECALL} code. The source address
+instead can be retrieved from \textit{mepc} \ref{subsec:mepc}. As we have seen, when
+a trap is taken \textit{mepc} holds the address of the instruction that was
+interrupted. Since the \textit{ECALL} generates the trap we can just add $4$\footnote{We
+add $4$ since it is the size of an \textit{ECALL} instruction in \textit{RISC-V}.}
+to the address stored in \textit{mepc} to retrieve the source address of the
+jump instruction. Now that we have the needed pair of addresses to check we can use
+the Control Flow Graph as the oracle. As already explained, the CFG is computed before
+compilation and is securely stored in a safe memory region thanks to the Physical
+Memory Protection. This means that any attempt of unauthorized modification is
+instantly blocked, thus so we can trust the data provided by the CFG and use it as
+an oracle.
 
-So, when we need to perform a forward edge control, we can just send the source and
-destination addresses to the \textit{check} function of the CFG. Such function performs
-a binary search inside the CFG to see whether that specific pair is part of the original
-CFG. If the search succeeds the function returns a positive value and the jump
-is considered legal while, if the search does not succeed the instruction is aborted
-and the execution terminates to prevent any possible damage.
+When we need to perform a forward edge control, we just need to send the source
+and destination addresses to the \textit{check} function of the CFG. Such
+function performs a binary search inside the Control Flow Graph to see whether
+that specific pair is part of the original CFG or not. If the search succeeds the
+function returns a positive value and the jump is considered legal while, if the
+search does not succeed the instruction is aborted and the execution terminates
+to prevent any possible damage.
 
-Whenever a forward edge control succeeds we know that the related jump instruction
-will eventually return so we need to store its return address inside the Shadow Stack.
-To do so, we need to retrieve the return address but, since a call will always
-return to its next instruction, we can just compute $source \ address + 2$ (size
-of \textit{jal} and \textit{jalr}) to retrieve it. After that, the address is pushed
-into the Shadow Stack, and the execution is resumed with the interrupted jump
-instruction.
+Whenever a forward edge control succeeds we know that the related jump
+instruction will eventually return so we need to store its return address inside
+the Shadow Stack. To do so, we need to retrieve the return address but, since a jump
+will always return to its next instruction, we can just compute
+$\textit{source address}+ 2$\footnote{We add $2$ since it is the size of
+compressed \textit{JAL} and \textit{JALR} instructions in \textit{RISC-V}.} to retrieve
+it. After that, the return address is pushed into the Shadow Stack, and the
+execution is resumed with the interrupted jump instruction.
 
 \subsection{Backward Edge Controls}
 \label{subsec:backward}
 
-To perform a backward edge control we need two things. The first is the
-destination address and the second is an oracle that tells us if such address is
-valid. As we have seen, the destination address is retrieved from \textit{a7} which
-is passed as the ecall code. In this case, the oracle is the Shadow Stack.
+To perform a backward edge control we need two things. Firstly, we need the address
+to which the return instruction is trying to go. Secondly, we need a trusted oracle
+that tells us if such address is legal. As we have seen, the destination address
+is retrieved from \textit{a7} which is passed as the \textit{ECALL} code.
+However, we must remove $1$ from the address retrieved from \textit{a7} since in
+the least significant bit we store the \textit{ECALL} code. Similarly to the
+Control Flow Graph, the Shadow Stack is secured in a protected memory space and is
+unaffected by unauthorized modification attempts. Even in this case we can trust
+the Shadow Stack and use it as an oracle.
 
-So, when we need to perform a backward edge control, we can just pop an address from
-the Shadow Stack and match the destination address with the popped one. If the
-addresses are the same we consider the return instruction legal while, if they are
-different the execution is terminated.
+When we need to perform a backward edge control, we just need to \textit{pop} an
+address from the Shadow Stack and match the destination address with the popped
+one. If the addresses are equal we can consider the return instruction legal while,
+if they are different the execution is terminated.
 
 Whenever a backward edge control succeeds we must do nothing since the value has
 already been removed from the Shadow Stack and no other modifications are needed.
@@ -721,67 +735,77 @@ Thus, the execution is resumed with the interrupted return instruction.
 \section{Proof of Concept (PoC)}
 \label{sec:project_poc}
 
-In this section, we will see why the proposed solution effectively provides security
-capabilities to a non-trusted and insecure code. Figure \ref{fig:functioning}
-depicts an abstraction of the project's flow.
+In this section, we provide a Proof of Concept to showcase why the proposed
+solution effectively provides security capabilities to a non-trusted and
+insecure code. Figure \ref{fig:functioning} depicts an abstraction of the project's
+flow where green and red boxes depicts trusted and untrusted components respectively.
+Moreover, green arrows are used to represent a successful edge control while red
+arrows represent an unsuccessful one.
 
 \begin{figure}[htbp]
   \centering
-  \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/functioning.png} } %
-  {\scriptsize }
-  \caption{Abstraction of the flow of execution}
+  \includegraphics[width=.9\linewidth]{images/functioning.png}
+  \caption{\textit{project name}'s Execution Flow Abstraction}
   \label{fig:functioning}
 \end{figure}
 
 We have already seen that the \textit{Boot and Startup} and \textit{Machine code
-init} sections are used to configure the board and the machine configuration respectively.
+init} sections are used to configure the board and \textit{RISC-V} registers respectively.
 This part of the code is trusted so we are sure the machine will be configured
-properly. The only way to corrupt this part of the execution would be to modify the
-source code before compilation but, this is out of the project's scope.
+properly and no security measures are needed. The only way to corrupt this part of
+the execution would be to tamper with the source code before compilation but this
+is out of the project's scope and requires human controls prior to implementation.
 
-The same is true for the \textit{CFI Enforcer} section which is responsible for managing
-edge controls as well as other interrupts and exceptions. Even in this case, the
-source code has to be modified to tamper with the security features.
+The same is true for the \textit{CFI Enforcer} section which is responsible for
+managing edge controls as well as other interrupts and exceptions. Even in this case,
+the source code has to be modified to tamper with the security features.
 
 On the other hand, the \textit{User code} section is untrusted and we can't make
-any assumptions on its functioning. The code could be well-written and somewhat
-secure but it could be full of flaws and we must prevent any attack that could
-be perpetrated through it. To do so, we use forward and backward edge controls
-together with the Shadow Stack and the Control Flow Graph.
+any assumptions on its functioning. The code could be well-written and somewhat secure
+but it could be full of flaws and we must prevent any attack that could be perpetrated
+through it. To do so, we use forward and backward edge controls together with the
+Shadow Stack and the Control Flow Graph.
 
-As already said, the Shadow Stack and the CFG are the most critical points of the
-project. We must secure them since they serve as oracles and we must be able to
-trust the data they contain. Since the CFG is configured statically we are sure that
-it can't be modified during execution, the Shadow Stack instead is designed to
-change since we need to push and pop values from it. However, since we protected
-the Shadow Stack with the PMP we can be sure that only privileged code has
-access to it and any other access generates a trap that is handled through the
-interrupt vector table. This means that, even if one tries to add or remove
-values from the stack the operation will be aborted immediately and our trust in
-the Shadow Stack remains intact.
+As already said, the \textit{Shadow Stack} and the \textit{Control Flow Graph}
+are the most critical components of the project. We must secure them since they serve
+as oracles and we must be able to trust the data they contain. Since the CFG is
+configured statically we are sure that it can't be modified during execution, the
+Shadow Stack instead is designed to change since we need to \textit{push} and
+\textit{pop} values from it. However, since we protected the Shadow Stack with the
+PMP we can be sure that only privileged code has access to it and any other access
+generates a trap that is handled through the interrupt vector table. This means
+that, even if one tries to add or remove arbitrary values from the stack the operation
+will be aborted immediately and our trust in the Shadow Stack remains intact.
 
-Now we will go through every possible scenario that could happen during a normal
-execution.
+Now, every possible scenario that could happen during a normal execution will be
+discussed.
 
 As soon as a forward edge control is requested we check that the pair source-destination
 is valid thanks to the CFG. Let's say that an attacker tampered with the code to
-perform an unauthorized jump, in this case, the CFG will not contain such a pair
-since we said that it can't be modified. In this case, the unauthorized jump is detected
-and the code terminates immediately. Instead, if the pair is legal according to the
-CFG the jump is considered safe and the return address is pushed into the Shadow
-Stack. Note that since we compute the return address each time instead of
-trusting the one provided by the user code we are sure that the value inserted
-in the stack is correct and we can trust it.
+perform an unauthorized jump instruction, in this case, the CFG will either contain
+such pair or not. If the pair is contained in the CFG the jump instruction is
+allowed, however this means that the attacker is trying to jump from a valid source
+to a valid destination meaning that the operation is secure and can be performed.
+On the other hand, if the attacker is trying to perform an unauthorized jump instruction
+we are sure that the Control Flow Graph will not contain the pair source-destination
+provided by the attacker since we said that the CFG can't be modified. In this
+case, the unauthorized jump is detected and the code terminates immediately.
+Instead, if the user code is trying to perform a normal jump instruction we know
+that the added instructions will always send to the interrupt vector table a legal
+pair and the jump will be considered safe. As a consequence, the return address is
+pushed into the Shadow Stack. Note that since we compute the return address each
+time instead of trusting the one provided by the user code we are sure that the
+value inserted in the stack is correct and we can trust it.
 
 If a backward edge control is requested instead, we check that the return address
 provided by the user code is the one we are expecting by popping the last value that
 was inserted in the Shadow Stack. Again, let's say that an attacker tampered with
 the code to perform an unauthorized return, in this case, the addresses will not
-match and the execution is terminated. Note that the fact that we can trust the
-Shadow Stack is highly dependent on the configuration of the PMP. This is because,
-without a proper configuration, it would be possible for an attacker to push a value
-into the Shadow Stack and then tamper with the return address to effectively return
-to an unauthorized address.
+match and the execution will be terminated. Note that the fact that we can trust
+the Shadow Stack is highly dependent on the configuration of the Physical Memory
+Protection. This is because, without a proper configuration, it would be possible
+for an attacker to push a value into the Shadow Stack and then tamper with the return
+address to effectively return to an unauthorized address.
 
 Moreover, when we try to push a value into a full Shadow Stack the execution is
 terminated. This is needed because if we are not able to push the address into the
@@ -794,9 +818,10 @@ Lastly, we could design the enforcement of the backward edge controls in another
 way. If we need to control a return address and there is a mismatch we could force
 the user code to return to the address stored in the Shadow Stack which we know is
 safe. While this solution enforces Control Flow Integrity securely we can't be
-sure that the stack (referring to the normal stack used to store registers) has
-not been compromised and thus, terminating execution is a much safer choice.
+sure that the stack\footnote{Referring to the normal stack used to store
+registers} has not been compromised and thus, terminating execution is a much
+safer choice.
 
-So, we have seen that this project effectively enforces Control Flow Integrity
-on an untrusted user application and that its security functionalities work as
-expected to prevent any attempt to perform unauthorized operations.
+To conclude, we have seen that this project effectively enforces Control Flow Integrity
+on an untrusted user application and that its security functionalities work as expected
+to prevent any attempt to perform unauthorized operations even in edge cases.

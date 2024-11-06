@@ -26,7 +26,8 @@ about the threat model include:
   \item Control Flow Modification: the system protects against unauthorized
     jumps and returns, ensuring that all control transfers adhere to the pre-defined
     Control Flow Graph and Shadow Stack constraints. This model includes forward-edge
-    checks (for jumps) and backward-edge checks (for returns);
+    checks and backward-edge checks for jump and return instructions
+    respectively;
 
   \item Memory Integrity: the Physical Memory Protection configuration ensures
     that critical data structures, including the CFG and Shadow Stack, are
@@ -36,7 +37,7 @@ about the threat model include:
 \end{itemize}
 
 However, this threat model does not cover direct hardware-level attacks, such as
-physical tampering, or attacks that compromise the system before initialization.
+physical tampering, or attacks that compromise the system before compilation.
 
 \section{Testing Methodologies}
 \label{sec:ta_methodologies}
@@ -61,9 +62,10 @@ an instruction was legal or not.
 
 Moreover, we conducted some tests to check the PMP configuration. Such tests involved
 trying to access secure parts of the memory from the user code. As a result, we determined
-that each access both in read and write mode resulted in the generation of a trap.
-This testing validated that PMP effectively restricts access, protecting the integrity
-of the Shadow Stack and Control Flow Graph.
+that each access both in read and write mode resulted in the generation of a trap
+that was then handled by the interrupt vector table. This testing validated that
+PMP effectively restricts access, protecting the integrity of the Shadow Stack and
+Control Flow Graph from unauthorized modifications.
 
 Lastly, we performed tests on edge cases. These tests were conducted to verify system
 behavior under peculiar circumstances such as an empty or full Shadow Stack.
@@ -89,21 +91,23 @@ To protect against such attacks, additional hardware-based security mechanisms w
 be necessary.
 
 Furthermore, there could be edge cases that have not been discovered which could
-lead to potential exploitations of the project. However, these can be discovered
-through exhaustive testing.
+lead to potential exploitations of the code. However, these can be discovered
+through exhaustive testing and will be part of future development.
 
-Lastly, we can't know if vulnerabilities related to the RISC-V Instruction Set Architecture
-could lead to the exploitation of the user code. In such case, we can't be sure that
-the project will be able to protect the Control Flow Integrity and prevent exploitation.
-For example, the recently discovered hardware vulnerability in \textit{T-Head's
-XuanTie C910 and C920} CPUs named ``\textit{GhostWrite}'' \cite{riscvuzz} allow an
-attacker with limited privileges to read and write from and to physical memory.
-This type of vulnerability could not be prevented with the project's security
-features.
+Lastly, we can't know if vulnerabilities related to the \textit{RISC-V}
+Instruction Set Architecture could lead to the exploitation of the user code. In
+such case, we can't be sure that the project will be able to protect the Control
+Flow Integrity and prevent exploitation. For example, the recently discovered
+hardware vulnerability in \textit{T-Head's XuanTie C910 and C920} CPUs named ``\textit{GhostWrite}''
+\cite{riscvuzz} allow an attacker with limited privileges to read and write from
+and to physical memory. This type of vulnerability could not be prevented with the
+project's security features.
 
-In summary, the project provides robust protection against unauthorized control flows
-in RISC-V microcontrollers, particularly effective in embedded environments
-where code integrity is paramount. While the model is limited in handling recursion-heavy
-applications and relies on PMP for data protection, it nonetheless establishes a
-secure foundation for CFI, with the potential for further optimization in future
-iterations.
+In summary, the project provides robust protection against unauthorized control
+transfers in \textit{RISC-V} microcontrollers, particularly effective in
+embedded environments where code integrity is paramount. While the model is limited
+in handling recursion-heavy applications and relies on PMP for data protection,
+it nonetheless establishes a secure foundation for CFI, with the potential for further
+optimization in future iterations. Moreover, \textit{project name} could be
+implemented together with other security mechanisms to completely secure an
+embedded device.
