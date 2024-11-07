@@ -428,3 +428,5 @@ TSWLatexianTemp*
 **/build/
 **/node_modules/
 !/images/**/*.pdf
+
+TODO.txt

@@ -1,5 +1,0 @@
-TODO:
-  - Future works
-  - Conclusions
-  - FreeRTOS implementation
-  - Abstract
