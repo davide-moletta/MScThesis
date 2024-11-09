@@ -1,14 +1,134 @@
 \chapter{FreeRTOS Implementation}
 \label{cha:rtos}
 
-\section{Porting FreeRTOS}
+\textit{STEERED} has been developed and tested on bare-metal applications to ensure
+its correctness in simple environments. However, many embedded devices are designed
+to accomplish more complex tasks and they need special environments to support the
+execution. In this section, we provide a description on how \textit{Free Real
+Time Operating System} (\textit{FreeRTOS}) could be implemented together with \textit{STEERED}
+to secure and support complex tasks.
+
+\section{FreeRTOS}
+\label{sec:rtos_rtos}
+
+\textit{FreeRTOS}\cite{freertos} is an open-source, lightweight, Real-Time Operating
+System (\textit{RTOS}) kernel designed for embedded systems. In recent years,
+\textit{FreeRTOS} has become one of the most widely used \textit{RTOS} kernels
+in embedded applications, particularly in microcontrollers, because of its
+simplicity, efficiency, scalability, and portability.
+
+\textit{FreeRTOS} is mostly used in applications that require reliable, deterministic
+behavior in resource-constrained environments. Some examples are: medical devices,
+IoT devices, automotive and many more.
+
+\subsection{FreeRTOS Features}
+\label{subsec:rtos_features}
+
+\textit{FreeRTOS} provides many features, the most important being:
+\begin{itemize}
+  \item Real-Time Scheduling: \textit{FreeRTOS} supports real-time scheduling with
+    both preemptive and cooperative multitasking. In preemptive scheduling, tasks
+    are prioritized and can interrupt lower-priority tasks, while in cooperative
+    multitasking, tasks yield control to others explicitly. Moreover, it uses a priority-based
+    scheduling, allowing developers to assign priority levels to tasks based on
+    their timing requirements;
+
+  \item Task Management: Tasks in \textit{FreeRTOS} are individual threads of execution,
+    each with its own stack and context. The kernel allows the creation,
+    deletion, and management of tasks dynamically. Each task operates in its own
+    context, which the kernel saves and restores during context switching;
+
+  \item Memory Management: \textit{FreeRTOS} provides several memory allocation schemes,
+    including static and dynamic allocation, through its portable memory allocation
+    subsystem. It supports different heap management schemes (\textit{heap\_1}
+    through \textit{heap\_5}), offering varying levels of complexity and memory usage
+    optimization. These schemes allow developers to balance between simplicity
+    and flexibility;
+
+  \item Interrupt Handling: \textit{FreeRTOS} is designed to work seamlessly with
+    hardware interrupts, allowing Interrupt Service Routines (ISR) to
+    communicate with tasks through mechanisms like queues and semaphores. The kernel
+    offers a low-latency method for ISR handling, enabling efficient
+    communication between ISRs and tasks while ensuring minimal delay in task
+    scheduling;
+
+  \item Software Timers: \textit{FreeRTOS} includes a timer API, allowing
+    developers to create software timers that automatically trigger callback
+    functions after a specified period. This feature helps to manage time-dependent
+    operations without creating dedicated tasks;
+
+  \item Portability and Scalability: \textit{FreeRTOS} is highly portable and can
+    be adapted to run on numerous processor architectures, including \textit{ARM
+    Cortex-M}, \textit{ARM Cortex-A}, \textit{RISC-V}, and various other
+    architectures. It is structured in a way that allows developers to scale applications
+    easily by adding or removing tasks, memory management schemes, and communication
+    mechanisms as needed;
+
+  \item Debugging and Traceability: \textit{FreeRTOS} provides support for debugging
+    and traceability, offering hooks that allow users to gather runtime
+    statistics and monitor task execution patterns.
+\end{itemize}
+
+With all these features it is easy to see why \textit{FreeRTOS} has become a standard
+in the community. However, \textit{FreeRTOS} presents some limitations like the
+limited built-in security and the lack of support for multicore processing. Some
+of this flaws have been addressed by community users and companies with alternative
+versions of the Operating System. For example, \textit{Espressif} presented
+\textit{IDF FreeRTOS}\cite{idfrtos}, a version of \textit{FreeRTOS} which
+provides support for multicore processing. Moreover, \textit{highintegritysystems}
+developed \textit{SAFERTOS}\cite{safertos}, a redesign of the \textit{FreeRTOS} kernel
+to enhance security.
+
+Overall, \textit{FreeRTOS} is a powerful choice for developers working with embedded
+systems that require real-time capabilities, low overhead, and efficient resource
+management. Its design balances simplicity with flexibility, making it suitable for
+a wide variety of applications from small IoT devices to more complex industrial
+systems.
+
+\section{FreeRTOS and STEERED}
 \label{sec:rtos_porting}
 
-\section{Tasks and Scheduling}
-\label{sec:rtos_task}
+In this section, we provide a detailed description on how \textit{FreeRTOS}
+could be imported inside \textit{STEERED} and why this could increase the scenarios
+in which \textit{STEERED} could be used.
 
-\section{Interrupt Management}
-\label{sec:rtos_interrupts}
+We have seen that \textit{STEERED} is designed to securely run untrusted user-code
+in bare-metal environments. However, given its simplicity it could be used to secure
+code in more complex environments, for example with a Real Time Operating System
+like \textit{FreeRTOS}.
 
-\section{Memory Management}
-\label{sec:rtos_memory}
+The main idea is to maintain \textit{STEERED} as the M-mode operator, managing system
+boot and edge controls. The user code in this case is represented by the various
+tasks generated thanks to \textit{FreeRTOS}. Code instrumentation would not
+change much as we would just need to add the \textit{regex} functions to search for
+\textit{FreeRTOS}-specific instructions that cause a control transfer during
+execution. Finally, \textit{FreeRTOS} could be used as a ``supervisor'', either
+trusted or untrusted depending on the case. It would be in charge of managing task
+scheduling and memory operations.
+
+Moreover, since \textit{FreeRTOS} requires its own Interrupt Service Routine we could
+either:
+\begin{itemize}
+  \item Prepare two separate Interrupt Vector Tables, one for \textit{STEERED}\footnote{The
+    same we have seen in Section \ref{sec:project_isr}} and one for \textit{FreeRTOS}.
+    However, traps at user level are managed by default ad machine level so, if
+    we have an interrupt or an exception in one of the tasks the controls is
+    transferred to the \textit{STEERED} interrupt vector table and we must manually
+    transfer the flow to the correct handler of the \textit{FreeRTOS} interrupt
+    vector table;
+
+  \item Another solution could be to prepare two separate interrupt vector tables
+    and use \textit{mideleg} and \textit{medeleg} registers to automatically delegate
+    some interrupts and/or exceptions to the \textit{FreeRTOS} interrupt vector
+    table. For example, if we know that user interrupts are always managed by
+    \textit{FreeRTOS} we could insert the corresponding code inside \textit{mideleg}.
+    With this, each time a user-level interrupt is generated it is trapped at
+    the \textit{FreeRTOS} interrupt vector table. Note that this does not mean
+    that \textit{STEERED} will not be able to manage those traps as higher level
+    interrupts and exception can't be delegated to lower level handler. For
+    example, if a machine-level interrupt is generated it will always be handled
+    by \textit{STEERED} interrupt vector table.
+\end{itemize}
+
+\section{Porting Limitations}
+\label{sec:rtos_limitations}
