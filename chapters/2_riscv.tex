@@ -644,7 +644,7 @@ of \textit{mcause}.
 \end{table}
 
 \subsection{Machine Trap Value Register (MTVAL) CSR}
-\label{subsec:mtval}
+\label{subsec:riscv_mtval}
 
 The \textit{mtval} register is used, when a trap is taken in M-mode, to store
 exception-specific information to assist software in handling the trap. Figure \ref{fig:mcause}
@@ -659,7 +659,7 @@ depicts a representation of \textit{mtval}.
 \end{figure}
 
 \subsection{Machine Trap-Vector Base-Address Register (MTVEC) CSR}
-\label{subsec:mtvec}
+\label{subsec:riscv_mtvec}
 
 The \textit{mtvec} register is used to store the address that holds the trap vector
 configuration. Figure \ref{fig:mtvec} depicts a representation of \textit{mtvec}.
@@ -693,11 +693,44 @@ set to direct instead, all traps set the program counter to the base address.
   \label{tab:mode}
 \end{table}
 
-\subsection{ (MIDELEG) CSR}
-\label{subsec:mideleg}
+\subsection{Machine Trap Delegation Registers (MIDELEG and MEDELEG) CSRs}
+\label{subsec:riscv_deleg}
 
-\subsection{ (MEDELEG) CSR}
-\label{subsec:medeleg}
+By default, all traps at any privilege are handled in machine mode, though it is
+possible to use the \textit{MRET} instruction to transfer control to a lower-level
+handler. To increase performance, \textit{RISC-V} provides two registers \textit{mideleg}
+and \textit{medeleg} used to indicate that certain traps should be processed directly
+at a lower privilege level. The machine exception delegation register (\textit{medeleg})
+is a $64$-bit long register while the machine interrupt delegation register (\textit{mideleg})
+is an \textit{MXLEN}-bit\footnote{\textit{MXLEN} represent the length of some registers
+based on the used ISA, for example for \textit{RV32I} \textit{MXLEN} is $32$.}
+long register (Figures \ref{fig:medeleg} and \ref{fig:mideleg} depict representation
+of the registers).
+
+\begin{figure}[htbp]
+  \centering
+  \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/medeleg_csr.png} } %
+  {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $35$}}
+  \caption{Machine Exception Delegation Register (\textit{medeleg})}
+  \label{fig:medeleg}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/mideleg_csr.png} } %
+  {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $36$}}
+  \caption{Machine Interrupt Delegation Register (\textit{mideleg})}
+  \label{fig:mideleg}
+\end{figure}
+
+If we wish to delegate a subset of traps we just need to set the corresponding
+bits inside \textit{mideleg} and \textit{medeleg}. For example, if we wish to
+delegate instruction address misaligned exception to supervisor mode we just
+need to set bit $0$ of \textit{medeleg} because we want to delegate an exception
+and, as we can see in \ref{tab:causes}, it is in position $0$ among the exceptions.
+However, note that higher privilege traps are never delegated, if we decided to
+delegate instruction access fault exceptions and such exception is generated in
+machine mode it will be handled at that privilege level.
 
 \section{RISC-V Physical Memory Protection (PMP)}
 \label{sec:riscv_pmp}

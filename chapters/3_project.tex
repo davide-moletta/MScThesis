@@ -304,12 +304,13 @@ see how forward and backward edge controls are enforced.
 
 The interrupt vector table is defined inside \textit{intr\_vector\_table.c}. As already
 explained its address is loaded in \textit{main.c} and stored inside \textit{mtvec}
-(\ref{subsec:mtvec}) with \textit{MODE} set to vectored. This means that every asynchronous
-interrupt will set the program counter to the base address of the vector table plus
-$4$ times the cause of the interrupt. Any other interrupt and exception is
-trapped inside the function \textit{synchronous\_exception\_handler} which redirects
-to the correct function depending on the trap cause. Listing \ref{lst:intrtable}
-depicts the actual implementation of the interrupt vector table.
+(\ref{subsec:riscv_mtvec}) with \textit{MODE} set to vectored. This means that every
+asynchronous interrupt will set the program counter to the base address of the vector
+table plus $4$ times the cause of the interrupt. Any other interrupt and
+exception is trapped inside the function \textit{synchronous\_exception\_handler}
+which redirects to the correct function depending on the trap cause. Listing
+\ref{lst:intrtable} depicts the actual implementation of the interrupt vector
+table.
 
 Most of the exceptions and interrupts are not currently handled and, when invoked,
 they just log a message describing which trap was taken. Afterward, the

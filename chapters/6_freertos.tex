@@ -118,17 +118,78 @@ either:
     vector table;
 
   \item Another solution could be to prepare two separate interrupt vector tables
-    and use \textit{mideleg} and \textit{medeleg} registers to automatically delegate
-    some interrupts and/or exceptions to the \textit{FreeRTOS} interrupt vector
-    table. For example, if we know that user interrupts are always managed by
-    \textit{FreeRTOS} we could insert the corresponding code inside \textit{mideleg}.
-    With this, each time a user-level interrupt is generated it is trapped at
-    the \textit{FreeRTOS} interrupt vector table. Note that this does not mean
-    that \textit{STEERED} will not be able to manage those traps as higher level
-    interrupts and exception can't be delegated to lower level handler. For
-    example, if a machine-level interrupt is generated it will always be handled
-    by \textit{STEERED} interrupt vector table.
+    and use \textit{mideleg} and \textit{medeleg} registers (seen in Section
+    \ref{subsec:riscv_deleg}) to automatically delegate some interrupts and/or exceptions
+    to the \textit{FreeRTOS} interrupt vector table. For example, if we know
+    that user interrupts are always managed by \textit{FreeRTOS} we could insert
+    the corresponding code inside \textit{mideleg}. With this, each time a user-level
+    interrupt is generated it is trapped at the \textit{FreeRTOS} interrupt vector
+    table. Note that this does not mean that \textit{STEERED} will not be able to
+    manage those traps as higher level interrupts and exception can't be delegated
+    to lower level handler. For example, if a machine-level interrupt is generated
+    it will always be handled by \textit{STEERED} interrupt vector table.
 \end{itemize}
 
 \section{Porting Limitations}
 \label{sec:rtos_limitations}
+
+The presented implementation present one key limitation, \textit{FreeRTOS} needs
+to perform some operations on Control and Status Registers to function correctly
+but, as we have explained such registers are only available in machine mode.
+Since the implementation inside \textit{STEERED} would require \textit{FreeRTOS}
+to run either in supervisor or user mode all those operations would generate an
+illegal instruction exception as those privilege modes can't access machine CSRs.
+Some of these operations are depicted in Listing \ref{lst:freeoperations}.
+
+\begin{lstlisting}[style=Assembly, caption = \textit{FreeRTOS} operations on Control and Status Registers, label={lst:freeoperations}]
+  la a7, {target_function} //comment
+  ecall
+  jal {target_function}
+\end{lstlisting}
+
+To address this problem we could enhance the instrumentation phase to modify
+\textit{FreeRTOS}'s code in the following way. Firstly, we need to find the critical
+instructions, this can be done easily with \textit{regex} functions. With this
+we can extract the operation that \textit{FreeRTOS} is trying to perform (among
+the one seen in Section \ref{sec:riscv_csrs}) and the target CSR. The target CSR
+can be then translated thanks to the table \textit{Currently allocated RISC-V
+machine-level CSR addresses}\footnote{Provided by the \textit{RISC-V Privileged
+Manual}\cite{riscv} at page $17$.} where we can see that for example register
+\textit{mstatus} is referred to as number $0x300$. Now we can precisely describe
+each target CSR and we just need to inject new instructions to perform an
+\textit{ECALL} to \textit{STEERED}'s interrupt vector table which will perform
+the modification of the CSRs on behalf of \textit{FreeRTOS}.
+
+To do so, we can choose between two options. The first is to use register \textit{a7}
+to hold the new \textit{ECALL} code which determines the operation and two other
+registers, say \textit{a6} and \textit{a5} to hold the CSR number and the CSR
+instruction respectively. However, this solution is highly inefficient in the
+use of registers since we could encode those values into $2$ registers instead
+of $3$. Alternatively, we could use register \textit{a7} to hold the new \textit{ECALL}
+code and \textit{a6} to hold the CSR number and the CSR instruction. Since there
+are $3$ CSR instructions we just need $2$ bits to encode them, Table \ref{tab:instructionenc}
+depicts a possible representation of the encodings of CSR instructions. All
+other bits would be reserved to describe the target CSR for the operation. Note that
+CSRs numbers go from $0x300$ up to $0xF15$ so we need at maximum $12$ bits to represent
+each of them. Also, we can't encode the \textit{ECALL} code inside the same
+register because we are using the least significant bit to represent forward and
+backward edge controls thus, using it would result in ambiguity on the operation
+to perform.
+
+\begin{table}
+  \centering
+  \begin{tabular}{|c|c|c|}
+    \hline
+    \textbf{Number} & \textbf{Value} & \textbf{Instruction} \\
+    \hhline{===} 1  & $00$           & CSRRW                \\
+    \hline
+    2               & $01$           & CSRRS                \\
+    \hline
+    3               & $10$           & CSRRC                \\
+    \hline
+    4               & $11$           & Reserved             \\
+    \hline
+  \end{tabular}
+  \caption{CSR instructions encoding}
+  \label{tab:instructionenc}
+\end{table}
