@@ -141,24 +141,24 @@ to run either in supervisor or user mode all those operations would generate an
 illegal instruction exception as those privilege modes can't access machine CSRs.
 Some of these operations are depicted in Listing \ref{lst:freeoperations}.
 
-\begin{lstlisting}[style=Assembly, caption = \textit{FreeRTOS} operations on Control and Status Registers, label={lst:freeoperations}]
-  la a7, {target_function} //comment
-  ecall
-  jal {target_function}
-\end{lstlisting}
-
-To address this problem we could enhance the instrumentation phase to modify
-\textit{FreeRTOS}'s code in the following way. Firstly, we need to find the critical
-instructions, this can be done easily with \textit{regex} functions. With this
-we can extract the operation that \textit{FreeRTOS} is trying to perform (among
-the one seen in Section \ref{sec:riscv_csrs}) and the target CSR. The target CSR
-can be then translated thanks to the table \textit{Currently allocated RISC-V
-machine-level CSR addresses}\footnote{Provided by the \textit{RISC-V Privileged
-Manual}\cite{riscv} at page $17$.} where we can see that for example register
+To address this problem we could enhance the instrumentation phase to modify \textit{FreeRTOS}'s
+code in the following way. Firstly, we need to find the critical instructions, this
+can be done easily with \textit{regex} functions. With this we can extract the operation
+that \textit{FreeRTOS} is trying to perform (among the one seen in Section \ref{sec:riscv_csrs})
+and the target CSR. The target CSR can be then translated thanks to the table \textit{Currently
+allocated RISC-V machine-level CSR addresses}\footnote{Provided by the \textit{RISC-V
+Privileged Manual}\cite{riscv} at page $17$.} where we can see that for example register
 \textit{mstatus} is referred to as number $0x300$. Now we can precisely describe
-each target CSR and we just need to inject new instructions to perform an
-\textit{ECALL} to \textit{STEERED}'s interrupt vector table which will perform
-the modification of the CSRs on behalf of \textit{FreeRTOS}.
+each target CSR and we just need to inject new instructions to perform an \textit{ECALL}
+to \textit{STEERED}'s interrupt vector table which will perform the modification
+of the CSRs on behalf of \textit{FreeRTOS}.
+
+\begin{lstlisting}[style=Assembly, caption = \textit{FreeRTOS} operations on Control and Status Registers, label={lst:freeoperations}]
+  csrr a0, mcause  // Store inside register a0 the value of mcause
+  csrw mepc, a0    // Write mepc with the value of a0
+  csrs mstatus, t0 // Set bit(s) in mstatus based on value of t0
+  csrc mie, a0     // Clear bit(s) in mie based on value of a0
+  \end{lstlisting}
 
 To do so, we can choose between two options. The first is to use register \textit{a7}
 to hold the new \textit{ECALL} code which determines the operation and two other
@@ -170,7 +170,7 @@ code and \textit{a6} to hold the CSR number and the CSR instruction. Since there
 are $3$ CSR instructions we just need $2$ bits to encode them, Table \ref{tab:instructionenc}
 depicts a possible representation of the encodings of CSR instructions. All
 other bits would be reserved to describe the target CSR for the operation. Note that
-CSRs numbers go from $0x300$ up to $0xF15$ so we need at maximum $12$ bits to represent
+CSRs numbers go from $0x300$ up to $0xf15$ so we need at maximum $12$ bits to represent
 each of them. Also, we can't encode the \textit{ECALL} code inside the same
 register because we are using the least significant bit to represent forward and
 backward edge controls thus, using it would result in ambiguity on the operation
@@ -193,3 +193,21 @@ to perform.
   \caption{CSR instructions encoding}
   \label{tab:instructionenc}
 \end{table}
+
+Figure \ref{fig:a6encoding} a depicts a possible encoding for register \textit{a6}
+where we use the two most significant bits to encode the CSR instruction we want
+to perform and all the other bits to represent the target CSR.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=.9\linewidth]{images/freertos_encoding.png}
+  \caption{Possible encoding for register \textit{a6}}
+  \label{fig:a6encoding}
+\end{figure}
+
+Lastly, we would just need to add an if statement inside \textit{STEERED}'s
+interrupt vector table to determine if we are requesting to perform a CSR
+instruction on behalf of \textit{FreeRTOS}.
+
+Note that this is just a proposal of implementation and there may be other ways to
+implement \textit{FreeRTOS} inside \textit{STEERED}.
