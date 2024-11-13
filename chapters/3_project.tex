@@ -1,96 +1,141 @@
-\chapter{Control Flow Integrity Enforcer}
+\chapter{STEERED}
 \label{cha:project}
 
-This chapter focuses on \textit{project name}'s implementation. We will see the
-goals and specifics of the project as well as a detailed description of every
-key aspect of the development. Lastly, a Proof of Concept is discussed to prove
-the functioning and security capabilities of \textit{project name}.
+This chapter focuses on showcasing \textit{STEERED}'s development and implementation.
+We start by formalizing the goals of the project, showing its purposes and how it
+could address real-world problems. Section \ref{sec:project_instrumentation}
+provides a detailed description of the instrumentation process, describing how the
+instrumentation affects the produced binary and why it has been designed to work
+in this way. Section \ref{sec:project_isr} describe how \textit{STEERED} handles
+interrupts, exceptions, and edge controls. Sections \ref{sec:project_ss} and
+\ref{sec:project_cfg} show how the Control Flow Graph and the Shadow Stack are
+implemented as well as describing how they work. Moreover, Section
+\ref{sec:project_pmp}, showcase the configuration for the Physical Memory Protection
+used to secure such data structures. Lastly, in Section \ref{sec:project_poc}, a
+Proof of Concept is discussed to prove the functioning and security capabilities
+of \textit{STEERED}.
 
 \section{Project Formalization}
 \label{sec:project_formalization}
 
-This project aims at providing a secure infrastructure for embedded devices
-based on the \textit{RISC-V} ISA. The main goal is to protect the device from
-control-flow attacks such as Return-Oriented Programming (ROP) attacks. To do so,
-\textit{project name} provides a Control Flow Integrity (CFI) Enforcer which ensures
-that the software follows the expected path. Moreover, it provides instrumenting
-capabilities to automatize the implementation of any code.
+\textit{STEERED} aims at providing a secure infrastructure for embedded devices based
+on the \textit{RISC-V} ISA. The main goal is to protect the device from control-flow
+attacks such as Return-Oriented Programming (ROP) or Jump-Oriented Programming (JOP)
+attacks. These cyber threats attempt to alter the normal execution flow of a
+program by jumping or returning to unexpected addresses with the intent of
+executing arbitrary code or exfiltrating information. This is even more dangerous
+if we consider that small microcontrollers often use only the highest privilege mode
+when executing code, as a result, an attacker have high chances to gain complete
+control over the target device.
 
-Control Flow Integrity is a security technique that does not allow control transfers
-that are not part of the Control Flow Graph (CFG) of the binary.
+To prevent the described attacks, \textit{STEERED} provides a Shadow Stack and a
+Control Flow Graph, two data structures used in the security field to enforce
+what is called Control Flow Integrity (CFI) which is a security technique that
+does not allow the code to perform unexpected control transfer instructions. With
+this technique \textit{STEERED} ensure that the software follows the expected
+path preventing any unauthorized attempt to alter the execution flow. Moreover,
+\textit{STEERED} provides instrumenting capabilities to automatize the implementation
+of any code, making the use of the infrastructure easy and fast.
 
-Another goal of this project is to be as lightweight as possible to meet the performance
-requirements of less powerful devices. Thus, great importance is given to optimization
-of both space and time consumption.
+Another goal of \textit{STEERED} is to be as lightweight as possible to meet the
+performance requirements of less powerful devices. Thus, great importance is given
+to optimization of both space and time consumption. Moreover, the \textit{RISC-V}
+principles have been followed, leaving space for customization of any kind.
 
-\textit{project name} makes it possible to run untrusted code in a secure
-environment protecting the execution path of the software and ensures that any
-attack attempt will be detected by the CFI Enforcer and thus, the device will not
-be compromised.
-
-This project makes use of \textit{RISC-V} capabilities like the PMP to implement
-secure spaces of memory. It also utilizes state-of-the-art solutions like a Shadow
-Stack and a Control Flow Graph to ensure the correctness of the policies.
+To sum up, \textit{STEERED} offers an easy and lightweight infrastructure which makes
+it possible to run untrusted code in a secure environment protecting the execution
+path of the software and ensures that any control-flow tampering attempt will be
+detected by the Control Flow Integrity Enforcer and thus, the device will not be
+compromised.
 
 \section{Project Specifics}
 \label{sec:project_specifics}
+
+In this section we provide a description of \textit{STEERED} specifics, stating the
+utilized tools and files. \textit{STEERED} is published on \textit{GitHub}\cite{repo}
+under the \textit{GNU GPL-3.0} license\cite{gpl3} making it freely available to anyone.
+
+The project basic configuration for bare-metal flashing is derived by Sergey Lyubka's
+project \textit{mdk}\cite{mdk}, however we propose a custom flashing solution
+specifically developed for \textit{STEERED}. The only requirements to run and
+flash the code are \textit{Python v3+} and a toolchain to cross-compile code.
+During development we utilized the \textit{riscv-none-elf}\cite{toolchain}
+toolchain but, with the proper adjustments, any toolchain can be used. Moreover,
+since \textit{STEERED} has been developed and tested on \textit{Espressif's
+ESP32-C3-DevKitM-1}\cite{esp32c3}, we need to include the \textit{esputil}\footnote{Already
+available in the GitHub repository as a submodule\cite{esputil}.} executable to
+interact with the board \footnote{Note that if we wish to change the target
+board, all vendor-specific files must replace \textit{Espressif}'s files.}.
 
 \begin{wrapfigure}
   {l}{.25\textwidth}
   \centering
   \def\stackalignment{l}\stackunder{ \includegraphics[width=\linewidth]{images/workingtree.png} } %
-  {\scriptsize }
-  \caption{Working Tree}
+  {\scriptsize \parbox[t]{\linewidth}{Source: \href{https://github.com/davide-moletta/RISC-V-TE}{GitHub repository}}}
+  \caption{\textit{STEERED}'s Working Tree}
   \label{fig:workingtree}
 \end{wrapfigure}
 
-The project has been developed on \textit{Espressif's ESP32-C3-DevKitM-1}
-\cite{esp32c3} and the basic configuration for bare-metal flashing on such board
-is derived by Sergey Lyubka's project \textit{mdk}\cite{mdk}. Lastly, the
-\textit{riscv-none-elf}\cite{toolchain} toolchain has been used to cross-compile
-the code. However, since the project has been developed following the ideas of
-\textit{RISC-V} about hardware abstraction any of these settings can be modified
-according to one needs\footnote{Note that if we wish to change the target board,
-all vendor-specific files needed to flash the code must replace \textit{Espressif}'s
-files}.
+Figure \ref{fig:workingtree} depicts \textit{STEERED}'s working tree, where:
 
-Figure \ref{fig:workingtree} depicts the working tree of the project, where:
 \begin{itemize}
   \item \textit{esp32} contains the boot configuration and linker script for
-    general \textit{Espressif}'s boards;
+    general \textit{Espressif}'s boards\footnote{Provided by Sergey Lyubka};
 
   \item \textit{esp32c3} contains the boot configuration and linker script for
-    the \textit{ESP32-C3};
+    \textit{Espressif's ESP32-C3}\footnote{Provided by Sergey Lyubka but
+    severely modified for \textit{STEERED}.};
 
   \item \textit{esputil} contains \textit{Espressif}'s utils used to manage the board;
 
-  \item \textit{src/cfi/usercode} contains the untrusted code that needs
-    protection during execution. The code inside this folder will be the target for
-    code instrumentation;
+  \item \textit{src/cfi/usercode} contains the source files of the untrusted
+    code. The files inside this folder will be the target for code instrumentation
+    and will be used to produce the secure binary;
 
   \item \textit{src/cfi} contains the source files for the Shadow Stack, Control
-    Flow Graph, interrupt vector table and machine setup;
+    Flow Graph, interrupt vector table and machine setup which will be carefully
+    described later;
 
-  \item \textit{toolsExtra} contains the Python scripts used to instrument, build,
-    and flash the code.
+  \item \textit{toolsExtra} contains the \textit{Python} scripts \textit{instrumenter.py},
+    \textit{flasher.py}, and \textit{CFGextractor.py} used to instrument, flash,
+    and extract the Control Flow Graph respectively (detailed description in Section
+    \ref{sec:project_instrumentation}).
 \end{itemize}
 
-The scripts inside \textit{toolsExtra} are used to compile, instrument, and run
-the code (detailed description in Section \ref{sec:project_instrumentation}). Moreover,
-the file \textit{CFGextractor.py} is used to extract the Control Flow Graph of the
-code.
+Inside \textit{src/cfi}, we find the code responsible for managing the machine
+mode operations. File \textit{main.c} is responsible for enabling interrupts, managing
+privilege modes, and setting up both the Physical Memory Protection (detailed description
+in Section \ref{sec:project_pmp}) and the interrupt vector table (detailed description
+in Section \ref{sec:project_isr}). File \textit{intr\_vector\_table.c} is
+responsible for managing interrupts and exceptions as well as performing both
+forward and backward edge controls (detailed description in Section \ref{sec:project_controls}).
+Files \textit{cfg.c} and \textit{shadow\_stack.c} hold the Control Flow Graph and
+the Shadow Stack configurations respectively (detailed description in Sections
+\ref{sec:project_cfg} and \ref{sec:project_ss}). Lastly, \textit{ij\_logger.c}
+is used to retrieve indirect jump addresses thanks to a logger.
 
-Inside \textit{src/cfi} instead, we find the code responsible for managing the machine
-mode operations. File \textit{main.c} is responsible for setting up interrupts,
-managing privilege modes, and setting up both the PMP (detailed description in
-Section \ref{sec:project_pmp}) and the interrupt vector table (detailed
-description in Section \ref{sec:project_isr}). File \textit{intr\_vector\_table.c}
-is responsible for managing interrupts and exceptions as well as performing controls
-on both forward and backward checks (detailed description in Section
-\ref{sec:project_controls}). Files \textit{cfg.c} and \textit{shadow\_stack.c}
-hold the Control Flow Graph and the Shadow Stack configurations respectively (detailed
-description in Sections \ref{sec:project_cfg} and \ref{sec:project_ss}). Lastly,
-\textit{ij\_logger.c} is used to retrieve indirect jump addresses thanks to a logger.
+\subsection{User-Code Importing}
+\label{subsec:project_ucodeimport}
+
+During the development of \textit{STEERED} we put great importance in making the
+importing of user code easy. Such process requires only two steps, firstly we
+need to copy the needed files inside \textit{src/cfi/usercode}. Once this is
+done, we just need to modify the pre-uploaded file \textit{user\_entry.c}
+located inside the same folder. The purpose of this file is to make this process
+faster by providing a predefined function to modify. By looking at Listing
+\ref{lst:userentry} we can see that we only need to call the first function of
+the imported code and everything will work.
+
+\begin{lstlisting}[style=CStyle, caption = User Entry File, label={lst:userentry}]
+  void user_mode_entry_point()
+  {
+      printf("\n\n--- Start of user code ---\n\n");
+
+      start_u_code(); // Call first user function here
+
+      printf("\n\n--- End of user code ---\n\n");
+  }
+\end{lstlisting}
 
 \section{Code Instrumentation}
 \label{sec:project_instrumentation}
