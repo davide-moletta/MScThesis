@@ -2,15 +2,15 @@
 \label{cha:project}
 
 This chapter focuses on showcasing \textit{STEERED}'s development and implementation.
-We start by formalizing the goals of the project, showing its purposes and how it
-could address real-world problems. Section \ref{sec:project_instrumentation}
-provides a detailed description of the instrumentation process, describing how the
-instrumentation affects the produced binary and why it has been designed to work
-in this way. Section \ref{sec:project_isr} describe how \textit{STEERED} handles
-interrupts, exceptions, and edge controls. Sections \ref{sec:project_ss} and
+We start by formalizing the project's goals, showing its purposes and how it could
+address real-world problems. Section \ref{sec:project_instrumentation} provides
+a detailed description of the instrumentation process, describing how it affects
+the produced binary and why it has been designed to work in this way. Section
+\ref{sec:project_isr} describes how \textit{STEERED} handles interrupts,
+exceptions, and edge controls. Sections \ref{sec:project_ss} and
 \ref{sec:project_cfg} show how the Control Flow Graph and the Shadow Stack are
-implemented as well as describing how they work. Moreover, Section
-\ref{sec:project_pmp}, showcase the configuration for the Physical Memory Protection
+implemented as well as describe how they work. Moreover, Section
+\ref{sec:project_pmp}, showcases the configuration for the Physical Memory Protection
 used to secure such data structures. Lastly, in Section \ref{sec:project_poc}, a
 Proof of Concept is discussed to prove the functioning and security capabilities
 of \textit{STEERED}.
@@ -21,11 +21,11 @@ of \textit{STEERED}.
 \textit{STEERED} aims at providing a secure infrastructure for embedded devices based
 on the \textit{RISC-V} ISA. The main goal is to protect the device from control-flow
 attacks such as Return-Oriented Programming (ROP) or Jump-Oriented Programming (JOP)
-attacks. These cyber threats attempt to alter the normal execution flow of a
+attacks. These cyber-threats attempt to alter the normal execution flow of a
 program by jumping or returning to unexpected addresses with the intent of
 executing arbitrary code or exfiltrating information. This is even more dangerous
 if we consider that small microcontrollers often use only the highest privilege mode
-when executing code, as a result, an attacker have high chances to gain complete
+when executing code, as a result, an attacker has a high chance of gaining complete
 control over the target device.
 
 To prevent the described attacks, \textit{STEERED} provides a Shadow Stack and a
@@ -39,10 +39,10 @@ of any code, making the use of the infrastructure easy and fast.
 
 Another goal of \textit{STEERED} is to be as lightweight as possible to meet the
 performance requirements of less powerful devices. Thus, great importance is given
-to optimization of both space and time consumption. Moreover, the \textit{RISC-V}
+to the optimization of both space and time consumption. Moreover, the \textit{RISC-V}
 principles have been followed, leaving space for customization of any kind.
 
-To sum up, \textit{STEERED} offers an easy and lightweight infrastructure which makes
+To sum up, \textit{STEERED} offers an easy and lightweight infrastructure that makes
 it possible to run untrusted code in a secure environment protecting the execution
 path of the software and ensures that any control-flow tampering attempt will be
 detected by the Control Flow Integrity Enforcer and thus, the device will not be
@@ -55,20 +55,20 @@ In this section we provide a description of \textit{STEERED} specifics, stating 
 utilized tools and files. \textit{STEERED} is published on \textit{GitHub}\cite{repo}
 under the \textit{GNU GPL-3.0} license\cite{gpl3} making it freely available to anyone.
 
-The project basic configuration for bare-metal flashing is derived by Sergey Lyubka's
-project \textit{mdk}\cite{mdk}, however we propose a custom flashing solution
-specifically developed for \textit{STEERED}. The only requirements to run and
-flash the code are \textit{Python v3+} and a toolchain to cross-compile code.
-During development we utilized the \textit{riscv-none-elf}\cite{toolchain}
-toolchain but, with the proper adjustments, any toolchain can be used. Moreover,
-since \textit{STEERED} has been developed and tested on \textit{Espressif's
-ESP32-C3-DevKitM-1}\cite{esp32c3}, we need to include the \textit{esputil}\footnote{Already
-available in the GitHub repository as a submodule\cite{esputil}.} executable to
-interact with the board \footnote{Note that if we wish to change the target
-board, all vendor-specific files must replace \textit{Espressif}'s files.}.
+The project basic configuration for bare-metal flashing is derived from Sergey Lyubka's
+project \textit{mdk}\cite{mdk}, however, we propose a custom flashing solution specifically
+developed for \textit{STEERED}. The only requirements to run and flash the code are
+\textit{Python v3+} and a toolchain to cross-compile code. During development we
+utilized the \textit{riscv-none-elf}\cite{toolchain} toolchain but, with the
+proper adjustments, any toolchain can be used. Moreover, since \textit{STEERED}
+has been developed and tested on \textit{Espressif's ESP32-C3-DevKitM-1}\cite{esp32c3},
+we need to include the \textit{esputil}\footnote{Already available in the GitHub
+repository as a submodule\cite{esputil}.} executable to interact with the board \footnote{Note
+that if we wish to change the target board, all vendor-specific files must replace
+\textit{Espressif}'s files.}.
 
 \begin{wrapfigure}
-  {l}{.25\textwidth}
+  [17]{l}{.25\textwidth}
   \centering
   \def\stackalignment{l}\stackunder{ \includegraphics[width=\linewidth]{images/workingtree.png} } %
   {\scriptsize \parbox[t]{\linewidth}{Source: \href{https://github.com/davide-moletta/RISC-V-TE}{GitHub repository}}}
@@ -93,7 +93,7 @@ Figure \ref{fig:workingtree} depicts \textit{STEERED}'s working tree, where:
     and will be used to produce the secure binary;
 
   \item \textit{src/cfi} contains the source files for the Shadow Stack, Control
-    Flow Graph, interrupt vector table and machine setup which will be carefully
+    Flow Graph, interrupt vector table, and machine setup which will be carefully
     described later;
 
   \item \textit{toolsExtra} contains the \textit{Python} scripts \textit{instrumenter.py},
@@ -102,95 +102,110 @@ Figure \ref{fig:workingtree} depicts \textit{STEERED}'s working tree, where:
     \ref{sec:project_instrumentation}).
 \end{itemize}
 
-Inside \textit{src/cfi}, we find the code responsible for managing the machine
-mode operations. File \textit{main.c} is responsible for enabling interrupts, managing
-privilege modes, and setting up both the Physical Memory Protection (detailed description
-in Section \ref{sec:project_pmp}) and the interrupt vector table (detailed description
-in Section \ref{sec:project_isr}). File \textit{intr\_vector\_table.c} is
-responsible for managing interrupts and exceptions as well as performing both
-forward and backward edge controls (detailed description in Section \ref{sec:project_controls}).
-Files \textit{cfg.c} and \textit{shadow\_stack.c} hold the Control Flow Graph and
-the Shadow Stack configurations respectively (detailed description in Sections
-\ref{sec:project_cfg} and \ref{sec:project_ss}). Lastly, \textit{ij\_logger.c}
-is used to retrieve indirect jump addresses thanks to a logger.
+Inside \textit{src/cfi}, we find the code responsible for managing the machine mode
+operations. File \textit{main.c} is responsible for enabling interrupts,
+managing privilege modes, and setting up both the Physical Memory Protection (detailed
+description in Section \ref{sec:project_pmp}) and the interrupt vector table (detailed
+description in Section \ref{sec:project_isr}). File \textit{intr\_vector\_table.c}
+is responsible for managing interrupts and exceptions as well as performing both
+forward and backward edge controls (detailed description in Section
+\ref{sec:project_controls}). Files \textit{cfg.c} and \textit{shadow\_stack.c}
+hold the Control Flow Graph and the Shadow Stack configurations respectively (detailed
+description in Sections \ref{sec:project_cfg} and \ref{sec:project_ss}). Lastly,
+\textit{ij\_logger.c} is used to retrieve indirect jump addresses thanks to a logger.
 
 \subsection{User-Code Importing}
 \label{subsec:project_ucodeimport}
 
-During the development of \textit{STEERED} we put great importance in making the
-importing of user code easy. Such process requires only two steps, firstly we
-need to copy the needed files inside \textit{src/cfi/usercode}. Once this is
-done, we just need to modify the pre-uploaded file \textit{user\_entry.c}
-located inside the same folder. The purpose of this file is to make this process
-faster by providing a predefined function to modify. By looking at Listing
-\ref{lst:userentry} we can see that we only need to call the first function of
-the imported code and everything will work.
+During the development of \textit{STEERED} we put great importance on making the
+importing of user code easy. Such a process requires only two steps, firstly we need
+to copy the needed files inside \textit{src/cfi/usercode}. Once this is done, we
+just need to modify the pre-uploaded file \textit{user\_entry.c} located inside the
+same folder. The purpose of this file is to make this process faster by
+providing a predefined function to modify. By looking at Listing \ref{lst:userentry}
+we can see that we only need to call the first function we want to execute of the
+imported code to make the project work.
 
-\begin{lstlisting}[style=CStyle, caption = User Entry File, label={lst:userentry}]
-  void user_mode_entry_point()
-  {
-      printf("\n\n--- Start of user code ---\n\n");
+\begin{lstlisting}[style=CStyle, caption = \textit{user\_entry.c} File, label={lst:userentry}]
+void user_mode_entry_point()
+ {
+ printf("\n\n--- Start of user code ---\n\n");
 
-      start_u_code(); // Call first user function here
+ start_u_code(); // Call first user function here
 
-      printf("\n\n--- End of user code ---\n\n");
-  }
+ printf("\n\n--- End of user code ---\n\n");
+ }
 \end{lstlisting}
 
 \section{Code Instrumentation}
 \label{sec:project_instrumentation}
 
-Code instrumentation is the process of modifying software (usually binary or assembly
-code) by inserting instructions to perform specific tasks such as a performance
-analysis. Instrumentation plays a critical role in this project as it allows to modify
-the untrusted code in a simple yet effective way. Moreover, this automatize the process
-leading to faster development and lower number of errors. The whole
-instrumentation procedure is depicted in Figure \ref{fig:instrumentation}.
-
+Code instrumentation is the process of modifying software (usually binary or
+assembly code) by inserting instructions to perform specific tasks such as a performance
+analysis. Instrumentation plays a critical role in this project as it allows to
+modify the untrusted code in a simple yet effective way. Moreover, this
+automatize the process leading to faster development and reduced number of
+errors. The whole instrumentation procedure is depicted in Figure \ref{fig:instrumentation}.
+\\
 \begin{figure}[htbp]
   \centering
-  \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/instrumentation.png} } %
-  {\scriptsize }
+  \includegraphics[width=.9\linewidth]{images/instrumentation.png}
   \caption{Flow of the Code Instrumentation Procedure}
   \label{fig:instrumentation}
 \end{figure}
+\\
+
+In this section, we explain how the \textit{Python} scripts work and how they can
+be used to instrument, build, and run the code.
 
 The script \textit{flasher.py} can be run with the command \textit{python3
-flasher.py [command]}, where \textit{command} can be:
+flasher.py \textbf{command}}, where \textit{\textbf{command}} can be:
 \begin{itemize}[noitemsep]
-  \item \textit{build}: for building the source files and producing the binary;
+  \item \textit{build}: used to build the source files and produce the binary.
+    This command does not provide the security features of \textit{STEERED};
 
-  \item \textit{run}: for building and running the binary on the target device;
+  \item \textit{run}: used to build and run the binary on the target device.
+    This command does not provide the security features of \textit{STEERED};
 
-  \item \textit{clear}: for clearing output files in the directory;
+  \item \textit{clear}: used to remove \textit{.bin}, \textit{.elf}, \textit{.s},
+    and \textit{.log} files in the directory;
 
-  \item \textit{secure-build}: for instrumenting and building the source files and
-    producing the secure binary;
+  \item \textit{secure-build}: used to instrument and build the source files and
+    produce the secure binary with \textit{STEERED}'s security features;
 
-  \item \textit{secure-run}: for instrumenting, building, and running the secure
-    binary on the target device.
+  \item \textit{secure-run}: used to instrument, build, and run the secure binary
+    on the target device with \textit{STEERED}'s security features.
 \end{itemize}
 
 As we can see the instrumentation only happens with \textit{secure-build} and
 \textit{secure-run} commands. Normal building and running commands have been
-implemented to make a comparison between an untrusted code and the trusted one.
+implemented to make a comparison between untrusted and trusted code.
 
-\subsection{Instrumentation for logging}
+The following subsections explain in detail all the steps that occur during the
+instrumentation phase.
+
+\subsection{Instrumentation for Logging}
 \label{subsec:logging}
 
-If we run \textit{flasher.py} with \textit{secure} commands the instrumentation phase
-follows the steps described below.
+Firstly, \textit{flasher.py} takes all the source files and compiles them into assembly
+files with the command \textit{riscv-none-elf-gcc -S \{CFLAGS\}\footnote{Utilized
+flags are: \textit{-W -Wall -Wextra -Werror -Wundef -Wshadow -pedantic -Wdouble-promotion
+-ffixed-a7 -fno-common -Wconversion -march=rv32imc\_zicsr -mabi=ilp32 -O1 -ffunction-sections
+-fdata-sections -fno-builtin-printf}.} \{source files\}}. After that, assembly
+files of the untrusted user code are passed to \textit{instrumenter.py} for instrumentation.
 
-All source files are compiled into assembly files with the toolchain, then the
-untrusted user files are passed to \textit{instrumenter.py}. Firstly, the code is
-instrumented with logging capabilities to retrieve indirect jump destinations.
-This is done by searching indirect jump instruction (\textit{JALR}) with the regex
-\textit{$\backslash$b(jalr)$\backslash$b$\backslash$s+($\backslash$w+)} which
-retrieves any occurrence of \textit{jalr \{register\}}\footnote{Usually the
-compiler uses register \textit{a5} for \textit{JALR} instructions.}.
+In the first step, the code is instrumented with logging capabilities to
+retrieve indirect jump destinations. This is done by searching for indirect jump
+instructions (\textit{JALR}) with the regex \textit{$\backslash$b(jalr)$\backslash$b$\backslash$s+($\backslash$w+)}
+which retrieves any occurrence of \textit{jalr \{register\}}\footnote{Usually
+the compiler uses register \textit{a5} for \textit{JALR} instructions.} and allows
+us to retrieve the register used to perform the jump.
+
+Once we retrieve the source register for the \textit{JALR} instruction we add
+the block of code depicted in Listing \ref{lst:loggingblock} before the jump.
 
 \begin{wrapfigure}
-  {r}{0.25\textwidth}
+  [27]{r}{0.25\textwidth}
   \setlength{\intextsep}{0pt}
   \begin{minipage}{0.25\textwidth}
     \begin{lstlisting}[style=Assembly, caption = Logging code block, label={lst:loggingblock}]
@@ -219,62 +234,78 @@ lw s2,32(sp)
 lw s3,36(sp)
 addi sp,sp,40
 jalr {register}
-    \end{lstlisting}
+ \end{lstlisting}
   \end{minipage}
 \end{wrapfigure}
 
-Once we retrieve the source register for the \textit{JALR} instruction we add
-the block of code depicted in Listing \ref{lst:loggingblock} before the jump. This
-effectively allows us to save the state of the machine and call the function \textit{print\_reg}
-passing the destination address and the program counter of the \textit{JALR} instruction
-as arguments. The destination address is simply stored in the source register
-while the source address is computed by loading the current program counter with
-\textit{auipc a0, 0} and by adding $38$\footnote{Note that $38$ is the distance
-in Bytes from the instruction that load the \textit{pc} to the \textit{JALR}
-instruction.} to it. The \textit{print\_reg} function, when called, will then
-print a string like \textit{Source: 0x40380100 - Destination:0x40380200}.
+This effectively allows us to save the state of the machine and call the function
+\textit{print\_reg} passing the destination address and the program counter of
+the \textit{JALR} instruction as arguments. The destination address is simply
+retrieved from the source register of the jump instruction and is saved inside
+register \textit{a1}. On the other hand, the source address of the jump instruction
+is computed by loading the current program counter with \textit{auipc a0, 0} and
+by adding $38$\footnote{Note that $38$ is the distance in Bytes from the
+instruction that loads the \textit{pc} to the \textit{JALR} instruction.} to it.
+
+When called, the function \textit{print\_reg} prints a string like \textit{Source:
+src\_address - Destination: dst\_address} where \textit{src\_address} and \textit{dst\_address}
+are the source and destination addresses of the \textit{JALR} instruction respectively.
 
 \subsection{Control Flow Graph Extraction}
 \label{subsec:project_cfgextraction}
 
-As soon as the first instrumentation is completed, the assembly files are assembled
-and linked to produce the binary. If, during instrumentation, we have found that
-there are indirect jumps in the code we perform a ``simulation''\footnote{The
-simulation consists in running the code on the target device transparently.} of the
-execution to retrieve the logging of the \textit{print\_reg} function.
+After the instrumentation for logging is completed, the assembly files are assembled
+and linked to produce the binary with the command \textit{riscv-none-elf-gcc \{LINKFLAGS\}\footnote{Utilized
+flags are: \textit{-Tesp32c3/link.ld -nostdlib -nostartfiles -Wl,--gc-sections}}
+\{assembly files\} -o output.bin}.
 
-After that \textit{CFGextractor.py} is called to extract the Control Flow Graph of
-the user code. The extraction is divided in two phases:
+Moreover, if during instrumentation indirect jumps were found in the code, we
+perform a ``simulation''\footnote{The simulation consists of running the code on
+the target device transparently.} of the execution to retrieve the logging of the
+\textit{print\_reg} function.
+
+In any case, the next step involves the extraction of the Control Flow Graph of the
+code by calling \textit{CFGextractor.py}. The extraction is performed in two phases:
 \begin{itemize}
   \item Dynamic phase: in the dynamic phase we parse the output retrieved from
     the simulation to create source-destination pairs of addresses. Note that in
     this phase addresses are also adjusted by removing the size of the logging block
     from their value. This is done because, during the simulation we injected the
-    logging block before each jump, thus increasing the size of the binary. For each
-    address we count the number of blocks that appeared before it and we compute
-    $\textit{final\_address}= \textit{retrieved\_value}- (\textit{block\_size}* \textit
-    {block\_number})$;
+    logging block before each jump, thus increasing the size of the binary. As a
+    result, the retrieved pairs would not match the actual addresses of the
+    final binary. So, we compare each address with each block and perform the
+    comparison $\textit{address}> \textit{block}$. If the address is higher than
+    the current block this means that the block appeared before the instruction so
+    we add $1$ to the number of blocks. Once we perform each comparison we can
+    compute
+    $\textit{final address}= \textit{retrieved value}- (\textit{block size}\footnote
+    {Note that the size of each logging block is $56$ Bytes.}* \textit{number of
+    blocks})$;
 
-  \item Static phase: in the static phase we simply parse the dump file obtained
-    with \textit{riscv-none-elf-objdump} searching for \textit{JAL} instructions.
-    These direct jump are statically defined so we can retrieve them with the dump
-    file. Each time a \textit{JAL} instruction is found the pair source-destination
-    is added to the CFG.
+  \item Static phase: in the static phase we simply parse the dump file produced
+    with the command \textit{riscv-none-elf-objdump -D output.bin} searching for
+    \textit{JAL} instructions. These direct jumps are statically defined in the dump
+    file with the following format \textit{\{source address\}: jal \{destination
+    address\}} so we just need to extract the needed values. Each time a \textit{JAL}
+    instruction is found the pair source-destination is directly added to the
+    CFG.
 \end{itemize}
 
 Once the Control Flow Graph is extracted, all the pairs are ordered in ascending
-ordered firstly by source and then by destination. This is because with indirect
-jump instructions we could have that more destinations could share the same
-source. After that, execution is returned to \textit{instrumenter.py}.
+order firstly by source and then by destination. This is because, with indirect
+jump instructions, we could have more destinations that share the same source.
+This process is performed to simplify and optimize the search at run time (detailed
+description in Section \ref{sec:project_cfg}). After this step, the execution is
+returned to \textit{instrumenter.py} for the final instrumentation phase.
 
-\subsection{Instrumentation for forward and backward edge controls}
+\subsection{Instrumentation for Forward and Backward Edge Controls}
 \label{subsec:project_instrcontrols}
 
-In this last instrumentation phase we need to add code blocks that allows us to
-perform forward and backward edge controls. Such blocks must be added before every
-direct jump, indirect jump, and return instruction. To do so, we parse the assembly
-files, and, search for the target instructions thanks to the regex functions depicted
-in Table \ref{tab:regexes}.
+In this last instrumentation phase, we need to add code blocks that allow us to perform
+forward and backward edge controls. Such blocks must be added before every
+direct jump, indirect jump, and return instruction. To do so, we parse the
+assembly files, and, search for the target instructions thanks to the Regular
+Expression (\textit{regex}) functions depicted in Table \ref{tab:regexes}.
 
 \begin{table}
   \centering
@@ -288,7 +319,7 @@ in Table \ref{tab:regexes}.
     \textit{$\backslash$b(jr)$\backslash$b$\backslash$s+($\backslash$w+)}               & Used to find \textit{RET} instructions  \\
     \hline
   \end{tabular}
-  \caption{Regex functions used to find target instructions}
+  \caption{\textit{Regex} functions used to find target instructions}
   \label{tab:regexes}
 \end{table}
 
@@ -297,20 +328,25 @@ Depending on the instruction we find during parsing we do the following:
   \item \textit{JAL} instructions: if we find a direct jump instruction we need to
     add the code depicted in Listing \ref{lst:dirjumpblock} before the target.
     This code loads the address of the target function in register \textit{a7} and
-    then performs and \textit{ECALL} instruction (detailed functioning explained
-    in \ref{sec:project_isr});
+    then performs an \textit{ECALL} instruction (detailed functioning explained in
+    \ref{sec:project_isr}). We use the \textit{load address} (\textit{la}) instruction
+    since we need to load the address to which the retrieved label refers to;
 
   \item \textit{JALR} instructions: if we find an indirect jump instruction we need
     to add the code depicted in Listing \ref{lst:indirjumpblock} before the target.
     This code copies the address stored in the target register into register
-    \textit{a7} and then performs and \textit{ECALL} instruction;
+    \textit{a7} and then performs an \textit{ECALL} instruction. We use the \textit{move}
+    (\textit{mv}) instruction since we need to copy the address from a register to
+    another register;
 
   \item \textit{RET} instructions: if we find a return instruction we need to add
     the code depicted in Listing \ref{lst:retblock} before the target. This code
     copies the return address stored in the return address register into
-    register \textit{a7} and then performs and \textit{ECALL} instruction. In Section
-    \ref{sec:project_isr} we will see why, in this case, we need to add $1$ to the
-    return address.
+    register \textit{a7} and then performs an \textit{ECALL} instruction. We use
+    the \textit{add immediate} (\textit{addi}) instruction since we need to copy
+    the address from one register to another and add $1$. In Section
+    \ref{sec:project_isr} we will see why, in this case, we need to add $1$ to
+    the return address.
 \end{itemize}
 
 \begin{lstlisting}[style=Assembly, caption = Direct jump code block, label={lst:dirjumpblock}]
@@ -332,8 +368,8 @@ addi {return_address_register}, a7, -1
 ret {return_address_register}
 \end{lstlisting}
 
-In the last step of the instrumentation we inject the previously crafted Control
-Flow Graph into the \textit{cfg.c} file.
+As soon as the script finishes parsing the dump file it injects the previously crafted
+Control Flow Graph into the \textit{cfg.c} file.
 
 After this second instrumentation ends, the modified assembly files are assembled
 and linked by \textit{flasher.py} to produce the secure binary file. Lastly, if
@@ -360,9 +396,9 @@ table.
 Most of the exceptions and interrupts are not currently handled and, when invoked,
 they just log a message describing which trap was taken. Afterward, the
 execution is resumed. This design choice has been made for two reasons. The
-first being that such implementation would be out of scope since we aim at
+first is that such implementation would be out of scope since we aim at
 providing the bare minimum implementation for enforcing Control Flow Integrity. The
-second instead is that we do not need those handler and we leave space for implementation-specific
+second instead is that we do not need those handlers and we leave space for implementation-specific
 requirements. For example, if an implementation makes use of external interrupts,
 the developer would just need to insert the desired handling in the correct
 function inside the \textit{intr\_vector\_table.c} file. As explained, this implementation
@@ -394,19 +430,19 @@ current allowed ecalls.
 
 \begin{lstlisting}[style=CStyle, caption = Interrput Vector Table, label={lst:intrtable}]
 void interrupt_vector_table(void) {
-  asm volatile("j synchronous_exception_handler");
-  asm volatile("j isr_supervisor_software");
-  asm volatile("j isr_reserved");
-  asm volatile("j isr_machine_software");
-  asm volatile("j isr_user_timer");
-  asm volatile("j isr_supervisor_timer");
-  asm volatile("j isr_reserved");
-  asm volatile("j isr_machine_timer");
-  asm volatile("j isr_user_external");
-  asm volatile("j isr_supervisor_external");
-  asm volatile("j isr_reserved");
-  asm volatile("j isr_machine_external");
-  asm volatile("j isr_reserved");
+ asm volatile("j synchronous_exception_handler");
+ asm volatile("j isr_supervisor_software");
+ asm volatile("j isr_reserved");
+ asm volatile("j isr_machine_software");
+ asm volatile("j isr_user_timer");
+ asm volatile("j isr_supervisor_timer");
+ asm volatile("j isr_reserved");
+ asm volatile("j isr_machine_timer");
+ asm volatile("j isr_user_external");
+ asm volatile("j isr_supervisor_external");
+ asm volatile("j isr_reserved");
+ asm volatile("j isr_machine_external");
+ asm volatile("j isr_reserved");
 }
 \end{lstlisting}
 
@@ -432,8 +468,8 @@ compiler it has been ``disabled'', meaning that the compiler will never use such
 register. This choice allows us to be sure that only the interrupt vector table
 and the code blocks that we inject modify the value of \textit{a7}.
 
-If one wish to add a new custom \textit{ECALL} code for other purposes he just
-need to put a control before the code checks if the code is even or not. Say that
+If one wishes to add a new custom \textit{ECALL} code for other purposes he just
+needs to put a control before the code checks if the code is even or not. Say that
 we want to add code $2$ to perform a specific operation. To do so, we just need to
 add a check like \textit{else if(ecode == 2) \{perform operation\}} after the
 first check, if the check fails the code will eventually check if the code is even
@@ -445,21 +481,21 @@ not suffer from possible future customization of the interrupt vector table.
 \begin{lstlisting}[style=CStyle, caption = U-mode \textit{ECALL} handler, label={lst:ecallhandler}]
 void esr_handler_U_mode_ecall(u_int ecode, u_int mepc)
 {
-  if (ecode == 1)
-  {
-    // Terminate execution
-  }
-  else if ((ecode % 2) == 0)
-  {
-    // Forward edge control
-  }
-  else if ((ecode % 2) != 0)
-  {
-    // Backward edge control
-  } else
-  {
-    // Undefined ecall code
-  }
+ if (ecode == 1)
+ {
+ // Terminate execution
+ }
+ else if ((ecode % 2) == 0)
+ {
+ // Forward edge control
+ }
+ else if ((ecode % 2) != 0)
+ {
+ // Backward edge control
+ } else
+ {
+ // Undefined ecall code
+ }
 }
 \end{lstlisting}
 
@@ -477,69 +513,70 @@ thanks to the Shadow Stack and are further explained in section \ref{sec:project
 \section{Shadow Stack}
 \label{sec:project_ss}
 
-In this project the Shadow Stack holds the values of return addresses and it is
+In this project, the Shadow Stack holds the values of return addresses and it is
 used to check the correctness of each \textit{RET} instruction. File \textit{shadow\_stack.c}
-holds the configuration for the Shadow Stack. The development of the Shadow
-Stack took inspiration from the formally verified idea proposed by Matthieu Baty,
+holds the configuration for the Shadow Stack. The development of the Shadow Stack
+took inspiration from the formally verified idea proposed by Matthieu Baty,
 Guillaume Hiet, and Pierre Wilke in their article \textit{Work in progress: A formally
-verified shadow stack for RISC-V} \cite{shadowstack}. In their article, they demonstrate
-how this data structure could be implemented in \textit{RISC-V}, also they show how
-the Shadow Stack should be implemented to ensure its correctness.
+verified shadow stack for RISC-V} \cite{shadowstack}. In their article, they
+demonstrate how this data structure could be implemented in \textit{RISC-V},
+also they show how the Shadow Stack should be implemented to ensure its
+correctness.
 
 The Shadow Stack is implemented as a standard Last-In-First-Out stack (\textit{LIFO}).
 This design choice has been made to provide a data structure with fast lookups ($\mathcal{O}
-(1)$) while maintaining the ability to use less space when return addresses are not
-needed. This implementation is possible only because the last jump instruction
-that is performed in a code will always be the first to return. Otherwise, it
-would be necessary to store the return addresses and their relative jump
-instruction to know which address we need to check. This allowed us to build an effective
-and fast data structure that consumes a variable amount of memory.
+(1)$) while maintaining the ability to use less space when return addresses are
+not needed. This implementation is possible only because the last jump instruction
+that is performed in a code will always be the first to return. Otherwise, it would
+be necessary to store the return addresses and their relative jump instruction to
+know which address we need to check. This allowed us to build an effective and
+fast data structure that consumes a variable amount of memory.
 
-The Shadow Stack is statically defined as a struct that contains an array that can
-hold up to $63$ addresses and a pointer to the top index of the stack (Listing
-\ref{lst:ss} shows the described struct). Moreover, the Shadow Stack allows two operations,
-\textit{push} and \textit{pop} where:
+The Shadow Stack is statically defined as a struct that contains an array that
+can hold up to $63$ addresses and a pointer to the top index of the stack (Listing
+\ref{lst:ss} shows the described struct). Moreover, the Shadow Stack allows two
+operations, \textit{push} and \textit{pop} where:
 \begin{itemize}
   \item \textit{Push} is used after a forward edge control is made. If such control
-    succeeds then, the return address related with the jump instruction is
-    pushed into the Shadow Stack and stored\footnote{Addresses are stored in the
-    Shadow Stack as \textit{unsigned integers}.} for later use. In this case, we
-    just get the top of the stack and determine if it is full. If the Shadow
-    Stack is full, we terminate execution as we can't provide data for the next backward
-    edge control. Otherwise, the address is added to the top of the stack;
+    succeeds then, the return address related to the jump instruction is pushed
+    into the Shadow Stack and stored\footnote{Addresses are stored in the Shadow
+    Stack as \textit{unsigned integers}.} for later use. In this case, we just get
+    the top of the stack and determine if it is full. If the Shadow Stack is
+    full, we terminate execution as we can't provide data for the next backward edge
+    control. Otherwise, the address is added to the top of the stack;
 
   \item \textit{Pop}, is used when a backward edge control is made. When this
-    happens, an address is removed form the top of the Shadow Stack. Afterwards,
+    happens, an address is removed from the top of the Shadow Stack. Afterwards,
     we match the removed address with the current return address to decide whether
     the return instruction is considered legal or not\footnote{Note that when we
     use \textit{pop} we actually remove the element from the stack since we won't
-    need it in future and, by doing this, we can free some space.}. Note that before
-    removing the address we check if the Shadow Stack is empty and, if that is
-    the case, we terminate execution since the code is trying to perform an unexpected
-    return instruction.
+    need it in the future and, by doing this, we can free some space.}. Note that
+    before removing the address we check if the Shadow Stack is empty and, if
+    that is the case, we terminate execution since the code is trying to perform
+    an unexpected return instruction.
 \end{itemize}
 
 The Shadow Stack provides no other functions for two main reasons. Firstly, with
-\textit{push} and \textit{pop} we have all we need to effectively make the
-controls we need and, adding extra functions could lead to unexpected situations.
-Secondly, adding more functions would increase the binary size.
+\textit{push} and \textit{pop} we have all we need to effectively make the controls
+we need and, adding extra functions could lead to unexpected situations. Secondly,
+adding more functions would increase the binary size.
 
 \begin{lstlisting}[style=CStyle, caption = Shadow Stack definition, label={lst:ss}]
 #define MAX_SIZE 63
 
 typedef struct {
-    unsigned int addresses[MAX_SIZE];
-    int top;
+ unsigned int addresses[MAX_SIZE];
+ int top;
 } SStack;
 \end{lstlisting}
 
 \section{Control Flow Graph (CFG)}
 \label{sec:project_cfg}
 
-In this project the Control Flow Graph holds the pair source-destination for each
+In this project, the Control Flow Graph holds the pair source-destination for each
 direct and indirect jump of the code and it is used to check the correctness of each
 \textit{JAL} and \textit{JALR} instruction. As already said the CFG of the
-binary is extracted during the instrumentation phase and injected in the file
+binary is extracted during the instrumentation phase and injected into the file
 \textit{cfg.c} which holds the configuration for the Control Flow Graph.
 
 It is worth noting that the CFG is related only to control transfer instructions
@@ -575,21 +612,21 @@ about time than space.
 
 \begin{lstlisting}[style=CStyle, caption= Comparison for binary search, label={lst:binsearch}]
 int compare(const int* A, const int* B) {
-  for (int i = 0; i < 2; ++i) {
-    if (A[i] < B[i]) return -1;
-    if (A[i] > B[i]) return 1;
-  }
-  return 0;
+ for (int i = 0; i < 2; ++i) {
+ if (A[i] < B[i]) return -1;
+ if (A[i] > B[i]) return 1;
+ }
+ return 0;
 }
 \end{lstlisting}
 
 \section{Memory Layout}
 \label{sec:layout}
 
-In this section we discuss the memory layout of the binary. Listing \ref{lst:linker}
-depicts a simplified version of the linker script used when we need to compile the
-binary. As we can see each part of the code has been divided into separate
-sections. In particular we have:
+In this section, we discuss the memory layout of the binary. Listing
+\ref{lst:linker} depicts a simplified version of the linker script used when we
+need to compile the binary. As we can see each part of the code has been divided
+into separate sections. In particular, we have:
 \begin{itemize}[noitemsep]
   \item Section \textit{.interrupt\_vector\_table} holds the interrupt vector
     table described in \ref{lst:intrtable};
@@ -616,35 +653,35 @@ an effective Physical Memory Protection.
 
 \begin{lstlisting}[style=CStyle, caption= Simplified linker script, label={lst:linker}]
 MEMORY {
-  iache (rwx) : ORIGIN = 0x4037c000, LENGTH = 16k
-  iram  (rwx) : ORIGIN = 0x40380400, LENGTH = 32k
-  dram  (rw)  : ORIGIN = 0x3fc80000 + LENGTH(iram), LENGTH = 128k
+ iache (rwx) : ORIGIN = 0x4037c000, LENGTH = 16k
+ iram  (rwx) : ORIGIN = 0x40380400, LENGTH = 32k
+ dram  (rw)  : ORIGIN = 0x3fc80000 + LENGTH(iram), LENGTH = 128k
 }
 
 ENTRY(_start)
 
 SECTIONS {
-  .interrupt_vector_table: {*(.interrupt_vector_table)} > iram
+ .interrupt_vector_table: {*(.interrupt_vector_table)} > iram
 
-  .intr_service_routines: {*(.intr_service_routines)} > iram
+ .intr_service_routines: {*(.intr_service_routines)} > iram
 
-  .shadow_stack: {*(.shadow_stack)} > iram
+ .shadow_stack: {*(.shadow_stack)} > iram
 
-  .cfg: {*(.cfg)} > iram
+ .cfg: {*(.cfg)} > iram
 
-  .machine_setup: {*(.machine_setup)} > iram
+ .machine_setup: {*(.machine_setup)} > iram
 
-  .text: {*(.text) *(.text*)} > iram
+ .text: {*(.text) *(.text*)} > iram
 
-  .ij_logger: {*(.ij_logger)} > iram
+ .ij_logger: {*(.ij_logger)} > iram
 
-  .data: {*(.data*) *(.sdata*) *(.srodata*) *(.rodata*)} > dram
+ .data: {*(.data*) *(.sdata*) *(.srodata*) *(.rodata*)} > dram
 }
 \end{lstlisting}
 
 As we can see, execution starts at function \textit{\_start} which is located inside
 \textit{boot.c}. Such function initializes the device and transfers execution to
-the \textit{main.c} file which sets up all the M-mode configuration before
+the \textit{main.c} file which sets up all the M-mode configurations before
 starting the user code.
 
 \section{Physical Memory Protection (PMP)}
@@ -660,7 +697,7 @@ The first region covers all the space between $0x00000000$ and the end of the
 privileges, since this region contains only static data there is no need to allow
 execution.
 
-The second region covers the interrupt vector table and all the exception and interrupts
+The second region covers the interrupt vector table and all the exceptions and interrupts
 handlers, since this region is accessed only in Machine mode and we need to
 execute instructions we need to provide read, write, and instruction execution
 privileges.
@@ -710,37 +747,38 @@ Instruction}.
 
 The most critical job of \textit{project name} is validating jump and return
 instructions and this is done inside the interrupt vector table. Given the delicacy
-of Control Flow Integrity and its importance for this project great attention has
-been given to the correct implementation of forward and backward edge controls.
+of Control Flow Integrity and its importance for this project, great attention
+has been given to the correct implementation of forward and backward edge
+controls.
 
-Forward edge controls are performed thanks to the Control Flow Graph while backward
-edge controls are performed thanks to the Shadow Stack.
+Forward edge controls are performed thanks to the Control Flow Graph while
+backward edge controls are performed thanks to the Shadow Stack.
 
-In this section, each control will be carefully explained to show how they work
-and why they provide a certain degree of security.
+In this section, each control will be carefully explained to show how they work and
+why they provide a certain degree of security.
 
 \subsection{Forward Edge Controls}
 \label{subsec:forward}
 
-To perform a forward edge control we need three things. Firstly, we need the source
-address of the jump instruction, secondly we need the destination address of
-said instruction, lastly, we need a trusted oracle that tells us if the pair
-source-destination is legal. As already explained the destination address is retrieved
-from \textit{a7} which is passed as the \textit{ECALL} code. The source address
-instead can be retrieved from \textit{mepc} \ref{subsec:mepc}. As we have seen, when
-a trap is taken \textit{mepc} holds the address of the instruction that was
-interrupted. Since the \textit{ECALL} generates the trap we can just add $4$\footnote{We
-add $4$ since it is the size of an \textit{ECALL} instruction in \textit{RISC-V}.}
-to the address stored in \textit{mepc} to retrieve the source address of the
-jump instruction. Now that we have the needed pair of addresses to check we can use
-the Control Flow Graph as the oracle. As already explained, the CFG is computed before
-compilation and is securely stored in a safe memory region thanks to the Physical
-Memory Protection. This means that any attempt of unauthorized modification is
-instantly blocked, thus so we can trust the data provided by the CFG and use it as
-an oracle.
+To perform a forward edge control we need three things. Firstly, we need the
+source address of the jump instruction, secondly, we need the destination
+address of said instruction, lastly, we need a trusted oracle that tells us if
+the pair source-destination is legal. As already explained the destination address
+is retrieved from \textit{a7} which is passed as the \textit{ECALL} code. The
+source address instead can be retrieved from \textit{mepc} \ref{subsec:mepc}. As
+we have seen, when a trap is taken \textit{mepc} holds the address of the
+instruction that was interrupted. Since the \textit{ECALL} generates the trap we
+can just add $4$\footnote{We add $4$ since it is the size of an \textit{ECALL} instruction
+in \textit{RISC-V}.} to the address stored in \textit{mepc} to retrieve the
+source address of the jump instruction. Now that we have the needed pair of addresses
+to check we can use the Control Flow Graph as the oracle. As already explained, the
+CFG is computed before compilation and is securely stored in a safe memory region
+thanks to the Physical Memory Protection. This means that any attempt of
+unauthorized modification is instantly blocked, thus so we can trust the data provided
+by the CFG and use it as an oracle.
 
 When we need to perform a forward edge control, we just need to send the source
-and destination addresses to the \textit{check} function of the CFG. Such
+and destination addresses to the \textit{check} function of the CFG. Such a
 function performs a binary search inside the Control Flow Graph to see whether
 that specific pair is part of the original CFG or not. If the search succeeds the
 function returns a positive value and the jump is considered legal while, if the
@@ -753,26 +791,26 @@ the Shadow Stack. To do so, we need to retrieve the return address but, since a 
 will always return to its next instruction, we can just compute
 $\textit{source address}+ 2$\footnote{We add $2$ since it is the size of
 compressed \textit{JAL} and \textit{JALR} instructions in \textit{RISC-V}.} to retrieve
-it. After that, the return address is pushed into the Shadow Stack, and the
-execution is resumed with the interrupted jump instruction.
+it. After that, the return address is pushed into the Shadow Stack and the execution
+is resumed with the interrupted jump instruction.
 
 \subsection{Backward Edge Controls}
 \label{subsec:backward}
 
-To perform a backward edge control we need two things. Firstly, we need the address
-to which the return instruction is trying to go. Secondly, we need a trusted oracle
-that tells us if such address is legal. As we have seen, the destination address
-is retrieved from \textit{a7} which is passed as the \textit{ECALL} code.
-However, we must remove $1$ from the address retrieved from \textit{a7} since in
-the least significant bit we store the \textit{ECALL} code. Similarly to the
-Control Flow Graph, the Shadow Stack is secured in a protected memory space and is
+To perform a backward edge control we need two things. Firstly, we need the
+address to which the return instruction is trying to go. Secondly, we need a
+trusted oracle that tells us if such an address is legal. As we have seen, the
+destination address is retrieved from \textit{a7} which is passed as the \textit{ECALL}
+code. However, we must remove $1$ from the address retrieved from \textit{a7} since
+in the least significant bit we store the \textit{ECALL} code. Similarly to the Control
+Flow Graph, the Shadow Stack is secured in a protected memory space and is
 unaffected by unauthorized modification attempts. Even in this case we can trust
 the Shadow Stack and use it as an oracle.
 
 When we need to perform a backward edge control, we just need to \textit{pop} an
-address from the Shadow Stack and match the destination address with the popped
-one. If the addresses are equal we can consider the return instruction legal while,
-if they are different the execution is terminated.
+address from the Shadow Stack and match the destination address with the popped one.
+If the addresses are equal we can consider the return instruction legal while, if
+they are different the execution is terminated.
 
 Whenever a backward edge control succeeds we must do nothing since the value has
 already been removed from the Shadow Stack and no other modifications are needed.
@@ -781,12 +819,12 @@ Thus, the execution is resumed with the interrupted return instruction.
 \section{Proof of Concept (PoC)}
 \label{sec:project_poc}
 
-In this section, we provide a Proof of Concept to showcase why the proposed
-solution effectively provides security capabilities to a non-trusted and
-insecure code. Figure \ref{fig:functioning} depicts an abstraction of the project's
-flow where green and red boxes depicts trusted and untrusted components respectively.
-Moreover, green arrows are used to represent a successful edge control while red
-arrows represent an unsuccessful one.
+In this section, we provide a Proof of Concept to showcase why the proposed solution
+effectively provides security capabilities to a non-trusted and insecure code.
+Figure \ref{fig:functioning} depicts an abstraction of the project's flow where
+green and red boxes depict trusted and untrusted components respectively. Moreover,
+green arrows are used to represent a successful edge control while red arrows
+represent an unsuccessful one.
 
 \begin{figure}[htbp]
   \centering
@@ -796,42 +834,44 @@ arrows represent an unsuccessful one.
 \end{figure}
 
 We have already seen that the \textit{Boot and Startup} and \textit{Machine code
-init} sections are used to configure the board and \textit{RISC-V} registers respectively.
-This part of the code is trusted so we are sure the machine will be configured
-properly and no security measures are needed. The only way to corrupt this part of
-the execution would be to tamper with the source code before compilation but this
-is out of the project's scope and requires human controls prior to implementation.
+init} sections are used to configure the board and \textit{RISC-V} registers
+respectively. This part of the code is trusted so we are sure the machine will be
+configured properly and no security measures are needed. The only way to corrupt
+this part of the execution would be to tamper with the source code before
+compilation but this is out of the project's scope and requires human controls
+prior to implementation.
 
-The same is true for the \textit{CFI Enforcer} section which is responsible for
-managing edge controls as well as other interrupts and exceptions. Even in this case,
-the source code has to be modified to tamper with the security features.
+The same is true for the \textit{CFI Enforcer} section which is responsible for managing
+edge controls as well as other interrupts and exceptions. Even in this case, the
+source code has to be modified to tamper with the security features.
 
 On the other hand, the \textit{User code} section is untrusted and we can't make
-any assumptions on its functioning. The code could be well-written and somewhat secure
-but it could be full of flaws and we must prevent any attack that could be perpetrated
-through it. To do so, we use forward and backward edge controls together with the
-Shadow Stack and the Control Flow Graph.
+any assumptions on its functioning. The code could be well-written and somewhat
+secure but it could be full of flaws and we must prevent any attack that could
+be perpetrated through it. To do so, we use forward and backward edge controls
+together with the Shadow Stack and the Control Flow Graph.
 
-As already said, the \textit{Shadow Stack} and the \textit{Control Flow Graph}
-are the most critical components of the project. We must secure them since they serve
-as oracles and we must be able to trust the data they contain. Since the CFG is
-configured statically we are sure that it can't be modified during execution, the
-Shadow Stack instead is designed to change since we need to \textit{push} and
-\textit{pop} values from it. However, since we protected the Shadow Stack with the
-PMP we can be sure that only privileged code has access to it and any other access
-generates a trap that is handled through the interrupt vector table. This means
-that, even if one tries to add or remove arbitrary values from the stack the operation
-will be aborted immediately and our trust in the Shadow Stack remains intact.
+As already said, the \textit{Shadow Stack} and the \textit{Control Flow Graph} are
+the most critical components of the project. We must secure them since they
+serve as oracles and we must be able to trust the data they contain. Since the CFG
+is configured statically we are sure that it can't be modified during execution,
+the Shadow Stack instead is designed to change since we need to \textit{push} and
+\textit{pop} values from it. However, since we protected the Shadow Stack with
+the PMP we can be sure that only privileged code has access to it and any other
+access generates a trap that is handled through the interrupt vector table. This
+means that, even if one tries to add or remove arbitrary values from the stack
+the operation will be aborted immediately and our trust in the Shadow Stack
+remains intact.
 
 Now, every possible scenario that could happen during a normal execution will be
 discussed.
 
 As soon as a forward edge control is requested we check that the pair source-destination
 is valid thanks to the CFG. Let's say that an attacker tampered with the code to
-perform an unauthorized jump instruction, in this case, the CFG will either contain
-such pair or not. If the pair is contained in the CFG the jump instruction is
-allowed, however this means that the attacker is trying to jump from a valid source
-to a valid destination meaning that the operation is secure and can be performed.
+perform an unauthorized jump instruction, in this case, the CFG will either
+contain such a pair or not. If the pair is contained in the CFG the jump instruction
+is allowed, however, this means that the attacker is trying to jump from a valid
+source to a valid destination meaning that the operation is secure and can be performed.
 On the other hand, if the attacker is trying to perform an unauthorized jump instruction
 we are sure that the Control Flow Graph will not contain the pair source-destination
 provided by the attacker since we said that the CFG can't be modified. In this
