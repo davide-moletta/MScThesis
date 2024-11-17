@@ -376,41 +376,105 @@ and linked by \textit{flasher.py} to produce the secure binary file. Lastly, if
 we used the \textit{secure-run} command, the binary file is flashed on the
 target device for execution.
 
-\section{Interrupts Service Routine}
+\section{Machine Setup}
+\label{sec:project_setup}
+
+Setting up the machine correctly is fundamental to ensure the correctness of \textit{STEERED}'s
+security features. Here, we describe each step needed to configure the machine
+in a proper way.
+
+\begin{lstlisting}[style=CStyle, caption = Machine setup, label={lst:setup}]
+int main(void) {
+  asm("la t0, interrupt_vector_table"); // Load vector table address
+  asm("ori t0, t0, 1");                 // Set MODE bit to 1
+  asm("csrw mtvec, t0");                // Load the address in MTVEC
+
+  asm("csrr t0, mstatus");  // Load MSTATUS in t0
+  asm("li t1, 0xFFFFE7FF"); // Load user mode status in t1
+  asm("and t0, t0, t1");    // Change MPP bits to user mode
+  asm("or t0, t0, 8");      // Change MIE bits to 1
+  asm("csrw mstatus, t0");  // Write new MSTATUS
+
+  asm("la t0, user_mode_entry_point"); // Load user mode entry point
+  asm("csrw mepc, t0");                // Write new MEPC
+
+  // PMP configuration
+  asm("la t0, interrupt_vector_table");
+  asm("srli t0, t0, 2");
+  asm("csrw pmpaddr0, t0");
+  asm("la t0, shadow_stack");
+  asm("srli t0, t0, 2");
+  asm("csrw pmpaddr1, t0");
+  asm("la t0, .machine_setup");
+  asm("srli t0, t0, 2");
+  asm("csrw pmpaddr2, t0");
+  asm("li t0, 0x90000000");
+  asm("srli t0, t0, 2");
+  asm("csrw pmpaddr3, t0");
+  asm("li t0, 0x0F030F0F");
+  asm("csrw pmpcfg0, t0");
+
+  asm("mret"); // Jump to user code in U mode
+}
+\end{lstlisting}
+
+Referring to Listing \ref{lst:setup} which depicts a simplified version of the \textit{main}
+function we see that in lines \textit{2-4} we load the address of the interrupt vector
+table in a temporary register. Then, we set \textit{MODE} bit to $1$ to enable
+\textit{vectored} mode and we load the proper value inside \textit{mtvec}.
+
+In lines \textit{6-10}, we load the value of \textit{mstatus} inside a temporary
+register before modifying it. Firstly, we use a bitmask to modify \textit{machine
+previous privilege} bits to U-mode, after that we set \textit{machine interrupt
+enable} bits to enable interrupts. Lastly, we load the new \textit{mstatus}.
+
+In lines \textit{12-13}, we load the address of the user mode entry point\footnote{The
+first function that needs to be executed in user mode.} inside \textit{mepc}.
+
+After that, the Physical Memory Protection is configured (Detailed description in
+Section \ref{sec:project_pmp}) and the instruction \textit{mret} is used to return
+execution to the address stored in \textit{mepc} which, in this case, is the
+first function of the user code.
+
+Overall, this machine configuration allows us to correctly manage traps thanks to
+the interrupt vector table and to configure a secure PMP as well as correctly returning
+execution to the user code.
+
+\section{Trap Management}
 \label{sec:project_isr}
 
-In this section, we will see how the interrupt vector table is implemented and
-how interrupts and exceptions are handled in this project. Most importantly we will
-see how forward and backward edge controls are enforced.
+The purpose of this section is to showcase how the interrupt vector table is
+implemented and how interrupts and exceptions are handled inside \textit{STEERED}.
+Most importantly we will see how forward and backward edge controls are enforced.
 
-The interrupt vector table is defined inside \textit{intr\_vector\_table.c}. As already
-explained its address is loaded in \textit{main.c} and stored inside \textit{mtvec}
-(\ref{subsec:riscv_mtvec}) with \textit{MODE} set to vectored. This means that every
-asynchronous interrupt will set the program counter to the base address of the vector
-table plus $4$ times the cause of the interrupt. Any other interrupt and
-exception is trapped inside the function \textit{synchronous\_exception\_handler}
-which redirects to the correct function depending on the trap cause. Listing
-\ref{lst:intrtable} depicts the actual implementation of the interrupt vector
-table.
+The interrupt vector table is defined inside \textit{intr\_vector\_table.c}. As
+already explained its address is loaded in \textit{main.c} and stored inside \textit{mtvec}
+(\ref{subsec:riscv_mtvec}) with \textit{MODE} set to vectored. This means that
+every asynchronous interrupt will set the program counter to the base address of
+the interrupt vector table plus $4$ times the cause of the interrupt. Any other interrupt
+and exception is trapped inside the function \textit{synchronous\_exception\_handler}
+which redirects to the correct function depending on the trap cause. Listing \ref{lst:intrtable}
+depicts the actual implementation of the interrupt vector table.
 
-Most of the exceptions and interrupts are not currently handled and, when invoked,
-they just log a message describing which trap was taken. Afterward, the
-execution is resumed. This design choice has been made for two reasons. The
-first is that such implementation would be out of scope since we aim at
-providing the bare minimum implementation for enforcing Control Flow Integrity. The
-second instead is that we do not need those handlers and we leave space for implementation-specific
-requirements. For example, if an implementation makes use of external interrupts,
-the developer would just need to insert the desired handling in the correct
-function inside the \textit{intr\_vector\_table.c} file. As explained, this implementation
-provides the required security features while leaving space for customization.
+Most of the exceptions and interrupts are not currently handled and, when
+invoked, they just log a message describing which trap was taken before resuming
+the execution. This design choice has been made for two reasons. The first is that
+such implementation would be out of scope since we aim at providing the bare minimum
+implementation for enforcing Control Flow Integrity. The second instead is that
+we do not need those handlers and we leave space for implementation-specific
+requirements. For example, if a future implementation makes use of external
+interrupts, the developer would just need to insert the desired handling in the correct
+function inside the \textit{intr\_vector\_table.c} file. As explained, this
+implementation provides the required security features while leaving space for
+customization.
 
-Since \textit{ECALLS} are defined as exceptions in \textit{RISC-V}, the
+Since \textit{ECALL}s are defined as exceptions in \textit{RISC-V}, the
 interrupt vector table is responsible for managing them. For this reason, the
-only implemented function in the interrupt vector table is the handler for U-mode
-\textit{ECALL}s. This implementation is tailored for managing forward and backward
-edge controls. However, since \textit{ECALL}s can be used for different purposes
-the handler is designed to be expandable. Table \ref{tab:ecalls} depicts the
-current allowed ecalls.
+only implemented function inside \textit{intr\_vector\_table.c} is the handler for
+U-mode \textit{ECALL}s. This implementation is tailored for managing forward and
+backward edge controls. However, since \textit{ECALL}s can be used for different
+purposes the handler is designed to be expandable. Table \ref{tab:ecalls} depicts
+the current allowed ecalls.
 
 \begin{table}
   \centering
@@ -424,7 +488,7 @@ current allowed ecalls.
     $\textit{return address}+ 1$ & Backward control & Used to check the return address      \\
     \hline
   \end{tabular}
-  \caption{Encoding of current Ecall values}
+  \caption{Encoding of currently allowed \textit{ECALL} values}
   \label{tab:ecalls}
 \end{table}
 
@@ -446,65 +510,79 @@ void interrupt_vector_table(void) {
 }
 \end{lstlisting}
 
-Currently, the U-mode \textit{ECALL} handler is implemented as depicted in
-Listing \ref{lst:ecallhandler}. As it is possible to see we encoded the \textit{ECALL}
-code and the address required for control integrity checks into a single value. This
-design has been used to minimize the use of registers. Another solution would
-have been to use a register, say \textit{a7}, to hold the \textit{ECALL} code, and
-another register, say \textit{a6}, to hold the address to check. However, since
-legal addresses must be even we can encode in one register both the value of the
-\textit{ECALL} code and the address (Figure \ref{fig:ecall} shows the encoding
-of register \textit{a7}). When the interrupt vector table needs to check which code
-is used we can just see if the value in \textit{a7}\footnote{In Listing
-\ref{lst:ecallhandler} register \textit{a7} is represented by the parameter \textit{ecode}.}
-is even or odd and, depending on the result we can decide which operation to
-perform (even values will lead to a forward edge check while odd values will lead
-to a backward edge check). When we need to check for a return address we first subtract
-$1$ from it to obtain the original value of the address and then we perform the control.
-
-Note that the use of register \textit{a7} to hold \textit{ECALL} codes is purely
-a design choice and, to ensure that such register is not tampered with by the
-compiler it has been ``disabled'', meaning that the compiler will never use such
-register. This choice allows us to be sure that only the interrupt vector table
-and the code blocks that we inject modify the value of \textit{a7}.
-
-If one wishes to add a new custom \textit{ECALL} code for other purposes he just
-needs to put a control before the code checks if the code is even or not. Say that
-we want to add code $2$ to perform a specific operation. To do so, we just need to
-add a check like \textit{else if(ecode == 2) \{perform operation\}} after the
-first check, if the check fails the code will eventually check if the code is even
-or not and perform the corresponding control.
-
-It is easy to see how this implementation effectively addresses the problem and does
-not suffer from possible future customization of the interrupt vector table.
-
-\begin{lstlisting}[style=CStyle, caption = U-mode \textit{ECALL} handler, label={lst:ecallhandler}]
-void esr_handler_U_mode_ecall(u_int ecode, u_int mepc)
-{
- if (ecode == 1)
- {
- // Terminate execution
- }
- else if ((ecode % 2) == 0)
- {
- // Forward edge control
- }
- else if ((ecode % 2) != 0)
- {
- // Backward edge control
- } else
- {
- // Undefined ecall code
- }
-}
-\end{lstlisting}
-
+Currently, the U-mode \textit{ECALL} handler is implemented as depicted in Listing
+\ref{lst:ecallhandler}. As it is possible to see we encoded the \textit{ECALL} code
+and the address required for edge controls into a single value. This design has
+been used to minimize the use of registers. Another solution would have been to use
+a register, say \textit{a7}, to hold the \textit{ECALL} code, and another
+register, say \textit{a6}, to hold the address to check. However, since legal addresses
+must be even we can encode in one register both the value of the \textit{ECALL}
+code and the address using the otherwise unused least significant bit (Figure \ref{fig:ecall}
+shows the encoding of register \textit{a7}). When the interrupt vector table
+needs to check which code is used we can just see if the value in \textit{a7}\footnote{In
+Listing \ref{lst:ecallhandler} register \textit{a7} is represented by the parameter
+\textit{ecode}.} is even or odd and, depending on the result, we can decide
+which operation to perform\footnote{Even values will lead to a forward edge
+check while odd values will lead to a backward edge check.}. When we need to
+check for a return address we first subtract $1$ from it to obtain the original
+value of the address and then we perform the control. \\
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=.9\linewidth]{images/ecall_code.png}
-  \caption{Encoding of register a7 during ecall}
+  \caption{Encoding of register a7 during \textit{ECALL}}
   \label{fig:ecall}
 \end{figure}
+\\
+
+Note that the use of register \textit{a7} to hold \textit{ECALL} codes is purely
+a design choice and, to ensure that such register is not tampered with by the compiler
+it has been ``disabled'', meaning that the compiler will never use such register.
+This choice allows us to be sure that only the interrupt vector table and the code
+blocks that we inject modify the value of \textit{a7}. Another solution would have
+been to let the compiler use register \textit{a7} and, during the instrumentation
+phase, check for its usage. When used we could inject more instructions to store
+the previous value in the stack and then retrieve it after the edge control.
+However, since we wanted to inject as few instructions as possible to avoid impacting
+too much on the performance the first solution has been implemented.
+
+If one wishes to add a new custom \textit{ECALL} code for other purposes he just
+needs to put a control before the handler checks if the \textit{ecode} is even or
+not. Say that we want to add code $2$ to perform a specific operation. To do so,
+we just need to add a check like \textit{else if(ecode == 2) \{perform operation\}}
+after the first check, if the check fails the code will eventually check if the
+code is even or not and perform the corresponding edge control.
+
+It is easy to see how this implementation effectively allows to manage any trap
+while addressing the problem and leaving space for possible future customization
+of the interrupt vector table.
+
+\begin{lstlisting}[style=CStyle, caption = U-mode \textit{ECALL} handler, label={lst:ecallhandler}]
+void esr_handler_U_mode_ecall(u_int ecode, u_int mepc) {
+  if (ecode == 1) {
+    code_termination();
+  } else if ((ecode % 2) == 0) {  // Forward edge control
+    u_int source = mepc + 4;      // Source address
+
+    // Check if address is inside the CFG
+    if (check(source, ecode)) {
+      if (push(source + 2) != 1){ // Try push into Shadow Stack
+        code_termination();       // Push failed
+      }
+    } else {
+      code_termination();         // CFG check failed
+    }
+  } else if ((ecode % 2) != 0) {  // Backward edge control
+    u_int pop_addr = pop();       // Popped address
+
+    // Compare popped address with return address
+    if (pop_addr == 0 || pop_addr != ecode - 1) {
+      code_termination();         // Check failed
+    }
+  } else {
+    // Undefined ecode, log and return
+  }
+}
+\end{lstlisting}
 
 Forward edge controls are performed thanks to the Control Flow Graph and are further
 explained in section \ref{sec:project_cfg} while backward edge controls are performed
