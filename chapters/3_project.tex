@@ -591,102 +591,121 @@ thanks to the Shadow Stack and are further explained in section \ref{sec:project
 \section{Shadow Stack}
 \label{sec:project_ss}
 
-In this project, the Shadow Stack holds the values of return addresses and it is
-used to check the correctness of each \textit{RET} instruction. File \textit{shadow\_stack.c}
-holds the configuration for the Shadow Stack. The development of the Shadow Stack
-took inspiration from the formally verified idea proposed by Matthieu Baty,
-Guillaume Hiet, and Pierre Wilke in their article \textit{Work in progress: A formally
-verified shadow stack for RISC-V} \cite{shadowstack}. In their article, they
-demonstrate how this data structure could be implemented in \textit{RISC-V},
-also they show how the Shadow Stack should be implemented to ensure its
-correctness.
+In \textit{STEERED}, the Shadow Stack holds the values of return addresses and
+it is used to check the correctness of each \textit{RET} instruction. File
+\textit{shadow\_stack.c} holds the configuration for the Shadow Stack. The
+development of the said data structure took inspiration from the formally
+verified idea proposed by Matthieu Baty, Guillaume Hiet, and Pierre Wilke in
+their article \textit{Work in progress: A formally verified shadow stack for RISC-V}
+\cite{shadowstack}. In their article, they demonstrate a methodology for formally
+specifying and verifying the correctness of a Shadow Stack implemented in \textit{RISC-V}.
+Their approach involves the use of formal methods and the hardware description language
+\textit{Kôika}\footnote{\url{https://github.com/mit-plv/koika}} to prove the integrity
+of the Shadow Stack against return address manipulation. The authors also
+discuss the isolation of the Shadow Stack from regular memory access, ensuring robust
+protection against tampering, and provide a verified framework that halts
+execution if a violation is detected, such as a stack overflow or an invalid return
+address. This rigorous approach highlights the importance of formal verification
+in designing secure hardware systems, which served as a foundational inspiration
+for our implementation.
 
-The Shadow Stack is implemented as a standard Last-In-First-Out stack (\textit{LIFO}).
-This design choice has been made to provide a data structure with fast lookups ($\mathcal{O}
-(1)$) while maintaining the ability to use less space when return addresses are
-not needed. This implementation is possible only because the last jump instruction
-that is performed in a code will always be the first to return. Otherwise, it would
-be necessary to store the return addresses and their relative jump instruction to
-know which address we need to check. This allowed us to build an effective and
-fast data structure that consumes a variable amount of memory.
+The Shadow Stack is implemented as a standard Last-In-First-Out (\textit{LIFO})
+stack. This design choice has been made to provide a data structure with fast lookups\footnote{Lookups
+in the Shadow Stack are performed in $\mathcal{O}(1)$.} while maintaining the
+ability to use fewer space when return addresses are not needed. This implementation
+is possible only because the last jump instruction that is performed in a code will
+always be the first to return. Otherwise, it would be necessary to store each return
+address and its relative jump instruction to know which address we need to check
+each time. This allowed us to build an effective and fast data structure that
+consumes a variable amount of memory, rarely affecting the execution performance.
 
-The Shadow Stack is statically defined as a struct that contains an array that
-can hold up to $63$ addresses and a pointer to the top index of the stack (Listing
-\ref{lst:ss} shows the described struct). Moreover, the Shadow Stack allows two
-operations, \textit{push} and \textit{pop} where:
+The Shadow Stack is statically defined as a \textit{C} struct that contains an
+array which can hold up to $63$ addresses and a pointer to the top index of the
+stack (Listing \ref{lst:ss} shows the described struct). Moreover, the file
+\textit{shadow\_stack.c} allows two operations, \textit{push} and \textit{pop}
+where:
 \begin{itemize}
-  \item \textit{Push} is used after a forward edge control is made. If such control
-    succeeds then, the return address related to the jump instruction is pushed
-    into the Shadow Stack and stored\footnote{Addresses are stored in the Shadow
-    Stack as \textit{unsigned integers}.} for later use. In this case, we just get
-    the top of the stack and determine if it is full. If the Shadow Stack is
-    full, we terminate execution as we can't provide data for the next backward edge
-    control. Otherwise, the address is added to the top of the stack;
+  \item \textit{Push} is used during a forward edge control. If such control succeeds
+    then, the return address related to the jump instruction is pushed into the
+    Shadow Stack and stored\footnote{Addresses are stored in the Shadow Stack as
+    \textit{unsigned integers}.} for later use. In this case, we just use the stack
+    pointer to determine if the Shadow Stack can accommodate more addresses. If
+    the Shadow Stack is full, and no other addresses can be stored, we terminate
+    execution immediately as we can't provide the necessary data for the next
+    backward edge control. Otherwise, the address is added to the top of the
+    stack and the execution continues normally;
 
-  \item \textit{Pop}, is used when a backward edge control is made. When this
-    happens, an address is removed from the top of the Shadow Stack. Afterwards,
-    we match the removed address with the current return address to decide whether
-    the return instruction is considered legal or not\footnote{Note that when we
-    use \textit{pop} we actually remove the element from the stack since we won't
-    need it in the future and, by doing this, we can free some space.}. Note that
-    before removing the address we check if the Shadow Stack is empty and, if
-    that is the case, we terminate execution since the code is trying to perform
-    an unexpected return instruction.
+  \item \textit{Pop} is used when we need to perform a backward edge control. When
+    this happens, an address is removed from the top of the Shadow Stack. Afterwards,
+    we match the removed address with the user-provided return address to decide
+    whether the return instruction is considered legal or not\footnote{Note that
+    when we use \textit{pop} we actually remove the element from the stack since
+    we won't need it in the future and, by doing this, we can free some space in
+    the data structure.}. Note that before removing the address we check if the
+    Shadow Stack is empty and, if that is the case, we terminate execution
+    immediately since the code is trying to perform an unexpected return
+    instruction.
 \end{itemize}
 
 The Shadow Stack provides no other functions for two main reasons. Firstly, with
-\textit{push} and \textit{pop} we have all we need to effectively make the controls
-we need and, adding extra functions could lead to unexpected situations. Secondly,
-adding more functions would increase the binary size.
+\textit{push} and \textit{pop} we have all we need to effectively make the
+controls we need and. Secondly, because by adding extra functions not only we
+increase the binary size, but we could also accidentally insert weak code inside
+the binary that may lead to unexpected behavior.
 
-\begin{lstlisting}[style=CStyle, caption = Shadow Stack definition, label={lst:ss}]
+Note that the size of the Shadow Stack can be adjusted to fit every need by simply
+modifying the value of \textit{MAX\_SIZE} inside \textit{shadow\_stack.c}. For
+example, if we know that our code will never nest for more than $5$ times we can
+reduce the size of the Shadow Stack to $6$ since we are sure that we will never have
+more than $5$ jump instructions consecutively.
+
+\begin{lstlisting}[style=CStyle, caption = Shadow Stack definition inside \textit{shadow\_stack.c}, label={lst:ss}]
 #define MAX_SIZE 63
 
 typedef struct {
- unsigned int addresses[MAX_SIZE];
- int top;
+  u_int addresses[MAX_SIZE]; // Array used to store return addresses
+  int top;                   // Pointer to the top of the stack
 } SStack;
 \end{lstlisting}
 
 \section{Control Flow Graph (CFG)}
 \label{sec:project_cfg}
 
-In this project, the Control Flow Graph holds the pair source-destination for each
-direct and indirect jump of the code and it is used to check the correctness of each
-\textit{JAL} and \textit{JALR} instruction. As already said the CFG of the
-binary is extracted during the instrumentation phase and injected into the file
-\textit{cfg.c} which holds the configuration for the Control Flow Graph.
+In this project, the Control Flow Graph holds the pair source-destination for
+each direct and indirect jump of the code and it is used to check the
+correctness of each \textit{JAL} and \textit{JALR} instruction. As already said the
+CFG of the binary is extracted during the instrumentation phase and injected into
+the file \textit{cfg.c} which holds the configuration for the Control Flow Graph.
 
 It is worth noting that the CFG is related only to control transfer instructions
 of the untrusted code. This is because we need to enforce Control Flow Integrity
-only on U-mode code, thus not saving the CFG of all the binary helps in saving space.
-Moreover, the Control Flow Graph does not hold the values of return addresses,
-this is because return instructions are checked thanks to the Shadow Stack, thus
-we do not need to save those values in the CFG.
+only on U-mode code, thus not saving the CFG of all the binary helps in saving
+space. Moreover, the Control Flow Graph does not hold the values of return
+addresses, this is because return instructions are checked thanks to the Shadow Stack,
+thus we do not need to save those values in the CFG.
 
-Inside \textit{cfg.c}, we can see the structure of the Control Flow Graph which is
-an array where each position is occupied by a pair \textit{source-destination}. The
-only available function is \textit{check} which asks for a pair of addresses as
-input and determines whether such a pair is part of the CFG or not. \textit{check}
-is implemented using a custom binary search function and the comparison is made
-using the function depicted in Figure \ref{lst:binsearch}. With this function,
-the binary search first searches for the source address and, only when found it searches
+Inside \textit{cfg.c}, we can see the structure of the Control Flow Graph which
+is an array where each position is occupied by a pair \textit{source-destination}.
+The only available function is \textit{check} which asks for a pair of addresses
+as input and determines whether such a pair is part of the CFG or not. \textit{check}
+is implemented using a custom binary search function and the comparison is made using
+the function depicted in Figure \ref{lst:binsearch}. With this function, the binary
+search first searches for the source address and, only when found it searches
 for the destination address. If a match is found the function returns a positive
 value and the jump instruction is considered legal.
 
-Since the CFG will not change during execution we can define it statically and
-provide no functions to add or remove elements. Again, the reason behind this
-choice is to reduce memory usage and to avoid the implementation of unused
-functions.
+Since the CFG will not change during execution we can define it statically and provide
+no functions to add or remove elements. Again, the reason behind this choice is to
+reduce memory usage and to avoid the implementation of unused functions.
 
-This implementation of the Control Flow Graph effectively reduces space
-consumption to the bare minimum while providing fast lookups ($\mathcal{O}(\log{n}
-)$). Another solution could be to use a Hash Table to store the addresses. In
-this case, we would reduce the time required to access the CFG to $\mathcal{O}(1)$.
-However, this works only with big enough Hash Tables, otherwise, we could face many
-collisions, and the time required to find the correct entry would increase. Still,
-this alternative solution could be perfect for situations in which we care more
-about time than space.
+This implementation of the Control Flow Graph effectively reduces space consumption
+to the bare minimum while providing fast lookups ($\mathcal{O}(\log{n})$).
+Another solution could be to use a Hash Table to store the addresses. In this case,
+we would reduce the time required to access the CFG to $\mathcal{O}(1)$. However,
+this works only with big enough Hash Tables, otherwise, we could face many
+collisions, and the time required to find the correct entry would increase.
+Still, this alternative solution could be perfect for situations in which we care
+more about time than space.
 
 \begin{lstlisting}[style=CStyle, caption= Comparison for binary search, label={lst:binsearch}]
 int compare(const int* A, const int* B) {
@@ -701,10 +720,10 @@ int compare(const int* A, const int* B) {
 \section{Memory Layout}
 \label{sec:layout}
 
-In this section, we discuss the memory layout of the binary. Listing
-\ref{lst:linker} depicts a simplified version of the linker script used when we
-need to compile the binary. As we can see each part of the code has been divided
-into separate sections. In particular, we have:
+In this section, we discuss the memory layout of the binary. Listing \ref{lst:linker}
+depicts a simplified version of the linker script used when we need to compile the
+binary. As we can see each part of the code has been divided into separate
+sections. In particular, we have:
 \begin{itemize}[noitemsep]
   \item Section \textit{.interrupt\_vector\_table} holds the interrupt vector
     table described in \ref{lst:intrtable};
@@ -725,8 +744,8 @@ into separate sections. In particular, we have:
     addresses during the simulation.
 \end{itemize}
 
-This configuration has been implemented to increase granularity between all the parts
-of the code. Moreover, as we will see later, this makes it easier to configure
+This configuration has been implemented to increase granularity between all the
+parts of the code. Moreover, as we will see later, this makes it easier to configure
 an effective Physical Memory Protection.
 
 \begin{lstlisting}[style=CStyle, caption= Simplified linker script, label={lst:linker}]
@@ -757,46 +776,45 @@ SECTIONS {
 }
 \end{lstlisting}
 
-As we can see, execution starts at function \textit{\_start} which is located inside
-\textit{boot.c}. Such function initializes the device and transfers execution to
-the \textit{main.c} file which sets up all the M-mode configurations before
-starting the user code.
+As we can see, execution starts at function \textit{\_start} which is located
+inside \textit{boot.c}. Such function initializes the device and transfers
+execution to the \textit{main.c} file which sets up all the M-mode configurations
+before starting the user code.
 
 \section{Physical Memory Protection (PMP)}
 \label{sec:project_pmp}
 
 In this project, the role of Physical Memory Protection is to protect the Shadow
-Stack and the Control Flow Graph from unauthorized access and modifications. To ensure
-that both these data structures are secured four memory regions have been created.
-Each region's configuration can be seen in Table \ref{tab:pmpregions}.
+Stack and the Control Flow Graph from unauthorized access and modifications. To
+ensure that both these data structures are secured four memory regions have been
+created. Each region's configuration can be seen in Table \ref{tab:pmpregions}.
 
-The first region covers all the space between $0x00000000$ and the end of the
-\textit{.data} region. This part of memory has been granted with read and write
-privileges, since this region contains only static data there is no need to allow
-execution.
+The first region covers all the space between $0x00000000$ and the end of the \textit{.data}
+region. This part of memory has been granted with read and write privileges,
+since this region contains only static data there is no need to allow execution.
 
-The second region covers the interrupt vector table and all the exceptions and interrupts
-handlers, since this region is accessed only in Machine mode and we need to
-execute instructions we need to provide read, write, and instruction execution
+The second region covers the interrupt vector table and all the exceptions and
+interrupts handlers, since this region is accessed only in Machine mode and we need
+to execute instructions we need to provide read, write, and instruction execution
 privileges.
 
-The third region is the one that covers both the Shadow Stack and the Control
-Flow Graph. For this reason, we need to restrict privileges to read and write. We
-can't set this region as read-only since we need to modify the Shadow Stack during
+The third region is the one that covers both the Shadow Stack and the Control Flow
+Graph. For this reason, we need to restrict privileges to read and write. We can't
+set this region as read-only since we need to modify the Shadow Stack during
 execution. Note that the \textit{.shadow\_stack} and \textit{.cfg} sections only
-cover the data structures related to the Shadow Stack and Control Flow Graph
-respectively. \textit{Push}, \textit{pop}, and \textit{check} are categorized as
-``handlers'', thus those functions are inserted in the \textit{.intr\_service\_routine}
-section. This is because we need instruction execution privileges for said functions
-to work.
+cover the data structures related to the Shadow Stack and Control Flow Graph respectively.
+\textit{Push}, \textit{pop}, and \textit{check} are categorized as ``handlers'',
+thus those functions are inserted in the \textit{.intr\_service\_routine} section.
+This is because we need instruction execution privileges for said functions to
+work.
 
-The fourth and last region covers all the addresses from the start of the main function
-up to the end of the memory. This region also includes user code and, since we need
-to execute the code, we need to configure this region with read, write, and
-instruction execution privileges.
+The fourth and last region covers all the addresses from the start of the main
+function up to the end of the memory. This region also includes user code and,
+since we need to execute the code, we need to configure this region with read,
+write, and instruction execution privileges.
 
-This PMP configuration effectively helps to prevent unauthorized modifications
-to critical components such as the Shadow Stack and the Control Flow Graph. Thanks
+This PMP configuration effectively helps to prevent unauthorized modifications to
+critical components such as the Shadow Stack and the Control Flow Graph. Thanks
 to this, we are sure that whatever value we read from these data structures will
 be safe and trustable. Note that any access made from U-mode to the third memory
 region will result in either an \textit{Instruction Access Fault} or an \textit{Illegal
@@ -823,72 +841,71 @@ Instruction}.
 \section{Forward and Backward Edge Controls}
 \label{sec:project_controls}
 
-The most critical job of \textit{project name} is validating jump and return
-instructions and this is done inside the interrupt vector table. Given the delicacy
-of Control Flow Integrity and its importance for this project, great attention
-has been given to the correct implementation of forward and backward edge
-controls.
+The most critical job of \textit{project name} is validating jump and return instructions
+and this is done inside the interrupt vector table. Given the delicacy of
+Control Flow Integrity and its importance for this project, great attention has been
+given to the correct implementation of forward and backward edge controls.
 
-Forward edge controls are performed thanks to the Control Flow Graph while
-backward edge controls are performed thanks to the Shadow Stack.
+Forward edge controls are performed thanks to the Control Flow Graph while backward
+edge controls are performed thanks to the Shadow Stack.
 
-In this section, each control will be carefully explained to show how they work and
-why they provide a certain degree of security.
+In this section, each control will be carefully explained to show how they work
+and why they provide a certain degree of security.
 
 \subsection{Forward Edge Controls}
 \label{subsec:forward}
 
-To perform a forward edge control we need three things. Firstly, we need the
-source address of the jump instruction, secondly, we need the destination
-address of said instruction, lastly, we need a trusted oracle that tells us if
-the pair source-destination is legal. As already explained the destination address
-is retrieved from \textit{a7} which is passed as the \textit{ECALL} code. The
-source address instead can be retrieved from \textit{mepc} \ref{subsec:mepc}. As
-we have seen, when a trap is taken \textit{mepc} holds the address of the
-instruction that was interrupted. Since the \textit{ECALL} generates the trap we
-can just add $4$\footnote{We add $4$ since it is the size of an \textit{ECALL} instruction
-in \textit{RISC-V}.} to the address stored in \textit{mepc} to retrieve the
-source address of the jump instruction. Now that we have the needed pair of addresses
-to check we can use the Control Flow Graph as the oracle. As already explained, the
-CFG is computed before compilation and is securely stored in a safe memory region
-thanks to the Physical Memory Protection. This means that any attempt of
-unauthorized modification is instantly blocked, thus so we can trust the data provided
-by the CFG and use it as an oracle.
+To perform a forward edge control we need three things. Firstly, we need the source
+address of the jump instruction, secondly, we need the destination address of said
+instruction, lastly, we need a trusted oracle that tells us if the pair source-destination
+is legal. As already explained the destination address is retrieved from \textit{a7}
+which is passed as the \textit{ECALL} code. The source address instead can be retrieved
+from \textit{mepc} \ref{subsec:mepc}. As we have seen, when a trap is taken
+\textit{mepc} holds the address of the instruction that was interrupted. Since
+the \textit{ECALL} generates the trap we can just add $4$\footnote{We add $4$
+since it is the size of an \textit{ECALL} instruction in \textit{RISC-V}.} to
+the address stored in \textit{mepc} to retrieve the source address of the jump instruction.
+Now that we have the needed pair of addresses to check we can use the Control
+Flow Graph as the oracle. As already explained, the CFG is computed before
+compilation and is securely stored in a safe memory region thanks to the
+Physical Memory Protection. This means that any attempt of unauthorized modification
+is instantly blocked, thus so we can trust the data provided by the CFG and use
+it as an oracle.
 
-When we need to perform a forward edge control, we just need to send the source
-and destination addresses to the \textit{check} function of the CFG. Such a
-function performs a binary search inside the Control Flow Graph to see whether
-that specific pair is part of the original CFG or not. If the search succeeds the
-function returns a positive value and the jump is considered legal while, if the
-search does not succeed the instruction is aborted and the execution terminates
-to prevent any possible damage.
+When we need to perform a forward edge control, we just need to send the source and
+destination addresses to the \textit{check} function of the CFG. Such a function
+performs a binary search inside the Control Flow Graph to see whether that specific
+pair is part of the original CFG or not. If the search succeeds the function
+returns a positive value and the jump is considered legal while, if the search does
+not succeed the instruction is aborted and the execution terminates to prevent any
+possible damage.
 
-Whenever a forward edge control succeeds we know that the related jump
-instruction will eventually return so we need to store its return address inside
-the Shadow Stack. To do so, we need to retrieve the return address but, since a jump
-will always return to its next instruction, we can just compute
-$\textit{source address}+ 2$\footnote{We add $2$ since it is the size of
-compressed \textit{JAL} and \textit{JALR} instructions in \textit{RISC-V}.} to retrieve
-it. After that, the return address is pushed into the Shadow Stack and the execution
-is resumed with the interrupted jump instruction.
+Whenever a forward edge control succeeds we know that the related jump instruction
+will eventually return so we need to store its return address inside the Shadow Stack.
+To do so, we need to retrieve the return address but, since a jump will always
+return to its next instruction, we can just compute $\textit{source address}+ 2$\footnote{We
+add $2$ since it is the size of compressed \textit{JAL} and \textit{JALR}
+instructions in \textit{RISC-V}.} to retrieve it. After that, the return address
+is pushed into the Shadow Stack and the execution is resumed with the
+interrupted jump instruction.
 
 \subsection{Backward Edge Controls}
 \label{subsec:backward}
 
-To perform a backward edge control we need two things. Firstly, we need the
-address to which the return instruction is trying to go. Secondly, we need a
-trusted oracle that tells us if such an address is legal. As we have seen, the
-destination address is retrieved from \textit{a7} which is passed as the \textit{ECALL}
-code. However, we must remove $1$ from the address retrieved from \textit{a7} since
-in the least significant bit we store the \textit{ECALL} code. Similarly to the Control
-Flow Graph, the Shadow Stack is secured in a protected memory space and is
+To perform a backward edge control we need two things. Firstly, we need the address
+to which the return instruction is trying to go. Secondly, we need a trusted oracle
+that tells us if such an address is legal. As we have seen, the destination address
+is retrieved from \textit{a7} which is passed as the \textit{ECALL} code.
+However, we must remove $1$ from the address retrieved from \textit{a7} since in
+the least significant bit we store the \textit{ECALL} code. Similarly to the
+Control Flow Graph, the Shadow Stack is secured in a protected memory space and is
 unaffected by unauthorized modification attempts. Even in this case we can trust
 the Shadow Stack and use it as an oracle.
 
 When we need to perform a backward edge control, we just need to \textit{pop} an
-address from the Shadow Stack and match the destination address with the popped one.
-If the addresses are equal we can consider the return instruction legal while, if
-they are different the execution is terminated.
+address from the Shadow Stack and match the destination address with the popped
+one. If the addresses are equal we can consider the return instruction legal while,
+if they are different the execution is terminated.
 
 Whenever a backward edge control succeeds we must do nothing since the value has
 already been removed from the Shadow Stack and no other modifications are needed.
@@ -897,12 +914,12 @@ Thus, the execution is resumed with the interrupted return instruction.
 \section{Proof of Concept (PoC)}
 \label{sec:project_poc}
 
-In this section, we provide a Proof of Concept to showcase why the proposed solution
-effectively provides security capabilities to a non-trusted and insecure code.
-Figure \ref{fig:functioning} depicts an abstraction of the project's flow where
-green and red boxes depict trusted and untrusted components respectively. Moreover,
-green arrows are used to represent a successful edge control while red arrows
-represent an unsuccessful one.
+In this section, we provide a Proof of Concept to showcase why the proposed
+solution effectively provides security capabilities to a non-trusted and
+insecure code. Figure \ref{fig:functioning} depicts an abstraction of the project's
+flow where green and red boxes depict trusted and untrusted components respectively.
+Moreover, green arrows are used to represent a successful edge control while red
+arrows represent an unsuccessful one.
 
 \begin{figure}[htbp]
   \centering
@@ -912,80 +929,81 @@ represent an unsuccessful one.
 \end{figure}
 
 We have already seen that the \textit{Boot and Startup} and \textit{Machine code
-init} sections are used to configure the board and \textit{RISC-V} registers
-respectively. This part of the code is trusted so we are sure the machine will be
-configured properly and no security measures are needed. The only way to corrupt
-this part of the execution would be to tamper with the source code before
-compilation but this is out of the project's scope and requires human controls
-prior to implementation.
+init} sections are used to configure the board and \textit{RISC-V} registers respectively.
+This part of the code is trusted so we are sure the machine will be configured
+properly and no security measures are needed. The only way to corrupt this part of
+the execution would be to tamper with the source code before compilation but this
+is out of the project's scope and requires human controls prior to implementation.
 
-The same is true for the \textit{CFI Enforcer} section which is responsible for managing
-edge controls as well as other interrupts and exceptions. Even in this case, the
-source code has to be modified to tamper with the security features.
+The same is true for the \textit{CFI Enforcer} section which is responsible for
+managing edge controls as well as other interrupts and exceptions. Even in this case,
+the source code has to be modified to tamper with the security features.
 
 On the other hand, the \textit{User code} section is untrusted and we can't make
-any assumptions on its functioning. The code could be well-written and somewhat
-secure but it could be full of flaws and we must prevent any attack that could
-be perpetrated through it. To do so, we use forward and backward edge controls
-together with the Shadow Stack and the Control Flow Graph.
+any assumptions on its functioning. The code could be well-written and somewhat secure
+but it could be full of flaws and we must prevent any attack that could be perpetrated
+through it. To do so, we use forward and backward edge controls together with the
+Shadow Stack and the Control Flow Graph.
 
-As already said, the \textit{Shadow Stack} and the \textit{Control Flow Graph} are
-the most critical components of the project. We must secure them since they
-serve as oracles and we must be able to trust the data they contain. Since the CFG
-is configured statically we are sure that it can't be modified during execution,
-the Shadow Stack instead is designed to change since we need to \textit{push} and
-\textit{pop} values from it. However, since we protected the Shadow Stack with
-the PMP we can be sure that only privileged code has access to it and any other
-access generates a trap that is handled through the interrupt vector table. This
-means that, even if one tries to add or remove arbitrary values from the stack
-the operation will be aborted immediately and our trust in the Shadow Stack
-remains intact.
+As already said, the \textit{Shadow Stack} and the \textit{Control Flow Graph}
+are the most critical components of the project. We must secure them since they serve
+as oracles and we must be able to trust the data they contain. Since the CFG is
+configured statically we are sure that it can't be modified during execution, the
+Shadow Stack instead is designed to change since we need to \textit{push} and
+\textit{pop} values from it. However, since we protected the Shadow Stack with the
+PMP we can be sure that only privileged code has access to it and any other access
+generates a trap that is handled through the interrupt vector table. This means
+that, even if one tries to add or remove arbitrary values from the stack the operation
+will be aborted immediately and our trust in the Shadow Stack remains intact.
 
 Now, every possible scenario that could happen during a normal execution will be
 discussed.
 
 As soon as a forward edge control is requested we check that the pair source-destination
 is valid thanks to the CFG. Let's say that an attacker tampered with the code to
-perform an unauthorized jump instruction, in this case, the CFG will either
-contain such a pair or not. If the pair is contained in the CFG the jump instruction
-is allowed, however, this means that the attacker is trying to jump from a valid
-source to a valid destination meaning that the operation is secure and can be performed.
-On the other hand, if the attacker is trying to perform an unauthorized jump instruction
-we are sure that the Control Flow Graph will not contain the pair source-destination
-provided by the attacker since we said that the CFG can't be modified. In this
-case, the unauthorized jump is detected and the code terminates immediately.
-Instead, if the user code is trying to perform a normal jump instruction we know
-that the added instructions will always send to the interrupt vector table a legal
-pair and the jump will be considered safe. As a consequence, the return address is
-pushed into the Shadow Stack. Note that since we compute the return address each
-time instead of trusting the one provided by the user code we are sure that the
-value inserted in the stack is correct and we can trust it.
+perform an unauthorized jump instruction, in this case, the CFG will either contain
+such a pair or not. If the pair is contained in the CFG the jump instruction is
+allowed, however, this means that the attacker is trying to jump from a valid
+source to a valid destination meaning that the operation is secure and can be
+performed. On the other hand, if the attacker is trying to perform an
+unauthorized jump instruction we are sure that the Control Flow Graph will not
+contain the pair source-destination provided by the attacker since we said that
+the CFG can't be modified. In this case, the unauthorized jump is detected and
+the code terminates immediately. Instead, if the user code is trying to perform
+a normal jump instruction we know that the added instructions will always send
+to the interrupt vector table a legal pair and the jump will be considered safe.
+As a consequence, the return address is pushed into the Shadow Stack. Note that since
+we compute the return address each time instead of trusting the one provided by the
+user code we are sure that the value inserted in the stack is correct and we can
+trust it.
 
-If a backward edge control is requested instead, we check that the return address
-provided by the user code is the one we are expecting by popping the last value that
-was inserted in the Shadow Stack. Again, let's say that an attacker tampered with
-the code to perform an unauthorized return, in this case, the addresses will not
-match and the execution will be terminated. Note that the fact that we can trust
-the Shadow Stack is highly dependent on the configuration of the Physical Memory
-Protection. This is because, without a proper configuration, it would be possible
-for an attacker to push a value into the Shadow Stack and then tamper with the return
-address to effectively return to an unauthorized address.
+If a backward edge control is requested instead, we check that the return
+address provided by the user code is the one we are expecting by popping the
+last value that was inserted in the Shadow Stack. Again, let's say that an
+attacker tampered with the code to perform an unauthorized return, in this case,
+the addresses will not match and the execution will be terminated. Note that the
+fact that we can trust the Shadow Stack is highly dependent on the configuration
+of the Physical Memory Protection. This is because, without a proper configuration,
+it would be possible for an attacker to push a value into the Shadow Stack and
+then tamper with the return address to effectively return to an unauthorized
+address.
 
-Moreover, when we try to push a value into a full Shadow Stack the execution is
-terminated. This is needed because if we are not able to push the address into the
-Shadow Stack we will not be able to make the next backward edge control and thus,
-the security would be compromised. Note that the same happens when we try to pop
-a value from an empty Shadow Stack since this means that we are checking a return
-instruction that was never meant to be performed.
+Moreover, when we try to push a value into a full Shadow Stack the execution is terminated.
+This is needed because if we are not able to push the address into the Shadow
+Stack we will not be able to make the next backward edge control and thus, the security
+would be compromised. Note that the same happens when we try to pop a value from
+an empty Shadow Stack since this means that we are checking a return instruction
+that was never meant to be performed.
 
 Lastly, we could design the enforcement of the backward edge controls in another
-way. If we need to control a return address and there is a mismatch we could force
-the user code to return to the address stored in the Shadow Stack which we know is
-safe. While this solution enforces Control Flow Integrity securely we can't be
-sure that the stack\footnote{Referring to the normal stack used to store
-registers} has not been compromised and thus, terminating execution is a much
-safer choice.
+way. If we need to control a return address and there is a mismatch we could
+force the user code to return to the address stored in the Shadow Stack which we
+know is safe. While this solution enforces Control Flow Integrity securely we can't
+be sure that the stack\footnote{Referring to the normal stack used to store
+registers} has not been compromised and thus, terminating execution is a much safer
+choice.
 
-To conclude, we have seen that this project effectively enforces Control Flow Integrity
-on an untrusted user application and that its security functionalities work as expected
-to prevent any attempt to perform unauthorized operations even in edge cases.
+To conclude, we have seen that this project effectively enforces Control Flow
+Integrity on an untrusted user application and that its security functionalities
+work as expected to prevent any attempt to perform unauthorized operations even
+in edge cases.
