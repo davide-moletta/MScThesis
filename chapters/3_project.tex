@@ -671,60 +671,87 @@ typedef struct {
 \section{Control Flow Graph (CFG)}
 \label{sec:project_cfg}
 
-In this project, the Control Flow Graph holds the pair source-destination for
-each direct and indirect jump of the code and it is used to check the
-correctness of each \textit{JAL} and \textit{JALR} instruction. As already said the
-CFG of the binary is extracted during the instrumentation phase and injected into
-the file \textit{cfg.c} which holds the configuration for the Control Flow Graph.
+In \textit{STEERED}, the Control Flow Graph holds the pair source-destination for
+each direct and indirect jump of the code and it is used to check the correctness
+of each \textit{JAL} and \textit{JALR} instruction. As already said the CFG of
+the binary is extracted during the instrumentation phase and injected into the
+file \textit{cfg.c} which holds the configuration for the Control Flow Graph (Listing
+\ref{lst:cfgdefinition} depicts the current representation of the Control Flow
+Graph).
+
+\begin{lstlisting}[style=CStyle, caption= Definition of the Control Flow Graph inside \textit{cfg.c}, label={lst:cfgdefinition}]
+u_int cfg[][2] = {{src, dst}, ...}; // Source-destination pairs
+size_t cfg_size = 1;                // Size of the CFG
+\end{lstlisting}
 
 It is worth noting that the CFG is related only to control transfer instructions
 of the untrusted code. This is because we need to enforce Control Flow Integrity
-only on U-mode code, thus not saving the CFG of all the binary helps in saving
-space. Moreover, the Control Flow Graph does not hold the values of return
-addresses, this is because return instructions are checked thanks to the Shadow Stack,
-thus we do not need to save those values in the CFG.
+only on U-mode code, thus not saving the CFG of all the binary helps in reducing
+memory usage. Moreover, the Control Flow Graph does not hold the values of
+return addresses, this is because return instructions are checked thanks to the Shadow
+Stack, thus we do not need to save those values in the CFG. These design choices
+allowed us to create a tailored structure that is both fast and efficient in space
+usage.
 
-Inside \textit{cfg.c}, we can see the structure of the Control Flow Graph which
-is an array where each position is occupied by a pair \textit{source-destination}.
-The only available function is \textit{check} which asks for a pair of addresses
-as input and determines whether such a pair is part of the CFG or not. \textit{check}
-is implemented using a custom binary search function and the comparison is made using
-the function depicted in Figure \ref{lst:binsearch}. With this function, the binary
-search first searches for the source address and, only when found it searches
-for the destination address. If a match is found the function returns a positive
-value and the jump instruction is considered legal.
-
-Since the CFG will not change during execution we can define it statically and provide
-no functions to add or remove elements. Again, the reason behind this choice is to
-reduce memory usage and to avoid the implementation of unused functions.
-
-This implementation of the Control Flow Graph effectively reduces space consumption
-to the bare minimum while providing fast lookups ($\mathcal{O}(\log{n})$).
-Another solution could be to use a Hash Table to store the addresses. In this case,
-we would reduce the time required to access the CFG to $\mathcal{O}(1)$. However,
-this works only with big enough Hash Tables, otherwise, we could face many
-collisions, and the time required to find the correct entry would increase.
-Still, this alternative solution could be perfect for situations in which we care
-more about time than space.
+Inside \textit{cfg.c}, we can see the structure of the Control Flow Graph which is
+composed of a two dimensional array where, each index represents an edge. Such edge
+is stored in a small array that contains the source address in the first position
+and the destination address in the second position. So, the CFG holds a pair \textit{source-destination}
+at each position, moreover, as explained in section
+\ref{sec:project_instrumentation}, the pairs are ordered in non-decreasing order
+during the instrumentation phase. The \textit{cfg.c} file provides only the \textit{check}
+function which asks for a pair of addresses as input and determines whether such
+a pair is part of the Control Flow Graph or not. \textit{check} is implemented
+using a binary search algorithm with a custom comparison function (Listing \ref{lst:binsearch}
+depicts a representation of the compare function). We needed to create a custom compare
+function because we need to perform the binary search with two values (source
+and destination addresses), thus a normal comparison would not work in this
+scenario. With this function we firstly search the source address and then, if
+we find a match, we search for the destination address. Note that this approach
+is possible only because the list was previously ordered, otherwise the binary search
+would not work correctly and we would need to perform a linear search which would
+result in a time complexity of $\mathcal{O}(n)$. Lastly, if the binary search finds
+a match, the \textit{check} function returns a positive value and the jump instruction
+is considered legal.
 
 \begin{lstlisting}[style=CStyle, caption= Comparison for binary search, label={lst:binsearch}]
-int compare(const int* A, const int* B) {
- for (int i = 0; i < 2; ++i) {
- if (A[i] < B[i]) return -1;
- if (A[i] > B[i]) return 1;
- }
- return 0;
-}
+  int compare(const int* A, const int* B) {
+    for (int i = 0; i < 2; ++i) {
+      if (A[i] < B[i]) return -1;
+      if (A[i] > B[i]) return 1;
+    }
+    return 0;
+  }
 \end{lstlisting}
+
+Since the CFG will not change during execution we can define it statically and
+provide no functions to add or remove elements. Again, the reason behind this
+choice is to reduce memory usage and to avoid the implementation of unused
+functions.
+
+This implementation of the Control Flow Graph effectively reduces space
+consumption to the bare minimum while providing fast lookups with a time
+complexity of $\mathcal{O}(\log{n})$\footnote{Note that since the Control Flow
+Graph will never reach enormous sizes like $10^{5}$ we can approximate the time
+complexity of $\mathcal{O}(\log{n})$ to $\mathcal{O}(1)$.}. Another solution
+could be to use a hash table to store the address pairs. In this case, we would
+reduce the time required to access the CFG to $\mathcal{O}(1)$ for any size of
+the CFG since accesses to hash tables are instantaneous. However, this works
+only with big enough hash tables, otherwise, we could face many collisions, and the
+time required to find the correct entry would increase. This means that we would
+need to allocate a lot of space to store few addresses leading to a waste of
+memory usage since most of the entries would be empty. Still, this alternative
+solution could be perfect for situations in which we care more about time than
+space.
 
 \section{Memory Layout}
 \label{sec:layout}
 
 In this section, we discuss the memory layout of the binary. Listing \ref{lst:linker}
-depicts a simplified version of the linker script used when we need to compile the
-binary. As we can see each part of the code has been divided into separate
-sections. In particular, we have:
-\begin{itemize}[noitemsep]
+depicts a simplified version of the linker script used to compile the binary. As
+we can see each part of the code has been assigned to separate sections. In particular,
+we have:
+\begin{itemize}
   \item Section \textit{.interrupt\_vector\_table} holds the interrupt vector
     table described in \ref{lst:intrtable};
 
