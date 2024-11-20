@@ -44,7 +44,7 @@ additional extensions.
 
 To accommodate customization, \textit{RISC-V} divides each instruction-set encoding
 space into three categories:
-\begin{itemize}[noitemsep]
+\begin{itemize}
   \item Standard extensions and encodings are defined by \textit{RISC-V
     International}. Such extensions are designed to not conflict with each other;
 
@@ -138,7 +138,6 @@ structure across formats is designed to minimize hardware complexity and overlap
 focusing on efficiency for both compilation and runtime execution. Sign-extension
 and fixed bit positioning help reduce hardware costs and reduce complexity in
 simple implementations.
-
 \begin{figure}[htbp]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/instrformats.png}}
@@ -155,17 +154,17 @@ simple implementations.
   \label{fig:extrainstrformats}
 \end{figure}
 
-The \textit{RISC-V} ISA keeps the source (\textit{RS1} and \textit{RS2}) and destination
-(\textit{RD}) registers in the same position to simplify instruction decoding. Immediate
-values (\textit{IMM}) are always sign-extended and generally stored in the most
-significant available bits. Lastly, \textit{FUNCT3}, \textit{FUNCT7} and \textit{OPCODE}
-are used to define the operation.
+The \textit{RISC-V} ISA keeps the source (\textit{RS1} and \textit{RS2}) and
+destination (\textit{RD}) registers in the same position to simplify instruction
+decoding. Immediate values (\textit{IMM}) are always sign-extended and generally
+stored in the most significant available bits. Lastly, \textit{FUNCT3}, \textit{FUNCT7}
+and \textit{OPCODE} are used to define the operation.
 
 \subsection{Control Transfer Instructions}
 \label{subsec:riscv_controltransfer}
 
-In this subsection, we explain \textit{RISC-V}'s control transfer instructions which
-are fundamental for this project.
+In this subsection, we explain \textit{RISC-V}'s control transfer instructions
+which are fundamental for this project.
 
 \textit{RV32I} defines two types of control transfer instructions: unconditional
 jumps and conditional branches.
@@ -176,66 +175,67 @@ jumps and conditional branches.
 \textit{RISC-V} defines two types of unconditional jumps: jump and link (\textit{JAL})
 and jump and link register (\textit{JALR}).
 
-The \textit{JAL} instruction is encoded using the \textit{J}-type format. The immediate
-offset is sign-extended and added to the address of the jump instruction (current
-\textit{pc}\footnote{\textit{pc} stands for program counter and holds the address
-of the current instruction}) to determine the jump target address. As a result, jumps
-can target a range within $\pm 1 MiB$ from their address. Moreover, \textit{JAL}
-stores the address of the instruction following the jump ($\textit{pc}+ 4$) into
-the destination register \textit{RD}.
+The \textit{JAL} instruction is encoded using the \textit{J}-type format. The
+immediate offset is sign-extended and added to the address of the jump
+instruction (current \textit{pc}\footnote{\textit{pc} stands for program counter
+and holds the address of the current instruction}) to determine the jump target
+address. As a result, jumps can target a range within $\pm 1 MiB$ from their
+address. Moreover, \textit{JAL} stores the address of the instruction following the
+jump ($\textit{pc}+ 4$) into the destination register \textit{RD}.
 
-The \textit{JALR} instruction is encoded using the \textit{I}-type format. The
-immediate offset is sign-extended and added to the source register \textit{RS1} to
-determine the jump target address (also the least-significant bit of the result
-is set to $0$). Similarly to \textit{JAL}, \textit{JALR} stores the address of the
-instruction following the jump ($\textit{pc}+ 4$) into the destination register \textit{RD}.
+The \textit{JALR} instruction is encoded using the \textit{I}-type format. The immediate
+offset is sign-extended and added to the source register \textit{RS1} to
+determine the jump target address (also the least-significant bit of the result is
+set to $0$). Similarly to \textit{JAL}, \textit{JALR} stores the address of the
+instruction following the jump ($\textit{pc}+ 4$) into the destination register
+\textit{RD}.
 
-Lastly, a plain unconditional jump is provided under the pseudo-instruction \textit{J}
-and it is simply encoded as a \textit{JAL} instruction with $\textit{RD}= x0$.
+Lastly, a plain unconditional jump is provided under the pseudo-instruction
+\textit{J} and it is simply encoded as a \textit{JAL} instruction with
+$\textit{RD}= x0$.
 
 \subsubsection{Conditional Branches}
 \label{subsubsec:riscv_conditionalb}
 
-\textit{RISC-V} defines six branch instructions that compare two registers.
-\textit{BEQ} and \textit{BNE} take the branch if registers \textit{RS1} and \textit{RS2}
-are equal or different respectively. \textit{BLT} and \textit{BLTU} take the branch
-if \textit{RS1} is less than \textit{RS2}, using signed and unsigned comparison
-respectively. Lastly, \textit{BGE} and \textit{BGEU} take the branch if \textit{RS1}
-is greater than or equal to \textit{RS2}, using signed and unsigned comparisons respectively.
+\textit{RISC-V} defines six branch instructions that compare two registers. \textit{BEQ}
+and \textit{BNE} take the branch if registers \textit{RS1} and \textit{RS2} are equal
+or different respectively. \textit{BLT} and \textit{BLTU} take the branch if
+\textit{RS1} is less than \textit{RS2}, using signed and unsigned comparison respectively.
+Lastly, \textit{BGE} and \textit{BGEU} take the branch if \textit{RS1} is
+greater than or equal to \textit{RS2}, using signed and unsigned comparisons
+respectively.
 
 All conditional branch instructions are encoded using the \textit{B}-type format.
-The immediate offset is sign-extended and added to the address of the branch instruction
-(current \textit{pc}) to determine the branch target address. As a result,
-conditional branches can target a range within $\pm 4 \textit{KiB}$ from their
-address.
+The immediate offset is sign-extended and added to the address of the branch
+instruction (current \textit{pc}) to determine the branch target address. As a
+result, conditional branches can target a range within $\pm 4 \textit{KiB}$ from
+their address.
 
 \subsection{Environment Calls and Breakpoints}
 \label{subsec:riscv_ecalls}
 
-\textit{RISC-V} defines two classes of \textit{SYSTEM} instructions which are used
-to access system functionalities that may require privileged access. These
-instructions are encoded using the \textit{I}-type format. The two classes are
-those that read-modify-write Control and Status Registers, and all other potentially
-privileged instructions.
+\textit{RISC-V} defines two classes of \textit{SYSTEM} instructions which are
+used to access system functionalities that may require privileged access. These instructions
+are encoded using the \textit{I}-type format. The two classes are those that read-modify-write
+Control and Status Registers, and all other potentially privileged instructions.
 
-Control and Status Registers will be discussed later, while among the second
-class of \textit{SYSTEM} instructions, we need to define \textit{ECALL} and \textit{EBREAK}.
+Control and Status Registers will be discussed later, while among the second class
+of \textit{SYSTEM} instructions, we need to define \textit{ECALL} and \textit{EBREAK}.
 \textit{ECALL} is used to perform a service request to the execution environment.
-The Execution Environment Interface (EII) defines how parameters should be passed.
-Instead, \textit{EBREAK} is used to return control to a debugging environment.
+The Execution Environment Interface (EII) defines how parameters should be
+passed. Instead, \textit{EBREAK} is used to return control to a debugging environment.
 
 \section{RISC-V Exceptions, Traps and Interrupts}
 \label{sec:riscv_eti}
 
-In \textit{RISC-V}, exceptions are unusual conditions tied to the execution of an
-instruction within the \textit{hart}\footnote{A \textit{hart} in \textit{RISC-V}
-is defined as a hardware thread}, while interrupts are external asynchronous
-events that may cause an unexpected control transfer within the \textit{hart}.
-Both exceptions and interrupts lead to a trap, which causes a control transfer to
-a trap handler.
+In \textit{RISC-V}, exceptions are unusual conditions tied to the execution of
+an instruction within the \textit{hart}\footnote{A \textit{hart} in \textit{RISC-V}
+is defined as a hardware thread}, while interrupts are external asynchronous events
+that may cause an unexpected control transfer within the \textit{hart}. Both exceptions
+and interrupts lead to a trap, which causes a control transfer to a trap handler.
 
-Traps in RISC-V can have four possible effects, each corresponding to how the
-trap is managed:
+Traps in RISC-V can have four possible effects, each corresponding to how the trap
+is managed:
 
 \begin{itemize}
   \item Contained Trap: The trap is visible to software in the current execution
@@ -274,16 +274,17 @@ trap is managed:
   \label{tab:traps}
 \end{table}
 
-As we will see later, traps are handled thanks to a trap vector table which is responsible
-for managing the trap, deciding the outcome, and resuming the execution when needed.
+As we will see later, traps are handled thanks to a trap vector table which is
+responsible for managing the trap, deciding the outcome, and resuming the
+execution when needed.
 
 \section{RISC-V Privilege Levels}
 \label{sec:riscv_privileges}
 
-\textit{RISC-V} defines multiple privilege levels to manage access to system resources
-and control execution modes. These privilege levels are designed to provide a
-secure and efficient framework for managing different software components, such as
-operating systems, hypervisors, and user applications.
+\textit{RISC-V} defines multiple privilege levels to manage access to system
+resources and control execution modes. These privilege levels are designed to provide
+a secure and efficient framework for managing different software components,
+such as operating systems, hypervisors, and user applications.
 
 As it's possible to see in Table \ref{tab:priv} \textit{RISC-V} implements three
 different privilege levels with the following characteristics:
@@ -332,8 +333,8 @@ different privilege levels with the following characteristics:
 \section{RISC-V General Purpose Registers}
 \label{sec:riscv_reg}
 
-The base \textit{RISC-V} ISA provides $32$ general purpose registers all $32$
-bits wide. Table \ref{tab:registers} depicts all the described registers.
+The base \textit{RISC-V} ISA provides $32$ general purpose registers all $32$ bits
+wide. Table \ref{tab:registers} depicts all the described registers.
 
 Except for \textit{x0} which is hardwired to $0$ no other registers are assigned
 to a specific role. However, the standard calling convention uses:
@@ -394,10 +395,11 @@ to a specific role. However, the standard calling convention uses:
 \section{RISC-V Control and Status Registers (CSRs)}
 \label{sec:riscv_csrs}
 
-\textit{RISC-V} defines a separate address space of $4096$ Control and Status Registers
-(CSRs) associated with each \textit{hart}. CSRs are particular registers used to
-control specific functions of the machine. Thanks to the \textit{ZICSR} standard
-extension we can import into our ISA the following CSR-related instructions:
+\textit{RISC-V} defines a separate address space of $4096$ Control and Status
+Registers (CSRs) associated with each \textit{hart}. CSRs are particular
+registers used to control specific functions of the machine. Thanks to the \textit{ZICSR}
+standard extension we can import into our ISA the following CSR-related
+instructions:
 \begin{itemize}
   \item \textit{CSRRW} (Atomic Read/Write CSR): atomically swaps values in the CSRs
     and integer registers. \textit{CSRRW} reads the old value of the CSR and writes
@@ -415,10 +417,9 @@ extension we can import into our ISA the following CSR-related instructions:
     in the source register (\textit{RS1}) is treated as a bit mask that
     specifies bit positions to be cleared in the CSR.
 \end{itemize}
-All CSR instructions atomically read-modify-write a single CSR, whose specifier is
-encoded in the $12$-bit \textit{CSR} field (Image \ref{fig:csrinstr} shows the encoding
-of CSR instructions).
-
+All CSR instructions atomically read-modify-write a single CSR, whose specifier
+is encoded in the $12$-bit \textit{CSR} field (Image \ref{fig:csrinstr} shows
+the encoding of CSR instructions). \\
 \begin{figure}[htbp]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/csr_instructions.png} } %
@@ -426,6 +427,7 @@ of CSR instructions).
   \caption{Control and Status Register instructions encoding}
   \label{fig:csrinstr}
 \end{figure}
+\\
 
 Table \ref{tab:csrop} depicts whether a CSR is read or written by every operation.
 
@@ -456,9 +458,8 @@ they will be necessary to understand the functioning of this project.
 The \textit{mstatus} register keeps track of and controls the \textit{hart}'s
 current operating state. This register will be used to manage interrupts and privilege
 levels. Figure \ref{fig:mstatus} depicts a representation of the \textit{mstatus}
-CSR.
-
-\begin{figure}[htbp]
+CSR. \\
+\begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/mstatus_csr.png} } %
   {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $25$}}
@@ -527,10 +528,9 @@ Specifically, the fields are:
 \label{subsec:mepc}
 
 The \textit{mepc} register is used, when a trap is taken in M-mode, to store the
-address of the instruction that was interrupted or that encountered the exception.
-Figure \ref{fig:mepc} depicts a representation of \textit{mepc}.
-
-\begin{figure}[htbp]
+address of the instruction that was interrupted or that encountered the
+exception. Figure \ref{fig:mepc} depicts a representation of \textit{mepc}. \\
+\begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/mepc_csr.png} } %
   {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $42$}}
@@ -544,9 +544,8 @@ Figure \ref{fig:mepc} depicts a representation of \textit{mepc}.
 The \textit{mcause} register is used, when a trap is taken in M-mode, to store
 the code that indicates the event that caused the trap. All the possible codes can
 be seen in Table \ref{tab:causes}. Figure \ref{fig:mcause} depicts a
-representation of \textit{mcause}.
-
-\begin{figure}[htbp]
+representation of \textit{mcause}. \\
+\begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/mcause_csr.png} } %
   {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $42$}}
@@ -646,11 +645,10 @@ representation of \textit{mcause}.
 \subsection{Machine Trap Value Register (MTVAL) CSR}
 \label{subsec:riscv_mtval}
 
-The \textit{mtval} register is used, when a trap is taken in M-mode, to store exception-specific
-information to assist software in handling the trap. Figure \ref{fig:mcause}
-depicts a representation of \textit{mtval}.
-
-\begin{figure}[htbp]
+The \textit{mtval} register is used, when a trap is taken in M-mode, to store
+exception-specific information to assist software in handling the trap. Figure \ref{fig:mcause}
+depicts a representation of \textit{mtval}. \\
+\begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/mtval_csr.png} } %
   {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $45$}}
@@ -667,9 +665,8 @@ The \textit{MODE} field can be set according to Table \ref{tab:mode}. If we set 
 \textit{MODE} to vectored, all asynchronous interrupts will set the program counter
 to the base address encoded in \textit{mtvec} plus $4$ times the cause of the
 interrupt (causes can be seen in Table \ref{tab:causes}). With \textit{MODE} set
-to direct instead, all traps set the program counter to the base address.
-
-\begin{figure}[htbp]
+to direct instead, all traps set the program counter to the base address. \\
+\begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/mtvec_csr.png} } %
   {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $34$}}
@@ -699,15 +696,14 @@ to direct instead, all traps set the program counter to the base address.
 By default, all traps at any privilege are handled in machine mode, though it is
 possible to use the \textit{MRET} instruction to transfer control to a lower-level
 handler. To increase performance, \textit{RISC-V} provides two registers \textit{mideleg}
-and \textit{medeleg} used to indicate that certain traps should be processed
-directly at a lower privilege level. The machine exception delegation register (\textit{medeleg})
+and \textit{medeleg} used to indicate that certain traps should be processed directly
+at a lower privilege level. The machine exception delegation register (\textit{medeleg})
 is a $64$-bit long register while the machine interrupt delegation register (\textit{mideleg})
 is an \textit{MXLEN}-bit\footnote{\textit{MXLEN} represent the length of some registers
-based on the used ISA, for example for \textit{RV32I} \textit{MXLEN} is $32$.} long
-register (Figures \ref{fig:medeleg} and \ref{fig:mideleg} depict representation
-of the registers).
-
-\begin{figure}[htbp]
+based on the used ISA, for example for \textit{RV32I} \textit{MXLEN} is $32$.}
+long register (Figures \ref{fig:medeleg} and \ref{fig:mideleg} depict representation
+of the registers). \\
+\begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/medeleg_csr.png} } %
   {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $35$}}
@@ -715,7 +711,7 @@ of the registers).
   \label{fig:medeleg}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/mideleg_csr.png} } %
   {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $36$}}
@@ -769,7 +765,7 @@ Each PMP configuration register (Figure \ref{fig:pmpconf}) contains:
     without a system reset.
 \end{itemize}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/pmpcfgs_csr.png}}
   {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $60$}}
@@ -777,7 +773,7 @@ Each PMP configuration register (Figure \ref{fig:pmpconf}) contains:
   \label{fig:pmpcfgs}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/pmpaddress_csr.png} } %
   {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $61$}}
@@ -785,7 +781,7 @@ Each PMP configuration register (Figure \ref{fig:pmpconf}) contains:
   \label{fig:pmpaddr}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/pmpconf_csr.png} } %
   {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $61$}}
