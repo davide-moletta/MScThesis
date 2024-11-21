@@ -601,7 +601,7 @@ Guillaume Hiet, and Pierre Wilke in their article \textit{Work in progress: A fo
 verified shadow stack for RISC-V} \cite{shadowstack}. In their article, they
 demonstrate a methodology for formally specifying and verifying the correctness
 of a Shadow Stack implemented in \textit{RISC-V}. Their approach involves the
-use of formal methods and the hardware description language \textit{Kôika}\footnote{\url{https://github.com/mit-plv/koika}}
+use of formal methods and the hardware description language \textit{Kôika}\cite{koika}
 to prove the integrity of the Shadow Stack against return address manipulation. The
 authors also discuss the isolation of the Shadow Stack from regular memory access,
 ensuring robust protection against tampering, and provide a verified framework that
@@ -1006,15 +1006,22 @@ with the interrupted return instruction.
 Whenever a backward edge control succeeds we must do nothing since the value has
 already been removed from the Shadow Stack and no other modifications are needed.
 
+We must note that backward edge controls could be implemented in another way. If
+we need to control a return address and there is a mismatch we could force the user
+code to return to the address stored in the Shadow Stack which we know is safe.
+While this solution enforces Control Flow Integrity securely we can't be sure
+that the stack\footnote{Referring to the normal stack used to store registers} has
+not been compromised and thus, terminating execution is a much safer choice.
+
 \section{Proof of Concept (PoC)}
 \label{sec:project_poc}
 
-In this section, we provide a Proof of Concept to showcase why the proposed
-solution effectively provides security capabilities to a non-trusted and
-insecure code. Figure \ref{fig:functioning} depicts an abstraction of the project's
-flow where green and red boxes depict trusted and untrusted components respectively.
-Moreover, green arrows are used to represent a successful edge control while red
-arrows represent an unsuccessful one. \\
+In this section, we provide a Proof of Concept to showcase how \textit{STEERED} effectively
+provides security capabilities to a non-trusted and insecure code. Figure
+\ref{fig:functioning} depicts an abstraction of the project's flow where green
+and red boxes depict trusted and untrusted components respectively. Moreover,
+green arrows are used to represent a successful edge control while red arrows
+represent an unsuccessful one. \\
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=.9\linewidth]{images/functioning.png}
@@ -1023,81 +1030,125 @@ arrows represent an unsuccessful one. \\
 \end{figure}
 \\
 
-We have already seen that the \textit{Boot and Startup} and \textit{Machine code
-init} sections are used to configure the board and \textit{RISC-V} registers
-respectively. This part of the code is trusted so we are sure the machine will be
-configured properly and no security measures are needed. The only way to corrupt
-this part of the execution would be to tamper with the source code before
-compilation but this is out of the project's scope and requires human controls
-prior to implementation.
+We have already seen that the \textit{Boot and Startup} section is device-specific
+and it is used to configure the hardware. \textit{Machine code init} instead, is
+used to configure machine registers and the load the Physical Memory Protection
+configuration. This part of the code is considered trusted and we can be sure the
+machine will be configured properly and no security measures are needed. Note
+that this is true from \textit{STEERED}'s perspective as these sections could be
+tampered with by modifying the source code of \textit{boot.c} and \textit{main.c}
+files. However, this is out of the project's scope and would require additional security
+measures like human control prior to the building procedure.
 
-The same is true for the \textit{CFI Enforcer} section which is responsible for managing
-edge controls as well as other interrupts and exceptions. Even in this case, the
-source code has to be modified to tamper with the security features.
+The same reasoning is true for the \textit{CFI Enforcer} section which is
+responsible for managing edge controls as well as other interrupts and
+exceptions. Even in this case, the source code has to be modified to tamper with
+the security features.
 
 On the other hand, the \textit{User code} section is untrusted and we can't make
-any assumptions on its functioning. The code could be well-written and somewhat
-secure but it could be full of flaws and we must prevent any attack that could
-be perpetrated through it. To do so, we use forward and backward edge controls
-together with the Shadow Stack and the Control Flow Graph.
+any assumptions on its functioning. The code could be well-written and somewhat secure
+but it could even be full of flaws and we must prevent any attack that could be perpetrated
+through it. To do so, we use forward and backward edge controls together with the
+Shadow Stack and the Control Flow Graph.
 
-As already said, the \textit{Shadow Stack} and the \textit{Control Flow Graph} are
-the most critical components of the project. We must secure them since they
-serve as oracles and we must be able to trust the data they contain. Since the CFG
-is configured statically we are sure that it can't be modified during execution,
-the Shadow Stack instead is designed to change since we need to \textit{push} and
-\textit{pop} values from it. However, since we protected the Shadow Stack with
-the PMP we can be sure that only privileged code has access to it and any other
-access generates a trap that is handled through the interrupt vector table. This
-means that, even if one tries to add or remove arbitrary values from the stack
-the operation will be aborted immediately and our trust in the Shadow Stack
-remains intact.
+As already said, the \textit{Shadow Stack} and the \textit{Control Flow Graph}
+sections are the most critical components of the project. We must secure them since
+they serve as oracles and we must be able to trust the data they contain to perform
+forward and backward edge controls correctly. Since the CFG is configured
+statically we are sure that it can't be modified during execution, the Shadow Stack
+instead is designed to change since we need to \textit{push} and \textit{pop} values
+from it. However, since we protected the Shadow Stack with Physical Memory Protection
+we can be sure that only privileged code has access to it and any other access generates
+a trap that is handled through the interrupt vector table. This means that, even
+if one tries to add or remove arbitrary values from the stack the operation will
+be aborted immediately and our trust in the Shadow Stack remains intact.
 
-Now, every possible scenario that could happen during a normal execution will be
-discussed.
+Below we list and discuss every possible scenario that could happen during execution:
+\begin{itemize}
+  \item Forward edge control: as soon as a forward edge control is requested we
+    check that the pair source-destination is valid thanks to the \textit{check}
+    function of the Control Flow Graph. In this situation we could receive:
+    \begin{itemize}
+      \item Legal pair: in this case the user code is trying to perform a normal
+        jump instruction and we know that the added instructions will always
+        send to the interrupt vector table a legal pair. As a consequence, the
+        jump will be considered safe and the return address is pushed into the
+        Shadow Stack. Note that since we compute the return address each time instead
+        of trusting the one provided by the user code we are sure that the value
+        inserted in the stack is correct and we can trust it;
 
-As soon as a forward edge control is requested we check that the pair source-destination
-is valid thanks to the CFG. Let's say that an attacker tampered with the code to
-perform an unauthorized jump instruction, in this case, the CFG will either
-contain such a pair or not. If the pair is contained in the CFG the jump instruction
-is allowed, however, this means that the attacker is trying to jump from a valid
-source to a valid destination meaning that the operation is secure and can be performed.
-On the other hand, if the attacker is trying to perform an unauthorized jump instruction
-we are sure that the Control Flow Graph will not contain the pair source-destination
-provided by the attacker since we said that the CFG can't be modified. In this
-case, the unauthorized jump is detected and the code terminates immediately.
-Instead, if the user code is trying to perform a normal jump instruction we know
-that the added instructions will always send to the interrupt vector table a legal
-pair and the jump will be considered safe. As a consequence, the return address is
-pushed into the Shadow Stack. Note that since we compute the return address each
-time instead of trusting the one provided by the user code we are sure that the
-value inserted in the stack is correct and we can trust it.
+      \item Non legal pair: suppose now that an attacker tampered with the code
+        to perform an unauthorized jump instruction, in this case, the Control
+        Flow Graph will either contain the provided pair of addresses or not. If
+        the pair is contained in the CFG the jump instruction is allowed,
+        however, this means that the attacker is trying to jump from a valid source
+        address to a valid destination address meaning that the operation is secure
+        and can be performed. On the other hand, if the attacker is trying to perform
+        an unauthorized jump instruction we are sure that the Control Flow Graph
+        will not contain the pair source-destination provided by the attacker since
+        we are sure that the CFG can't be modified without triggering a trap. In
+        this case, the unauthorized jump is detected and the execution terminates
+        immediately. The only way in which an attacker would be able to perform
+        an unauthorized jump is by injecting the ``infected'' pair of addresses
+        in the Control Flow Graph prior to the configuration of the Physical
+        Memory Protection but this requires the modification of the source code
+        and, again, this is out of \textit{STEERED}'s scope.
+    \end{itemize}
 
-If a backward edge control is requested instead, we check that the return address
-provided by the user code is the one we are expecting by popping the last value that
-was inserted in the Shadow Stack. Again, let's say that an attacker tampered with
-the code to perform an unauthorized return, in this case, the addresses will not
-match and the execution will be terminated. Note that the fact that we can trust
-the Shadow Stack is highly dependent on the configuration of the Physical Memory
-Protection. This is because, without a proper configuration, it would be possible
-for an attacker to push a value into the Shadow Stack and then tamper with the return
-address to effectively return to an unauthorized address.
+  \item Backward edge control: whenever a backward edge control is requested, we
+    check that the return address provided by the user code is the one we are expecting
+    by popping the last value that was inserted in the Shadow Stack. In this
+    situation we could receive:
+    \begin{itemize}
+      \item Legal return address: in this case the user code is trying to
+        perform a normal return instruction and we know that the added
+        instructions will always send to the interrupt vector table a legal
+        return address. As a consequence, the return instruction will be
+        considered safe and the execution is resumed with the interrupted return;
 
-Moreover, when we try to push a value into a full Shadow Stack the execution is
-terminated. This is needed because if we are not able to push the address into the
-Shadow Stack we will not be able to make the next backward edge control and thus,
-the security would be compromised. Note that the same happens when we try to pop
-a value from an empty Shadow Stack since this means that we are checking a return
-instruction that was never meant to be performed.
+      \item Non legal return address: again, let's say that an attacker tampered
+        with the code to perform an unauthorized return. In this case, the provided
+        return address and the popped one will either match or not. If the
+        addresses are the same the operation is allowed, however, this means
+        that the attacker is trying to return to a valid destination address
+        meaning that the operation is secure and can be performed. On the other hand,
+        if the provided addresses is not legal it will for sure differ from the
+        one we pop from the Shadow Stack for two reasons. Firstly, we trust the
+        addresses we push into the Shadow Stack as they are computed each time
+        to guarantee correctness. Secondly, we know that an attacker can't push
+        arbitrary addresses into the Shadow Stack thanks to the Physical Memory
+        Protection which prevents unauthorized accesses to the data structure. In
+        this case the tampered instruction is detected an execution is instantly
+        terminated. Note that the fact that we can trust the Shadow Stack is
+        highly dependent on the configuration of the Physical Memory Protection.
+        This is because, without a proper configuration, it would be possible for
+        an attacker to push a value into the Shadow Stack and then tamper with the
+        return address to effectively return to an unauthorized address.
+    \end{itemize}
 
-Lastly, we could design the enforcement of the backward edge controls in another
-way. If we need to control a return address and there is a mismatch we could force
-the user code to return to the address stored in the Shadow Stack which we know is
-safe. While this solution enforces Control Flow Integrity securely we can't be
-sure that the stack\footnote{Referring to the normal stack used to store
-registers} has not been compromised and thus, terminating execution is a much
-safer choice.
+  \item Edge cases: there are two edge cases that may happen during execution. Mainly,
+    we must define what happens when we attempt to modify an empty or a full
+    Shadow Stack:
+    \begin{itemize}
+      \item Push to full Shadow Stack: when the U-mode \textit{ECALL} handler attempts
+        to push an address into a full Shadow Stack we prevent the operation and
+        terminate execution. This is done because if we can't store such address
+        we will not be able to provide enough data to determine if the next
+        return instruction is legal or not. In fact, we would not be able to
+        compare the user-provided address with a correct one;
 
-To conclude, we have seen that this project effectively enforces Control Flow Integrity
-on an untrusted user application and that its security functionalities work as expected
-to prevent any attempt to perform unauthorized operations even in edge cases.
+      \item Pop from an empty Shadow Stack: when the U-mode \textit{ECALL} handler
+        attempts to pop an address from an empty Shadow Stack we abort the operation
+        and terminate execution. This is done because it is impossible that a
+        return instruction is executed before a jump instruction and, since this
+        situation represent such example the only explanation is that the code is
+        trying to perform an unauthorized return instruction.
+    \end{itemize}
+\end{itemize}
+
+With the presented Proof of Concept we proved the ability of \textit{STEERED} to
+enforce Control Flow Integrity on untrusted user code to prevent control-flow
+hijacking attacks. Moreover, we have seen how the forward and backward edge
+controls are able to effectively establish the legality of jump and return
+instructions respectively as well as providing edge-case controls to prevent
+unexpected behavior.
