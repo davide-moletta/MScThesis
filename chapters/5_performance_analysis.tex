@@ -204,140 +204,147 @@ execution.
 \section{Memory Overhead}
 \label{sec:pa_memory}
 
-In this section, we will see how \textit{project name} affects the size of the
-produced binary (a histogram depicting test results can be seen in Figure \ref{fig:binsize}).
+In this section, we showcase how \textit{STEERED}'s infrastructure affects the
+size of the produced binary. A histogram depicting test results can be seen in Figure
+\ref{fig:binsize}.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=.9\linewidth]{images/size.png}
+  \includegraphics[width=\linewidth]{images/size.png}
   \caption{Comparison between binaries size}
   \label{fig:binsize}
 \end{figure}
 
-As we can see in Table \ref{tab:binsize}, in most cases the size of the binary
-increases by $\sim 10\%$. This is due to the Shadow Stack, CFG, and the instructions
-added during instrumentation.
+Table \ref{tab:binsize} depicts test results for each algorithm as well as the
+percentage of memory overhead. As we can see, in most cases the size of the
+binary increases by $\sim 10\%$. This is due to the Shadow Stack, Control Flow
+Graph, and the instructions added during instrumentation.
 
-As for the time analysis, there are some exceptions. \textit{Prime}, \textit{Recursion}
-and their indirect variations present an overhead of $200\%$ or more. This happens
-because these recursive algorithms perform all the jump instructions consecutively
-and then all the return instructions. This means that we must allocate a Shadow
-Stack big enough to store all the return addresses to ensure proper edge
-controls. For example, we have seen that the \textit{Recursive} algorithm performs
-$\sim 4000$ jump instructions, this means that we must create a Shadow Stack
-that can store at least $4000$ addresses. Given that an address is stored as an \textit{unsigned
-int}, we can easily see that a Shadow Stack that can store $4000$ addresses occupies
-$4000*4 = 16000 \ \textit{Bytes}$\footnote{We multiply by $4$ because it is the
-size of an \textit{unsigned int}.}. Now, if we take the size of the secure
-binary for the \textit{Recursive} algorithm we can calculate $19808 - 16000 = 380
-8 \ \textit{Bytes}$, so we can see that apart from the Shadow Stack the binary
-has an overhead similar to the other ones.
+As for the time analysis, there are some peculiar cases. \textit{Prime}, \textit{Recursion}
+and their indirect variations \textit{Prime Indirect} and \textit{Recursion
+Indirect}, present an overhead of $\sim 200\%$ and $\sim 450\%$ respectively.
+This happens because these recursive algorithms perform all the jump
+instructions consecutively and then all the return instructions. This means that
+we must allocate a Shadow Stack big enough to store all the return addresses to ensure
+correct backward edge controls. For example, we have seen that the \textit{Recursion}
+algorithm performs $\sim 4000$ jump instructions, this means that we must create
+a Shadow Stack that can store at least $4000$ addresses. Given that an address
+is stored as an \textit{unsigned int}, we can easily see that a Shadow Stack
+that can store $4000$ addresses occupies $4000*4 = 16000 \ \textit{Bytes}$\footnote{We
+multiply by $4$ because it is the size of an \textit{unsigned int} in C.}. Now, if
+we take the size of the secure binary for the \textit{Recursion} algorithm we
+can calculate $19808 - 16000 = 380 8 \ \textit{Bytes}$, so, apart from the
+Shadow Stack, the binary has an overhead of $\frac{3808-3568}{3568}*100 = \sim 6.
+73\%$ which is similar to the other ones.
 
-Note that this problem is related strictly to recursive algorithms as they
-perform a high number of jumps and then they start performing the first return
-instruction. However, we could have a similar problem with the Control Flow
-Graph as for a big binary like a firmware we can have many different jump
-instructions and, as a consequence, the CFG would increase in size.
+Note that this problem is related strictly to recursive algorithms as they perform
+a high number of jumps and then they start performing the first return instruction.
+However, we could have a similar problem with the Control Flow Graph as for a big
+binary like a firmware we can have many different jump instructions and, as a
+consequence, the CFG would drastically increase in size.
 
 \begin{table}
   \centering
   \begin{tabular}{|c|c|c|c|}
     \hline
-    \textbf{Algorithm}          & \textbf{Normal bin size (B)} & \textbf{Secure bin size (B)} & \textbf{Memory Overhead} \\
-    \hhline{====} Binary Search & 4736                         & 5152                         & $8.78\%$                 \\
+    \textbf{Algorithm}                   & \textbf{Normal bin size (B)} & \textbf{Secure bin size (B)} & \textbf{Memory Overhead} \\
+    \hhline{====} \textit{Binary Search} & 4736                         & 5152                         & $8.78\%$                 \\
     \hline
-    Bitcount                    & 3584                         & 4016                         & $12.05\%$                \\
+    \textit{Bitcount}                    & 3584                         & 4016                         & $12.05\%$                \\
     \hline
-    Bubble Sort                 & 4736                         & 5200                         & $9.79\%$                 \\
+    \textit{Bubble Sort}                 & 4736                         & 5200                         & $9.79\%$                 \\
     \hline
-    CRC                         & 3616                         & 4032                         & $11.51\%$                \\
+    \textit{CRC}                         & 3616                         & 4032                         & $11.51\%$                \\
     \hline
-    Dijkstra                    & 3968                         & 4448                         & $12.09\%$                \\
+    \textit{Dijkstra}                    & 3968                         & 4448                         & $12.09\%$                \\
     \hline
-    Duff's Device               & 3904                         & 4336                         & $11.06\%$                \\
+    \textit{Duff's Device}               & 3904                         & 4336                         & $11.06\%$                \\
     \hline
-    Fibonacci                   & 3584                         & 4608                         & $28.57\%$                \\
+    \textit{Fibonacci}                   & 3584                         & 4608                         & $28.57\%$                \\
     \hline
-    Fibonacci Indirect          & 3600                         & 4064                         & $12.88\%$                \\
+    \textit{Fibonacci Indirect}          & 3600                         & 4064                         & $12.88\%$                \\
     \hline
-    Levenshtein Distance        & 3952                         & 4448                         & $12.55\%$                \\
+    \textit{Levenshtein Distance}        & 3952                         & 4448                         & $12.55\%$                \\
     \hline
-    Merge Sort                  & 5072                         & 5600                         & $10.41\%$                \\
+    \textit{Merge Sort}                  & 5072                         & 5600                         & $10.41\%$                \\
     \hline
-    Merge Sort Indirect         & 5088                         & 5600                         & $10.06\%$                \\
+    \textit{Merge Sort Indirect}         & 5088                         & 5600                         & $10.06\%$                \\
     \hline
-    Prime                       & 3226                         & 10768                        & $233.78\%$               \\
+    \textit{Prime}                       & 3226                         & 10768                        & $233.78\%$               \\
     \hline
-    Prime Indirect              & 3712                         & 10768                        & $190.08\%$               \\
+    \textit{Prime Indirect}              & 3712                         & 10768                        & $190.08\%$               \\
     \hline
-    Recursion                   & 3568                         & 19808                        & $455.15\%$               \\
+    \textit{Recursion}                   & 3568                         & 19808                        & $455.15\%$               \\
     \hline
-    Recursion Indirect          & 3584                         & 19808                        & $452.68\%$               \\
+    \textit{Recursion Indirect}          & 3584                         & 19808                        & $452.68\%$               \\
     \hline
-    SHA256                      & 4896                         & 5456                         & $11.43\%$                \\
+    \textit{SHA256}                      & 4896                         & 5456                         & $11.43\%$                \\
     \hline
-    Tarai                       & 3616                         & 4128                         & $14.16\%$                \\
+    \textit{Tarai}                       & 3616                         & 4128                         & $14.16\%$                \\
     \hline
   \end{tabular}
   \caption{Test results for memory consumption}
   \label{tab:binsize}
 \end{table}
 
-Overall, \textit{project name} achieved an average memory overhead of $88.06\%$ with
-a standard deviation of $152.77$. However, similarly to the space overhead, if
-we do not take into consideration the outliers we can see that the median is
-$1 2.09\%$. These results show that in most cases \textit{project name} can
-produce a secure binary without affecting too much memory consumption. Even in this
-case, the project suffers from recursive algorithms as we need to allocate a
-bigger Shadow Stack to securely store each address.
+Overall, \textit{STEERED} achieved an average memory overhead of $88.06\%$ with
+a standard deviation of $152.77$. However, similarly to the time overhead, if we
+do not take into consideration the outliers we can see that the median is $1 2.09
+\%$. These results show that in most cases \textit{STEERED} can produce a secure
+binary without affecting too much memory consumption. Even in this case, the project
+suffers from deeply recursive algorithms as we need to allocate a bigger Shadow Stack
+to securely store each address.
 
 \section{Results and Analysis}
 \label{sec:pa_results}
 
-In this section, we discuss the obtained result and showcase the weak point of
-\textit{project name}.
+In this section, we discuss the obtained result and showcase the weak points of \textit{STEERED}.
 
-As we have seen in the previous sections the project showcases promising performances
-in most cases. In almost all the tested algorithms time overhead was barely
-noticeable and memory consumption was acceptable. Overall, the project
-infrastructure is not impacting the normal performances of the non-secure binary.
+As we have seen in the previous sections the project showcases promising
+performances in most cases. In almost all the tested algorithms time overhead was
+barely noticeable and memory consumption was acceptable. Overall, the project infrastructure
+is not impacting the normal performances of the non-secure binary.
 
-However, in the case of deeply recursive algorithms, we have seen that the time
-overhead grows exponentially due to the high number of control transfer
-instructions. Also, the size of the binary grows as we need a bigger Shadow
-Stack to store all the addresses needed to perform the edge controls.
+However, in the case of deeply recursive algorithms, we have seen that the time overhead
+grows exponentially due to the high number of control transfer instructions and the
+related forward and backward edge controls. Also, the size of the binary grows as
+we need a bigger Shadow Stack to store all the addresses needed to perform the backward
+edge controls.
 
-Moreover, we have seen that if the code is composed of thousands of lines it is likely
-that the Control Flow Graph will be very big. This is because if we have many
+Moreover, we have seen that if the code is composed of thousands of lines it is
+likely that the Control Flow Graph will be very big. This is because if we have many
 jump instructions from different sources to different destinations we must store
 each pair, thus the space occupied by the CFG grows.
 
-In the following section, we provide some optimization techniques that could be
-applied to further increase \textit{project name}'s performances. Specifically, we
-provide alternative solutions to improve the weak points of the project.
+In the following section, we provide some optimization techniques that could be applied
+to further increase \textit{STEERED}'s performances. Specifically, we provide
+alternative solutions to improve the weak points of the project.
 
 \section{Optimization Techniques}
 \label{sec:pa_optimization}
 
-Since optimization is a key factor when developing projects on embedded devices
-given their hardware limitations we tried to provide an infrastructure as fast
-as possible while preserving memory usage. However, as test results show, there are
-some aspects of the project that require further improvement to be considered acceptable.
+Since optimization is a key factor when developing projects on embedded devices given
+their hardware limitations we tried to provide an infrastructure as fast as possible
+while preserving memory usage. However, as test results show, there are some
+aspects of the project that require further improvement to be considered
+acceptable.
 
-The two identified edge cases from which the project suffers are:
+The two identified cases in which \textit{STEERED} strongly impacts the performances
+are:
 \begin{itemize}
   \item Deeply recursive algorithms: we have seen that deeply recursive
     algorithms require a big Shadow Stack to hold all the return addresses and
-    thus, they require a lot of memory. To solve this issue we could modify the
-    Shadow Stack in the following way. When we see that a function calls itself many
-    times we could store the return address only one time and introduce a \textit{peek}
-    function. With this, we could still perform the backward edge controls when
-    we need to but we would need to store the address only once. Then, if we
-    need to perform a control on another address we would just need to \textit{pop}
-    the ``recursive'' address and then \textit{pop} the following one to see if
-    it matches with the one we are checking. With such modification, we could
-    effectively reduce the amount of space occupied by the Shadow Stack without
-    impacting the security features that the project provides;
+    thus, they require a lot of extra memory. To solve this issue we could
+    modify the Shadow Stack in the following way. When we see that a function calls
+    itself many times we could store the return address only one time and introduce
+    a \textit{peek} function. With this, we could still perform the backward
+    edge controls when we need to but we would need to store the address only
+    once. Then, if we need to perform a control on another address we would just
+    need to \textit{pop} the ``recursive'' address and then \textit{pop} the
+    following one to see if it matches with the one we are checking. With such modification,
+    we could effectively reduce the amount of space occupied by the Shadow Stack
+    in case of recursive algorithms without impacting the security features that
+    \textit{STEERED} provides;
 
   \item Big user code: we have seen that with very big codes (like the aforementioned
     firmware one) we could end up in a situation where the Control Flow Graph
@@ -351,20 +358,20 @@ The two identified edge cases from which the project suffers are:
 \end{itemize}
 
 Lastly, we provide a space optimization solution that could be implemented for
-very small source codes. Say, for example, that the \textit{.text} section that
-we want to instrument starts at address $0x4038a000$ and ends at address
-$0x4038f000$. Since the first part of the address stays the same it provides no useful
+very small source code. Say, for example, that the \textit{.text} section that
+we want to instrument starts at address $0x4038A000$ and ends at address
+$0x4038A000$. Since the first part of the address stays the same it provides no useful
 information, thus we could apply a bit-mask to remove $4038$ from the address, storing
 only the last $16$ bits. This means that we would be able to store an address
 inside an \textit{unsigned short} instead of an \textit{unsigned int}. As a result,
 we would be able to halve the space required to store the Control Flow Graph and
 the Shadow Stack resulting in a great improvement in memory consumption. However,
 this solution only works when the user code is very small because if the \textit{.text}
-section starts at address $0x4038a000$ and ends at address $0x4050a000$ we would
+section starts at address $0x4038A000$ and ends at address $0x4039F000$ we would
 still need an \textit{unsigned int} to store a correct representation of the
 address.
 
-In conclusion, we have seen that \textit{project name} offers good performances
-but it has some edge cases where it impacts the performances severely. However,
-it could be fine-tuned with the proposed solutions to adapt to specific
-situations.
+In conclusion, we have seen that \textit{STEERED} offers good performances but
+it has some edge cases where it impacts the performances severely. However, the
+project could be fine-tuned with the proposed solutions to adapt to specific
+situations reducing memory and time overhead.
