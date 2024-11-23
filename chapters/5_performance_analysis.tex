@@ -1,178 +1,203 @@
 \chapter{Performance Analysis}
 \label{cha:pa}
 
-In this chapter, we will examine \textit{project name}'s performance. Firstly,
-we present the difference in execution time between a secured binary and a non-secure
-one giving great importance to the time overhead. Secondly, we present the
-difference in size between the produced binaries. Lastly, we will see an
-analysis of the obtained results as well as some optimization ideas to further
-improve the performance of the project.
+The purpose of this chapter is to examine and discuss \textit{STEERED}'s performance
+impact on the code. Firstly, we present the difference in execution time between
+a standard binary and a \textit{STEERED}-secured one. In this part we will give great
+importance to the time overhead, describing the reason behind the collected
+values. Secondly, we present the difference in size between the produced
+binaries, giving great importance to memory overhead. Lastly, we provide an analysis
+of the obtained results as well as some optimization ideas to further reduce the
+performance impact of \textit{STEERED} on the code.
 
-Taking inspiration from similar projects \cite{article1} and \cite{article2}. To
-perform a correct and realistic analysis of the performance of the project $13$ algorithms
-plus $4$ variations with indirect jumps are provided. Each algorithm has been
-compiled and run both in secure and non-secure mode. All tests have been conducted
-on the aforementioned Espressif's board.
+The performance analysis took inspiration from the articles \textit{Efficient
+CFI Enforcement for Embedded Systems Using ARM TrustZone-M}\cite{article1} (Gisu
+Yeo, Yeryeong Kim et al., 2022) and \textit{PROLEPSIS: Binary Analysis and Instrumentation
+of IoT Software for Control-Flow Integrity}\cite{article2} (Valentina Forte, Nicol\`{o}
+Maunero et al., 2021) where the writers propose a solution similar to \textit{STEERED}
+for \textit{ARM}-based embedded devices. We tested the infrastructure on the same
+algorithms proposed by the papers, providing tests on $13$ different algorithms
++ $4$ variations with indirect jumps.
+
+Moreover, to present correct and realistic data, all tests have been conducted
+on the aforementioned \textit{Espressif's ESP32-C3-DevKitM-1}.
 
 \section{Time Performances}
 \label{sec:pa_time}
 
-In this section, we will see how \textit{project name}'s infrastructure affects
-the execution time of the code. (two histograms depicting test results can be
-seen in Figures \ref{fig:lowtime} and \ref{fig:hightime}).
+In this section, we will see how \textit{STEERED}'s infrastructure affects the
+execution time of the code. Two histograms depicting test results can be seen in
+Figures \ref{fig:lowtime} and \ref{fig:hightime}, note that execution times have
+been separated into two different charts to enhance readability.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=.9\linewidth]{images/low_execution.png}
+  \includegraphics[width=\linewidth]{images/low_times.png}
   \caption{Comparison between binaries execution times (low times)}
   \label{fig:lowtime}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=.9\linewidth]{images/high_execution.png}
+  \includegraphics[width=\linewidth]{images/high_times.png}
   \caption{Comparison between binaries execution times (medium and high times)}
   \label{fig:hightime}
 \end{figure}
 
-As we can see in Table \ref{tab:times}, in most cases the time overhead affects
-the fourth or fifth digit resulting in an unnoticeable increase in execution
-time. However, in two cases the time overhead is very large and slows the
-execution by a relevant factor.
-
-It is straightforward to understand why the overhead is smaller for algorithms
-like \textit{Binary Search} and \textit{Duff's Device} since these programs
-perform few jumps and most of the computation is performed inside a while or for
-loop so, the overhead given by the instrumentation is unnoticeable if compared to
-the total execution time.
-
-Instead, examples like \textit{Prime} and \textit{Recursive} are a bit trickier.
-Since these algorithms work with a recursive approach we expect them to perform many
-control transfer instructions Consequently, we expect the time required for the
-context switch and the edge controls to be somewhat impactful. However, results
-show that even in these cases the difference is barely noticeable\footnote{In
-these cases instead of impacting the fourth/fifth digit the overhead impacts the
-second or third digit.}. The reason could be due to the processor's frequency
-which, in the case of \textit{Espressif's ESP32-C3}, is $160 \ MHz$. This means
-that even the CPU is able to perform to execute the secure and non-secure
-binaries in a similar time. For example, the \textit{Recursion} algorithm performs
-$\sim 4000$ jump instructions and $\sim 4000$ return instructions which translates
-to $\sim 8000$ edge controls and $\sim 16000$ context switches. However, if we compare
-those numbers to the $160$ million operations the processor can perform in a second
-we see why the time overhead is so small. In fact, if we compute $\frac{8000}{160000000}$
-we discover that the utilized processor is able to perform $8000$ instructions in
-$0.00005$ seconds.
-
-Two peculiar cases are the ones of the \textit{Fibonacci} and \textit{Fibonacci
-Indirect} algorithms, in these cases, we can see that the overheads are $1523.24\%$
-and $77.97\%$ respectively. The possible reason for these enormous overheads is
-that these algorithms make two recursive calls each time so we end up with a
-staggering amount of jump and return instructions. This leads to many edge controls
-and the execution is strongly affected by this.
-
-Overall, \textit{project name} achieved an average time overhead of $94.38\%$ with
-a standard deviation of $368.68$. However, if we do not take into account the outliers
-we can see that the median is $0.036\%$. These results clearly show that \textit{project
-name}'s time overhead is almost unnoticeable in many cases but, this also
-demonstrates that the project strongly suffers from deeply recursive algorithms.
+Table \ref{tab:times} depicts test results for each algorithm as well as the
+percentage of time overhead. As we can see, in most cases the time overhead
+affects the fourth or fifth digit resulting in an unnoticeable increase in
+execution time. However, there are two cases in which the time overhead is very
+big and it impacts performances in a relevant way.
 
 \begin{table}
   \centering
   \begin{tabular}{|c|c|c|c|}
     \hline
-    \textbf{Algorithm}          & \textbf{Normal run time (s)} & \textbf{Secure run time (s)} & \textbf{Time Overhead} \\
-    \hhline{====} Binary Search & 0.08387                      & 0.08388                      & $0.012\%$              \\
+    \textbf{Algorithm}                   & \textbf{Normal run time (s)} & \textbf{Secure run time (s)} & \textbf{Time Overhead} \\
+    \hhline{====} \textit{Binary Search} & 0.08387                      & 0.08388                      & $0.012\%$              \\
     \hline
-    Bitcount                    & 0.0955                       & 0.0956                       & $0.11\%$               \\
+    \textit{Bitcount}                    & 0.0955                       & 0.0956                       & $0.11\%$               \\
     \hline
-    Bubble Sort                 & 0.37113                      & 0.37116                      & $0.008\%$              \\
+    \textit{Bubble Sort}                 & 0.37113                      & 0.37116                      & $0.008\%$              \\
     \hline
-    CRC                         & 0.08025                      & 0.08026                      & $0.012\%$              \\
+    \textit{CRC}                         & 0.08025                      & 0.08026                      & $0.012\%$              \\
     \hline
-    Dijkstra                    & 0.0847                       & 0.0849                       & $0.236\%$              \\
+    \textit{Dijkstra}                    & 0.0847                       & 0.0849                       & $0.236\%$              \\
     \hline
-    Duff's Device               & 0.097795                     & 0.097799                     & $0.0041\%$             \\
+    \textit{Duff's Device}               & 0.097795                     & 0.097799                     & $0.0041\%$             \\
     \hline
-    Fibonacci                   & 0.6166                       & 10.0089                      & $1523.24\%$            \\
+    \textit{Fibonacci}                   & 0.6166                       & 10.0089                      & $1523.24\%$            \\
     \hline
-    Fibonacci Indirect          & 0.0849                       & 0.1511                       & $77.97\%$              \\
+    \textit{Fibonacci Indirect}          & 0.0849                       & 0.1511                       & $77.97\%$              \\
     \hline
-    Levenshtein Distance        & 0.085                        & 0.086                        & $1.176\%$              \\
+    \textit{Levenshtein Distance}        & 0.085                        & 0.086                        & $1.176\%$              \\
     \hline
-    Merge Sort                  & 1.216                        & 1.217                        & $0.0822\%$             \\
+    \textit{Merge Sort}                  & 1.216                        & 1.217                        & $0.0822\%$             \\
     \hline
-    Merge Sort Indirect         & 1.2168                       & 1.2169                       & $0.0082\%$             \\
+    \textit{Merge Sort Indirect}         & 1.2168                       & 1.2169                       & $0.0082\%$             \\
     \hline
-    Prime                       & 3.254                        & 3.255                        & $0.03\%$               \\
+    \textit{Prime}                       & 3.254                        & 3.255                        & $0.03\%$               \\
     \hline
-    Prime Indirect              & 3.253                        & 3.254                        & $0.03\%$               \\
+    \textit{Prime Indirect}              & 3.253                        & 3.254                        & $0.03\%$               \\
     \hline
-    Recursion                   & 5.537                        & 5.539                        & $0.036\%$              \\
+    \textit{Recursion}                   & 5.537                        & 5.539                        & $0.036\%$              \\
     \hline
-    Recursion Indirect          & 5.537                        & 5.539                        & $0.036\%$              \\
+    \textit{Recursion Indirect}          & 5.537                        & 5.539                        & $0.036\%$              \\
     \hline
-    SHA256                      & 0.084                        & 0.085                        & $1.19\%$               \\
+    \textit{SHA256}                      & 0.084                        & 0.085                        & $1.19\%$               \\
     \hline
-    Tarai                       & 0.0936                       & 0.0939                       & $0.32\%$               \\
+    \textit{Tarai}                       & 0.0936                       & 0.0939                       & $0.32\%$               \\
     \hline
   \end{tabular}
-  \caption{Test results for execution time}
+  \caption{Test results for execution times}
   \label{tab:times}
 \end{table}
 
-Lastly, in Table \ref{tab:othertimes} we can see the time required to instrument
-the code, extract the CFG, and perform the simulation. As we can see the instrumentation
-and CFG extraction phases always require less than a fraction of a second to finish.
-However, we must take into consideration that the tested algorithms are composed
-of few lines of code and the situation could change if we were to instrument a firmware
-composed of thousands of lines. The simulation instead requires a lot of time, even
-algorithms that run in a second or less require a few seconds to simulate. This
-is due to the logging required to extract the indirect jump destinations that
-affect the time performances seriously. However, we can accept this result since
-the simulation is run only once and the logging is removed from the final binary
-so that this overhead is not affecting the actual execution.
+It is straightforward to understand why the overhead is small for algorithms like
+\textit{Binary Search} and \textit{Duff's Device} since these programs perform few
+jumps and most of the computation is performed inside a while or for loop so,
+the overhead given by the instrumentation is unnoticeable if compared to the
+total execution time. For example, the \textit{Binary Search} algorithm performs
+$3$ jump instruction and $3$ return instructions even if it is working on a rather
+big array. Given this behavior, such a small time overhead is expected in similar
+situations.
+
+Instead, examples like \textit{Prime} and \textit{Recursive} are a bit trickier.
+Since these algorithms work with a recursive approach they perform many control transfer
+instructions consequently thus, we expect the time required for the context
+switch and the forward and backward edge controls to be somewhat impactful. However,
+results show that even in these cases the difference is barely noticeable\footnote{In
+these cases instead of impacting the fourth or fifth digit the overhead impacts
+the second or third digit.}. The reason could be due to the processor's
+frequency which, in the case of \textit{Espressif's ESP32-C3-DevKitM-1}, is $160
+\ MHz$. This means that the CPU is able to execute the secure and non-secure
+binaries in a similar time. For example, the \textit{Recursion} algorithm performs
+$\sim 4000$ jump instructions and $\sim 4000$ return instructions which translates
+to $\sim 8000$ edge controls and $\sim 16000$ context switches\footnote{The
+number is doubled because for each edge control we need to increase the
+privilege to M-mode, perform the control, and then return to U-mode, resulting in
+two context switches.}. However, if we compare those numbers to the $160$
+million operations the processor can perform in a second we see why the time
+overhead is so small. Note that we add $2$ instructions for every jump instruction
+and $3$ instructions for every return instructions, resulting in an instruction
+overhead of $4000*2 + 4000*3 = 20000$. Moreover, the handling of forward and
+backward edge controls requires $\sim 800$ instructions which results in
+$(4000 + 4000) * 800 = 6400000$ total instructions. Now, if we compute
+$\frac{20000 + 6400000}{160000000}$ we discover that the utilized processor is
+able to perform all these instructions in $\sim 0.04$ seconds. Depending on the algorithm
+and the recursion depth we see that the overhead is affecting the second or third
+digit.
+
+Two peculiar cases are the ones of the \textit{Fibonacci} and \textit{Fibonacci
+Indirect} algorithms, in these cases, the overheads are $1523.24\%$ and $77.97\%$
+respectively. The possible reason for these enormous overheads is that these
+algorithms make two recursive calls each time so we end up with an exponential
+amount of jump and return instructions. This leads to many edge controls and the
+execution is strongly affected by this.
+
+Overall, \textit{STEERED} achieved an average time overhead of $94.38\%$ with a standard
+deviation of $368.68$. However, if we do not take into account the outliers we can
+see that the median is $0.036\%$. These results clearly show that \textit{STEERED}'s
+time overhead is almost unnoticeable in many cases but, this also demonstrates
+that the project strongly suffers from deeply recursive algorithms and that
+further optimization is required to reduce time impact on these type of
+algorithms.
+
+Lastly, in Table \ref{tab:othertimes} we provide the times required to instrument
+the code, extract the CFG, and perform the simulation. As we can see the
+instrumentation and CFG extraction phases always require less than a fraction of
+a second to finish. However, we must take into consideration that the tested
+algorithms are composed of few lines of code and the situation could change if
+we were to instrument a firmware composed of thousands of lines. The simulation instead
+requires a lot of time, even algorithms that run in a second or less require a
+few seconds to simulate. This is due to the logging required to extract the indirect
+jump destinations which affects the time performances seriously. Note that we
+can accept this result since the simulation is run only once and the logging is
+removed from the final binary so that this overhead is not affecting the actual
+execution.
 
 \begin{table}
   \centering
   \begin{tabular}{|c|c|c|c|}
     \hline
-    \textbf{Algorithm}          & \textbf{Instrumentation (s)} & \textbf{Simulation (s)} & \textbf{CFG extraction (s)} \\
-    \hhline{====} Binary Search & 0.00296                      & no ind jumps            & 0.00174                     \\
+    \textbf{Algorithm}                   & \textbf{Instrumentation (s)} & \textbf{Simulation (s)} & \textbf{CFG extraction (s)} \\
+    \hhline{====} \textit{Binary Search} & 0.00296                      & no ind jumps            & 0.00174                     \\
     \hline
-    Bitcount                    & 0.00196                      & no ind jumps            & 0.00153                     \\
+    \textit{Bitcount}                    & 0.00196                      & no ind jumps            & 0.00153                     \\
     \hline
-    Bubble Sort                 & 0.00302                      & no ind jumps            & 0.00175                     \\
+    \textit{Bubble Sort}                 & 0.00302                      & no ind jumps            & 0.00175                     \\
     \hline
-    CRC                         & 0.00203                      & no ind jumps            & 0.00154                     \\
+    \textit{CRC}                         & 0.00203                      & no ind jumps            & 0.00154                     \\
     \hline
-    Dijkstra                    & 0.00264                      & no ind jumps            & 0.00182                     \\
+    \textit{Dijkstra}                    & 0.00264                      & no ind jumps            & 0.00182                     \\
     \hline
-    Duff's Device               & 0.00265                      & no ind jumps            & 0.00163                     \\
+    \textit{Duff's Device}               & 0.00265                      & no ind jumps            & 0.00163                     \\
     \hline
-    Fibonacci                   & 0.00209                      & no ind jumps            & 0.00149                     \\
+    \textit{Fibonacci}                   & 0.00209                      & no ind jumps            & 0.00149                     \\
     \hline
-    Fibonacci Indirect          & 0.00202                      & 130.5567                & 0.07037                     \\
+    \textit{Fibonacci Indirect}          & 0.00202                      & 130.5567                & 0.07037                     \\
     \hline
-    Levenshtein Distance        & 0.00255                      & no ind jumps            & 0.00167                     \\
+    \textit{Levenshtein Distance}        & 0.00255                      & no ind jumps            & 0.00167                     \\
     \hline
-    Merge Sort                  & 0.00354                      & no ind jumps            & 0.00178                     \\
+    \textit{Merge Sort}                  & 0.00354                      & no ind jumps            & 0.00178                     \\
     \hline
-    Merge Sort Indirect         & 0.0036                       & 4.6394                  & 0.00273                     \\
+    \textit{Merge Sort Indirect}         & 0.0036                       & 4.6394                  & 0.00273                     \\
     \hline
-    Prime                       & 0.00214                      & no ind jumps            & 0.00168                     \\
+    \textit{Prime}                       & 0.00214                      & no ind jumps            & 0.00168                     \\
     \hline
-    Prime Indirect              & 0.00208                      & 11.4051                 & 0.00451                     \\
+    \textit{Prime Indirect}              & 0.00208                      & 11.4051                 & 0.00451                     \\
     \hline
-    Recursion                   & 0.00202                      & no ind jumps            & 0.00159                     \\
+    \textit{Recursion}                   & 0.00202                      & no ind jumps            & 0.00159                     \\
     \hline
-    Recursion Indirect          & 0.00202                      & 23.2751                 & 0.00875                     \\
+    \textit{Recursion Indirect}          & 0.00202                      & 23.2751                 & 0.00875                     \\
     \hline
-    SHA256                      & 0.00411                      & no ind jumps            & 0.00189                     \\
+    \textit{SHA256}                      & 0.00411                      & no ind jumps            & 0.00189                     \\
     \hline
-    Tarai                       & 0.00198                      & no ind jumps            & 0.00152                     \\
+    \textit{Tarai}                       & 0.00198                      & no ind jumps            & 0.00152                     \\
     \hline
   \end{tabular}
-  \caption{Test result for instrumentation phases times}
+  \caption{Test result for instrumentation phases}
   \label{tab:othertimes}
 \end{table}
 
@@ -184,7 +209,7 @@ produced binary (a histogram depicting test results can be seen in Figure \ref{f
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=.9\linewidth]{images/bin_sizes.png}
+  \includegraphics[width=.9\linewidth]{images/size.png}
   \caption{Comparison between binaries size}
   \label{fig:binsize}
 \end{figure}
