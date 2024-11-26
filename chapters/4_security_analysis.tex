@@ -1,76 +1,119 @@
 \chapter{Threat Analysis}
 \label{cha:ta}
 
-This chapter discusses the security assumptions, testing methodologies, and
-threat resilience of the project. The threat model focuses on mitigating unauthorized
-control flow changes in embedded systems, primarily targeting embedded
-microcontrollers running untrusted code. Results from simulated attacks and testing
-procedures demonstrate the enforcer's effectiveness in preserving CFI while noting
-certain limitations and potential areas for improvement.
+This chapter focusses on exploring the potential security vulnerabilities that
+\textit{STEERED} aims to mitigate, alongside the methodologies used to evaluate
+the threat resilience of the project. Additionally, we discuss the limitations
+of the system, providing an accurate portrayal of its practical scope and constraints.
+Lastly, we showcase how the project may be improved from a security perspective.
 
 \section{Threat Model}
 \label{sec:ta_model}
 
-The project assumes an attacker can inject or modify code within user-mode
-applications on a RISC-V processor but cannot alter the control flow enforcer
-itself or modify privileged memory regions without triggering traps. Specific assumptions
-about the threat model include:
-
+\textit{STEERED} is primarily focused on addressing attacks that aim at exploiting
+vulnerabilities to alter the intended execution path of programs. The most
+critical threats include:
 \begin{itemize}
-  \item Adversarial Capabilities: an attacker can attempt arbitrary jumps and
-    returns, bypassing the usual program flow through techniques like stack manipulation
-    or by leveraging vulnerabilities in user code. However, they cannot execute code
-    at the privileged Machine (M-mode) level or alter protected memory regions without
-    generating traps;
+  \item Return-Oriented Programming (ROP): An attacker can manipulate the call
+    stack to execute arbitrary sequences of instructions by chaining snippets of
+    existing code (gadgets) ending in return instructions. In this case, \textit{STEERED}
+    would detect the call to the first gadget as it would not be part of the Control
+    Flow Graph. Even in the case that the jump is considered legal, the first gadget
+    that attempts to return would fail due to Shadow Stack matching. In the
+    latter, the first gadget would execute but this is not a problem since usually
+    one gadget is not enough to perpetrate an attack;
 
-  \item Control Flow Modification: the system protects against unauthorized
-    jumps and returns, ensuring that all control transfers adhere to the pre-defined
-    Control Flow Graph and Shadow Stack constraints. This model includes forward-edge
-    checks and backward-edge checks for jump and return instructions
-    respectively;
+  \item Jump-Oriented Programming (JOP): Works similarly to ROP but focuses on
+    exploiting indirect jumps to hijack control flow instead of return
+    instructions. As already explained for Return-Oriented Programming, \textit{STEERED}
+    would either detect the first illegal jump instruction or the first return instruction,
+    preventing exploitation;
 
-  \item Memory Integrity: the Physical Memory Protection configuration ensures
-    that critical data structures, including the CFG and Shadow Stack, are
-    inaccessible to untrusted applications. This setup is crucial to maintaining
-    CFI, as it ensures the integrity of the ``oracle'' data structures that
-    validate legitimate control flows.
+  \item Call-Oriented Programming (COP): A variant of JOP where the attacker
+    abuses call instructions (direct jump) to hijack control flow. The outcome is
+    the same as Jump-Oriented Programming as we provide security for both indirect
+    jump instructions and call instructions;
+
+  \item Code Injection: Instead of relying on existing code, the attacker injects
+    and executes its own malicious code, exploiting a program vulnerability. While
+    these attacks may be harder to perform, they pose a bigger threat as the
+    capability of the attacker is not limited to the pre-existing code. While \textit{STEERED}
+    itself doesn't directly prevent code injection, its requirement for valid control
+    flow ensures that injected code cannot execute unless it conforms to the program's
+    Control Flow Graph;
+
+  \item Buffer Overflows: A common precursor to control-flow attacks, allowing attackers
+    to overwrite critical control structures, such as return addresses to tamper
+    with the control flow of the code. In this case \textit{STEERED} would
+    simply identify the modified return address as soon as a function attempts
+    to return making exploitation through buffer overflows impossible.
 \end{itemize}
 
-However, this threat model does not cover direct hardware-level attacks, such as
-physical tampering, or attacks that compromise the system before compilation.
+The project assumes an attacker can inject or modify code within user-mode
+applications on a RISC-V processor but cannot alter the control flow enforcer
+itself or modify privileged memory regions without triggering traps. Moreover,
+the threat model assumes that the attacker has no direct physical access to the
+device but can exploit software vulnerabilities via malicious input.
+
+Lastly, the model does not account for hardware-specific attacks like side-channel
+attacks or physical tampering as well as \textit{RISC-V}-related vulnerabilities
+that may allow to bypass \textit{STEERED}'s security features.
 
 \section{Testing Methodologies}
 \label{sec:ta_methodologies}
 
-To assess the robustness of the project, we conducted tests using various static
-and dynamic techniques. These tests verified the effectiveness of forward and
-backward edge controls, memory protection, and the system's handling of edge
-cases.
+The evaluation of \textit{STEERED}'s security has been conducted with both static
+and dynamic analysis techniques, tailored to assess the system's resilience to
+the identified threats. Moreover, we provided additional analysis specifically
+designed to establish the correctness of the Control Flow Graph, Shadow Stack,
+and the Physical Memory Protection. \textit{STEERED}'s testing has been
+conducted as follows:
 
-Manual static analysis was conducted to cover all the expected cases and to make
-design choices. This analysis led to the actual implementation of the project where
-all the ``standard'' routes have been manually vetted to determine their correctness.
+\begin{itemize}
+  \item Static Analysis: during this step, we analyzed the source code of \textit{STEERED},
+    identifying eventual flaws or implementation errors. Furthermore, we identified
+    the expected scenarios during execution. This led to the actual
+    implementation of the project where all the ``standard'' routes have been
+    manually vetted to determine their correctness;
 
-Furthermore, we performed dynamic testing of edge controls to test their
-secureness. This analysis has been performed by injecting in the code instructions
-to modify the jump and return addresses. With such instructions, we tried to perform
-unauthorized control transfers and, in all cases the Control Flow Integrity
-Enforcer was able to detect the instruction and prevent the control transfer. During
-this phase, we also tested the trustfulness of the Shadow Stack and Control Flow
-Graph and, both the structures resulted in secure and correct decisions on whether
-an instruction was legal or not.
+  \item Control Flow Graph Validation: in this phase we extracted the CFG and
+    validated it against predefined legitimate execution paths. Any deviation observed
+    during testing was flagged as a potential vulnerability. This led us to
+    define a Control Flow Graph extraction function that is reliable and
+    provides an accurate representation of the CFG;
 
-Moreover, we conducted some tests to check the PMP configuration. Such tests involved
-trying to access secure parts of the memory from the user code. As a result, we determined
-that each access both in read and write mode resulted in the generation of a trap
-that was then handled by the interrupt vector table. This testing validated that
-PMP effectively restricts access, protecting the integrity of the Shadow Stack and
-Control Flow Graph from unauthorized modifications.
+  \item Shadow Stack Validation: in this step we validated the functions used to
+    interact with the Shadow Stack. We ensured that addresses are stored correctly
+    and that the popping and matching logic was applied securely to provide reliable
+    information about return instruction legality;
 
-Lastly, we performed tests on edge cases. These tests were conducted to verify system
-behavior under peculiar circumstances such as an empty or full Shadow Stack.
-Test results show that the system is capable of managing such edge cases and can
-be trusted even in unexpected situations.
+  \item Physical Memory Protection Validation: we conducted some tests to check
+    the Physical Memory Protection configuration. Such tests involved trying to access
+    secure parts of the memory from the user code. As a result, we determined that
+    each access both in read and write mode resulted in the generation of a trap
+    that was then handled by the interrupt vector table. This testing validated
+    that PMP effectively restricts access, protecting the integrity of the Shadow
+    Stack and Control Flow Graph from unauthorized modifications;
+
+  \item Dynamic Analysis: we performed dynamic testing of edge controls to test
+    their secureness. The system was subjected to simulations using a variety of
+    inputs designed to trigger control-flow vulnerabilities, such as crafted
+    payloads that mimic ROP and JOP attacks. . With such instructions, we tried
+    to perform unauthorized control transfers and, in all cases the Control Flow
+    Integrity Enforcer was able to detect the instruction and prevent the control
+    transfer. Moreover, logging mechanisms were implemented during testing to capture
+    runtime behavior, enabling the detection of any deviation from the expected
+    control flow;
+
+  \item Edge Case Validation: lastly, we performed tests on edge cases. These
+    tests were conducted to verify system behavior under peculiar circumstances
+    such as an empty or full Shadow Stack.
+\end{itemize}
+
+Overall, we cna see that \textit{STEERED} has been tested against various attack
+scenarios and unexpected cases. Test results show that the system is capable of
+managing such situations and can be trusted to ensure that the control flow
+integrity of the code is preserved.
 
 \section{Limitations}
 \label{sec:ta_limitations}
