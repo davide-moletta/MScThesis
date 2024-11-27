@@ -12,7 +12,9 @@
   "ignorePaths": [
     "**/build/",
     "**/node_modules/",
-    "**/package-lock.json"
+    "**/package-lock.json",
+    "**/main.tex",
+    "**/usr/local/texlive/2024/texmf-dist/tex/latex/pdfx/"
   ],
   "words": [
     "auipc",
@@ -92,6 +94,7 @@
     "numberstyle",
     "outdir",
     "Paolo",
+    "pdfx",
     "postbuild",
     "Prinetto",
     "pseudoinstruction",
@@ -115,6 +118,8 @@
     "tabsize",
     "Tarai",
     "Tesp",
+    "texlive",
+    "texmf",
     "textit",
     "Valentina",
     "Wilke",
