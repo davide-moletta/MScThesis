@@ -358,34 +358,34 @@ to a specific role. However, the standard calling convention uses:
 
 \begin{table}
   \centering
-  \begin{tabular}{|c|c|c|}
+  \begin{tabular}{|c|c|c|c|}
     \hline
-    \textbf{Register}        & \textbf{Alias}  & \textbf{Calling Convention Description}    \\
-    \hhline{===} \textit{x0} & \textit{zero}   & Hard-wired zero                            \\
+    \textbf{Register}         & \textbf{Alias}  & \textbf{Calling Convention Description}    & \textbf{Saver} \\
+    \hhline{====} \textit{x0} & \textit{zero}   & Hard-wired zero                            & -              \\
     \hline
-    \textit{x1}              & \textit{ra}     & Return address                             \\
+    \textit{x1}               & \textit{ra}     & Return address                             & Caller         \\
     \hline
-    \textit{x2}              & \textit{sp}     & Stack pointer                              \\
+    \textit{x2}               & \textit{sp}     & Stack pointer                              & Callee         \\
     \hline
-    \textit{x3}              & \textit{gp}     & Global pointer                             \\
+    \textit{x3}               & \textit{gp}     & Global pointer                             & -              \\
     \hline
-    \textit{x4}              & \textit{tp}     & Thread pointer                             \\
+    \textit{x4}               & \textit{tp}     & Thread pointer                             & -              \\
     \hline
-    \textit{x5}              & \textit{t0}     & Temporary register/alternate link register \\
+    \textit{x5}               & \textit{t0}     & Temporary register/alternate link register & Caller         \\
     \hline
-    \textit{x6-x7}           & \textit{t1-t2}  & Temporary registers                        \\
+    \textit{x6-x7}            & \textit{t1-t2}  & Temporary registers                        & Caller         \\
     \hline
-    \textit{x8}              & \textit{s0/fp}  & Saved register/frame pointer               \\
+    \textit{x8}               & \textit{s0/fp}  & Saved register/frame pointer               & Callee         \\
     \hline
-    \textit{x9}              & \textit{s1}     & Saved register                             \\
+    \textit{x9}               & \textit{s1}     & Saved register                             & Callee         \\
     \hline
-    \textit{x10-x11}         & \textit{a0-a1}  & Function arguments/return values           \\
+    \textit{x10-x11}          & \textit{a0-a1}  & Function arguments/return values           & Caller         \\
     \hline
-    \textit{x12-x17}         & \textit{a2-a7}  & Function arguments                         \\
+    \textit{x12-x17}          & \textit{a2-a7}  & Function arguments                         & Caller         \\
     \hline
-    \textit{x18-x27}         & \textit{s2-s11} & Saved registers                            \\
+    \textit{x18-x27}          & \textit{s2-s11} & Saved registers                            & Callee         \\
     \hline
-    \textit{x28-x32}         & \textit{t3-t6}  & Temporary registers                        \\
+    \textit{x28-x32}          & \textit{t3-t6}  & Temporary registers                        & Caller         \\
     \hline
   \end{tabular}
   \caption{\textit{RISC-V} General Purpose Registers}
@@ -407,19 +407,36 @@ instructions:
     register (\textit{RS1}) is written to the CSR. If the destination register is
     \textit{x0}, then the instruction will not read the CSR;
 
+  \item \textit{CSRRWI} (Atomic Read/Write CSR Immediate): variant of the \textit{CSRRW}
+    instruction that uses a $32$-bit unsigned immediate value instead of the
+    source register;
+
   \item \textit{CSRRS} (Atomic Read and Set Bits in CSR): reads the value of the
     CSR and writes it to the destination register (\textit{RD}). The initial value
     in the source register (\textit{RS1}) is treated as a bit mask that
     specifies bit positions to be set in the CSR;
 
+  \item \textit{CSRRSI} (Atomic Read and Set Bits in CSR Immediate): variant of the
+    \textit{CSRRS} instruction that uses a $32$-bit unsigned immediate value
+    instead of the source register;
+
   \item \textit{CSRRC} (Atomic Read and Clear Bits in CSR): reads the value of the
     CSR and writes it to the destination register (\textit{RD}). The initial value
     in the source register (\textit{RS1}) is treated as a bit mask that
-    specifies bit positions to be cleared in the CSR.
+    specifies bit positions to be cleared in the CSR;
+
+  \item \textit{CSRRCI} (Atomic Read and Clear Bits in CSR Immediate): variant of
+    the \textit{CSRRC} instruction that uses a $32$-bit unsigned immediate value
+    instead of the source register.
 \end{itemize}
-All CSR instructions atomically read-modify-write a single CSR, whose specifier
-is encoded in the $12$-bit \textit{CSR} field (Image \ref{fig:csrinstr} shows
-the encoding of CSR instructions). \\
+
+Moreover, \textit{RISC-V} provides the CSR pseudo-instruction \textit{CSRR} which
+is used to read a CSR and is encoded as \textit{CSRRS rd, csr, x0}. Furthermore,
+the pseudo-instructions \textit{CSRW}, \textit{CSRS}, and \textit{CSRC} are variants
+of the described instructions used to write, set, and clear the CSR respectively
+without reading its previous content. All CSR instructions atomically read-modify-write
+a single CSR, whose specifier is encoded in the $12$-bit \textit{CSR} field (Image
+\ref{fig:csrinstr} shows the encoding of CSR instructions). \\
 \begin{figure}[htbp]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/csr_instructions.png} } %
@@ -429,7 +446,8 @@ the encoding of CSR instructions). \\
 \end{figure}
 \\
 
-Table \ref{tab:csrop} depicts whether a CSR is read or written by every operation.
+Table \ref{tab:csrop} depicts whether a CSR is read or written by every
+operation.
 
 \begin{table}
   \centering
@@ -449,14 +467,14 @@ Table \ref{tab:csrop} depicts whether a CSR is read or written by every operatio
   \label{tab:csrop}
 \end{table}
 
-Out of all the CSRs, only a few will be described in the following sections since
-they will be necessary to understand the functioning of this project.
+Out of all the CSRs, only a few will be described in the following sections
+since they will be necessary to understand the functioning of this project.
 
 \subsection{Machine Status Register (MSTATUS) CSR}
 \label{subsec:mstatus}
 
-The \textit{mstatus} register keeps track of and controls the \textit{hart}'s
-current operating state. This register will be used to manage interrupts and privilege
+The \textit{mstatus} register keeps track of and controls the \textit{hart}'s current
+operating state. This register will be used to manage interrupts and privilege
 levels. Figure \ref{fig:mstatus} depicts a representation of the \textit{mstatus}
 CSR. \\
 \begin{figure}[H]
@@ -528,8 +546,8 @@ Specifically, the fields are:
 \label{subsec:mepc}
 
 The \textit{mepc} register is used, when a trap is taken in M-mode, to store the
-address of the instruction that was interrupted or that encountered the
-exception. Figure \ref{fig:mepc} depicts a representation of \textit{mepc}. \\
+address of the instruction that was interrupted or that encountered the exception.
+Figure \ref{fig:mepc} depicts a representation of \textit{mepc}. \\
 \begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/mepc_csr.png} } %
@@ -541,10 +559,10 @@ exception. Figure \ref{fig:mepc} depicts a representation of \textit{mepc}. \\
 \subsection{Machine Cause Register (MCAUSE) CSR}
 \label{subsec:mcause}
 
-The \textit{mcause} register is used, when a trap is taken in M-mode, to store
-the code that indicates the event that caused the trap. All the possible codes can
-be seen in Table \ref{tab:causes}. Figure \ref{fig:mcause} depicts a
-representation of \textit{mcause}. \\
+The \textit{mcause} register is used, when a trap is taken in M-mode, to store the
+code that indicates the event that caused the trap. All the possible codes can
+be seen in Table \ref{tab:causes}. Figure \ref{fig:mcause} depicts a representation
+of \textit{mcause}. \\
 \begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/mcause_csr.png} } %
@@ -645,8 +663,8 @@ representation of \textit{mcause}. \\
 \subsection{Machine Trap Value Register (MTVAL) CSR}
 \label{subsec:riscv_mtval}
 
-The \textit{mtval} register is used, when a trap is taken in M-mode, to store
-exception-specific information to assist software in handling the trap. Figure \ref{fig:mcause}
+The \textit{mtval} register is used, when a trap is taken in M-mode, to store exception-specific
+information to assist software in handling the trap. Figure \ref{fig:mcause}
 depicts a representation of \textit{mtval}. \\
 \begin{figure}[H]
   \centering
@@ -659,13 +677,13 @@ depicts a representation of \textit{mtval}. \\
 \subsection{Machine Trap-Vector Base-Address Register (MTVEC) CSR}
 \label{subsec:riscv_mtvec}
 
-The \textit{mtvec} register is used to store the address that holds the trap
-vector configuration. Figure \ref{fig:mtvec} depicts a representation of \textit{mtvec}.
-The \textit{MODE} field can be set according to Table \ref{tab:mode}. If we set the
-\textit{MODE} to vectored, all asynchronous interrupts will set the program counter
-to the base address encoded in \textit{mtvec} plus $4$ times the cause of the
-interrupt (causes can be seen in Table \ref{tab:causes}). With \textit{MODE} set
-to direct instead, all traps set the program counter to the base address. \\
+The \textit{mtvec} register is used to store the address that holds the trap vector
+configuration. Figure \ref{fig:mtvec} depicts a representation of \textit{mtvec}.
+The \textit{MODE} field can be set according to Table \ref{tab:mode}. If we set
+the \textit{MODE} to vectored, all asynchronous interrupts will set the program
+counter to the base address encoded in \textit{mtvec} plus $4$ times the cause of
+the interrupt (causes can be seen in Table \ref{tab:causes}). With \textit{MODE}
+set to direct instead, all traps set the program counter to the base address. \\
 \begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/mtvec_csr.png} } %
@@ -696,12 +714,12 @@ to direct instead, all traps set the program counter to the base address. \\
 By default, all traps at any privilege are handled in machine mode, though it is
 possible to use the \textit{MRET} instruction to transfer control to a lower-level
 handler. To increase performance, \textit{RISC-V} provides two registers \textit{mideleg}
-and \textit{medeleg} used to indicate that certain traps should be processed directly
-at a lower privilege level. The machine exception delegation register (\textit{medeleg})
+and \textit{medeleg} used to indicate that certain traps should be processed
+directly at a lower privilege level. The machine exception delegation register (\textit{medeleg})
 is a $64$-bit long register while the machine interrupt delegation register (\textit{mideleg})
 is an \textit{MXLEN}-bit\footnote{\textit{MXLEN} represent the length of some registers
-based on the used ISA, for example for \textit{RV32I} \textit{MXLEN} is $32$.}
-long register (Figures \ref{fig:medeleg} and \ref{fig:mideleg} depict representation
+based on the used ISA, for example for \textit{RV32I} \textit{MXLEN} is $32$.} long
+register (Figures \ref{fig:medeleg} and \ref{fig:mideleg} depict representation
 of the registers). \\
 \begin{figure}[H]
   \centering
@@ -719,36 +737,37 @@ of the registers). \\
   \label{fig:mideleg}
 \end{figure}
 
-If we wish to delegate a subset of traps we just need to set the corresponding bits
-inside \textit{mideleg} and \textit{medeleg}. For example, if we wish to delegate
-instruction address misaligned exception to supervisor mode we just need to set bit
-$0$ of \textit{medeleg} because we want to delegate an exception and, as we can see
-in \ref{tab:causes}, it is in position $0$ among the exceptions. However, note
-that higher privilege traps are never delegated, if we decided to delegate instruction
-access fault exceptions and such exception is generated in machine mode it will be
-handled at that privilege level.
+If we wish to delegate a subset of traps we just need to set the corresponding
+bits inside \textit{mideleg} and \textit{medeleg}. For example, if we wish to
+delegate instruction address misaligned exception to supervisor mode we just
+need to set bit $0$ of \textit{medeleg} because we want to delegate an exception
+and, as we can see in \ref{tab:causes}, it is in position $0$ among the exceptions.
+However, note that higher privilege traps are never delegated, if we decided to
+delegate instruction access fault exceptions and such exception is generated in
+machine mode it will be handled at that privilege level.
 
 \section{RISC-V Physical Memory Protection (PMP)}
 \label{sec:riscv_pmp}
 
-\textit{RISC-V} provides an optional Physical Memory Protection (PMP) unit that allows
-to configure access privileges (read, write, and execute) for each physical memory
-region. The PMP ensures secure processing and helps to contain faults.
+\textit{RISC-V} provides an optional Physical Memory Protection (PMP) unit that
+allows to configure access privileges (read, write, and execute) for each
+physical memory region. The PMP ensures secure processing and helps to contain faults.
 
-PMP checks are applied at all accesses in S or U mode. Optionally, PMP checks
-may additionally apply to M-mode accesses, in which case the PMP registers themselves
-are locked, so that even M-mode software cannot change them until the hart is
-reset. Each PMP check results either in a violation which is trapped at the processor
-or in a granted permission.
+PMP checks are applied at all accesses in S or U mode. Optionally, PMP checks may
+additionally apply to M-mode accesses, in which case the PMP registers
+themselves are locked, so that even M-mode software cannot change them until the
+hart is reset. Each PMP check results either in a violation which is trapped at
+the processor or in a granted permission.
 
 \subsection{PMP CSRs}
 \label{subsec:riscv_pmpcsr}
 
 Each PMP entry is described by an 8-bit configuration register (\textit{pmpXcfg})
 and one $32$-bit address register (\textit{pmpaddrX}). Sixteen CSRs, \textit{pmpcfg0-pmpcfg15},
-hold the configurations \textit{pmp0cfg-pmp63cfg} for the 64 PMP entries (as
-shown in Figure \ref{fig:pmpcfgs}). Each PMP address (\textit{pmpaddr0-pmpaddr63})
-encodes bits $33$-$2$ of a $34$-bit physical address as shown in Figure \ref{fig:pmpaddr}.
+hold the configurations \textit{pmp0cfg-pmp63cfg} for the 64 PMP entries (as shown
+in Figure \ref{fig:pmpcfgs}). Each PMP address (\textit{pmpaddr0-pmpaddr63})
+encodes bits $33$-$2$ of a $34$-bit physical address as shown in Figure
+\ref{fig:pmpaddr}.
 
 Each PMP configuration register (Figure \ref{fig:pmpconf}) contains:
 \begin{itemize}
@@ -793,8 +812,7 @@ Each PMP configuration register (Figure \ref{fig:pmpconf}) contains:
 \label{subsec:pmpaddressmatching}
 
 The A field in a PMP entry's configuration register encodes the address-matching
-mode of the associated PMP address register (encoding shown in Table
-\ref{tab:addressmatching}).
+mode of the associated PMP address register (encoding shown in Table \ref{tab:addressmatching}).
 
 \begin{table}
   \centering
@@ -814,8 +832,8 @@ mode of the associated PMP address register (encoding shown in Table
   \label{tab:addressmatching}
 \end{table}
 
-When $A=0$, this PMP entry is disabled and matches no addresses. Two other
-address-matching modes are supported:
+When $A=0$, this PMP entry is disabled and matches no addresses. Two other address-matching
+modes are supported:
 \begin{itemize}
   \item Naturally aligned power-of-$2$ regions (NAPOT): NAPOT ranges make use of
     the low-order bits of the associated address register to encode the size of
@@ -832,20 +850,20 @@ address-matching modes are supported:
 \subsection{PMP Matching Logic}
 \label{subsec:matchinglogic}
 
-PMP entries are statically prioritized. The lowest-numbered PMP entry that
-matches any byte of an access determines whether that access succeeds or fails. The
-matching PMP entry must match all bytes of an access, or the access fails, irrespective
-of the L, R, W, and X bits. For example, if a PMP entry is configured to match
-the four-byte range \textit{0xC-0xF}, then an $8$-byte access to the range
+PMP entries are statically prioritized. The lowest-numbered PMP entry that matches
+any byte of an access determines whether that access succeeds or fails. The
+matching PMP entry must match all bytes of an access, or the access fails,
+irrespective of the L, R, W, and X bits. For example, if a PMP entry is configured
+to match the four-byte range \textit{0xC-0xF}, then an $8$-byte access to the range
 \textit{0x8-0xF} will fail, assuming that such PMP entry is the highest-priority
 entry that matches those addresses.
 
-If a PMP entry matches all bytes of an access, then the L, R, W, and X bits
-determine whether the access succeeds or fails. If the L bit is clear and the privilege
-mode of the access is M, the access succeeds. Otherwise, if the L bit is set or
-the privilege mode of the access is S or U, then the access succeeds only if the
-R, W, or X bit corresponding to the access type is set.
+If a PMP entry matches all bytes of an access, then the L, R, W, and X bits determine
+whether the access succeeds or fails. If the L bit is clear and the privilege
+mode of the access is M, the access succeeds. Otherwise, if the L bit is set or the
+privilege mode of the access is S or U, then the access succeeds only if the R, W,
+or X bit corresponding to the access type is set.
 
-If no PMP entry matches an S-mode or U-mode access, but at least one PMP entry
-is implemented, the access fails. Failed accesses generate a load, store, or
-instruction access exception.
+If no PMP entry matches an S-mode or U-mode access, but at least one PMP entry is
+implemented, the access fails. Failed accesses generate a load, store, or instruction
+access exception.
