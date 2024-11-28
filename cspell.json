@@ -14,9 +14,11 @@
     "**/node_modules/",
     "**/package-lock.json",
     "**/main.tex",
-    "**/usr/local/texlive/2024/texmf-dist/tex/latex/pdfx/"
+    "**/usr/local/texlive/2024/texmf-dist/tex/latex/pdfx/",
+    "**/usr/local/texlive/2024/texmf-dist/tex/latex/xcolor/"
   ],
   "words": [
+    "ASLR",
     "auipc",
     "backgroundcolor",
     "baremetal",
@@ -124,6 +126,7 @@
     "Valentina",
     "Wilke",
     "Xcfg",
+    "xcolor",
     "xleftmargin",
     "XLEN",
     "xpack",
