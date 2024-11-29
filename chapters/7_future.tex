@@ -145,3 +145,58 @@ providing the features of both an RTOS and \textit{STEERED} would drastically in
 the number of fields in which this project could be used. In fact, this would open
 door to more complex solution and would allow embedded devices to carry out complex
 task within the secure execution environment provided by \textit{STEERED}.
+
+We already discussed all the additional features that an RTOS can provide in
+chapter \ref{cha:rtos} giving insights on the advantages of using such
+technology. Also, we discussed the limitations we would face during the
+integration of an RTOS within \textit{STEERED}. Note that there are various ways
+to carry out this task as, depending on the specific situation, we may want to
+have \textit{STEERED} and the RTOS running at the same privilege level or, we
+may want the RTOS to run at an intermediate level while \textit{STEERED} serves as
+the Control Flow Integrity enforcer for both the RTOS and the user code.
+
+We aim to enhance \textit{STEERED} by providing the following implementation. In
+our idea, \textit{STEERED} is the only code that runs at M-mode and it is responsible
+for managing machine level traps as well as forward and backward edge controls.
+The selected RTOS, be it \textit{FreeRTOS}, \textit{Zephyr RTOS} or any other
+RTOS, would run in supervisor mode. This is because we want the RTOS to be less
+privileged than \textit{STEERED} but more privileged than the user code. Lastly,
+the user code would run in U-mode as already described in this thesis. Figure
+\ref{fig:rtos} depicts an abstraction of the described implementations where
+green, orange, and red colors represent machine, supervisor, and user modes
+respectively. \\
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{images/rtos.png}
+  \caption{Abstraction of possible RTOS implementations inside \textit{STEERED}}
+  \label{fig:rtos}
+\end{figure}
+
+To achieve this result, the first thing we need to do is adding the letter \textit{S}
+to the Instruction Set Architecture we want to use, making it \textit{RV32IMCS\_ZICSR}
+to add supervisor capabilities to our \textit{RISC-V} ISA.
+
+For the second step we need to import the files required by the RTOS, since many
+RTOSes are designed with a modular approach not every file is necessary. For example,
+we may want to import only the kernel itself or, if we need networking capabilities,
+we would need to import the connectivity related source files.
+
+Lastly, we need to modify the instrumentation phase in two ways. Firstly, we need
+to add as a target for instrumentation the source code of the RTOS if we wish to
+enforce Control Flow Integrity on it. This can be done by simply adding the
+files related to the RTOS to the list \textit{files\_to\_instrument} inside the \textit{flasher.py}
+file. Secondly, we need to add the regexes and instrumentation capabilities to
+delegate CSR instructions the the interrupt vector table of \textit{STEERED}.
+This is needed if we want the RTOS to run as supervisor since, from such privilege
+level it has no access to Control and Status Registers. A solution to this
+implementation is deeply discussed in section \ref{sec:rtos_limitations} where
+we discuss each step needed to effectively modify the instrumentation phase to
+address the CSR access limitation.
+
+In conclusion, to make the building process easier we may add a simple parameter
+to the input of \textit{flasher.py}. As of now, the file can be launched with
+the commands described in section \ref{sec:project_instrumentation} but, by simply
+adding a parameter like \textit{RTOS=(y/n)} we could launch \textit{flasher.py} with
+\textit{python3 flasher.py \textbf{command} \textbf{rtos}}. Such simple modification
+would make it easier to either include the RTOS files or not. Providing a simple
+and fast building process to any kind of project.
