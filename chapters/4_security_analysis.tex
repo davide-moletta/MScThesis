@@ -1,7 +1,7 @@
 \chapter{Threat Analysis}
 \label{cha:ta}
 
-This chapter focusses on exploring the potential security vulnerabilities that
+This chapter focuses on exploring the potential security vulnerabilities that
 \textit{STEERED} aims to mitigate, alongside the methodologies used to evaluate
 the threat resilience of the project. Additionally, we discuss the limitations
 of the system, providing an accurate portrayal of its practical scope and constraints.
@@ -35,8 +35,8 @@ critical threats include:
     jump instructions and call instructions;
 
   \item Code Injection: Instead of relying on existing code, the attacker injects
-    and executes its own malicious code, exploiting a program vulnerability. While
-    these attacks may be harder to perform, they pose a bigger threat as the
+    and executes its malicious code, exploiting a program vulnerability. While these
+    attacks may be harder to perform, they pose a bigger threat as the
     capability of the attacker is not limited to the pre-existing code. While \textit{STEERED}
     itself doesn't directly prevent code injection, its requirement for valid control
     flow ensures that injected code cannot execute unless it conforms to the program's
@@ -66,8 +66,7 @@ The evaluation of \textit{STEERED}'s security has been conducted with both
 static and dynamic analysis techniques, tailored to assess the system's resilience
 to the identified threats. Moreover, we provided additional analysis specifically
 designed to establish the correctness of the Control Flow Graph, Shadow Stack, and
-the Physical Memory Protection. \textit{STEERED}'s testing has been conducted as
-follows:
+Physical Memory Protection. \textit{STEERED}'s testing has been conducted as follows:
 
 \begin{itemize}
   \item Static Analysis: during this step, we analyzed the source code of \textit{STEERED},
@@ -76,16 +75,16 @@ follows:
     implementation of the project where all the ``standard'' routes have been
     manually vetted to determine their correctness;
 
-  \item Control Flow Graph Validation: in this phase we extracted the CFG and
-    validated it against predefined legitimate execution paths. Any deviation observed
-    during testing was flagged as a potential vulnerability. This led us to
-    define a Control Flow Graph extraction function that is reliable and
-    provides an accurate representation of the CFG;
+  \item Control Flow Graph Validation: in this phase, we extracted the CFG and validated
+    it against predefined legitimate execution paths. Any deviation observed
+    during testing was flagged as a potential vulnerability. This led us to define
+    a Control Flow Graph extraction function that is reliable and provides an accurate
+    representation of the CFG;
 
-  \item Shadow Stack Validation: in this step we validated the functions used to
-    interact with the Shadow Stack. We ensured that addresses are stored correctly
-    and that the popping and matching logic was applied securely to provide reliable
-    information about return instruction legality;
+  \item Shadow Stack Validation: in this step, we validated the functions used to
+    interact with the Shadow Stack. We ensured that addresses were stored
+    correctly and that the popping and matching logic was applied securely to
+    provide reliable information about return instruction legality;
 
   \item Physical Memory Protection Validation: we conducted some tests to check
     the PMP configuration. Such tests involved trying to access secure parts of the
@@ -97,69 +96,76 @@ follows:
     We provide an example of Physical Memory Protection in Listing
     \ref{lst:pmpcheck}. Here, we try to perform both a \textit{push} and a \textit{pop}
     from within the user-mode world to the Shadow Stack. However, thanks to the
-    devised PMP, both instruction will be blocked and generate a trap that will be
-    handled by the interrupt vector table of \textit{STEERED};
+    devised PMP, both instructions will be blocked and generate a trap that will
+    be handled by the interrupt vector table of \textit{STEERED};
 
     \begin{lstlisting}[style=CStyle, caption = PMP configuration validation, label={lst:pmpcheck}]
 #include "shadow_stack.h"
 int user_function() {
-  u_int malicious_address = 10;
-  push(malicious_address);
-  printf("Pushed: %d\n", pop());
-  return 0;
+ u_int malicious_address = 10;
+ push(malicious_address);
+ printf("Pushed: %d\n", pop());
+ return 0;
 }
-    \end{lstlisting}
+ \end{lstlisting}
 
   \item Dynamic Analysis: we performed dynamic testing of edge controls to test
     their secureness. The system was subjected to simulations using a variety of
     inputs designed to trigger control-flow vulnerabilities, such as crafted
     payloads that mimic ROP and JOP attacks. With such instructions, we tried to
-    perform unauthorized control transfers and, in all cases the Control Flow Integrity
-    Enforcer was able to detect the instruction and prevent the control transfer.
-    Moreover, logging mechanisms were implemented during testing to capture runtime
-    behavior, enabling the detection of any deviation from the expected control
-    flow. We provide two examples in Listings \ref{lst:returncheck} and \ref{lst:jumpcheck}.
-    In the first example we add the instruction \textit{la t0, malicious\_func} to
-    load the address of some malicious code and then we overwrite the return address
-    of the current function with the instruction \textit{sw t0, 12(sp)}\footnote{Note
-    that \textit{12(sp)} is an example as the return address is usually stored as
-    this by the compiler.}. Now the current function will return to the
-    malicious code as soon as it reaches the return instruction, however, thanks
-    to \textit{STEERED} we are sure that this will not happen as such address was
-    never pushed into the Shadow Stack. In the second example instead, we try to
-    tamper with the jump address of an indirect jump instruction. By adding the
-    instruction \textit{la t0, malicious\_func} we load the address of some malicious
-    code. Then, we use the instruction \textit{mv a5, t0} to substitute the
-    destination address of the jump instruction (stored in \textit{a5}) to perform
-    an unauthorized control transfer. However, we know that such source-destination
-    pair is not part of the Control Flow Graph, thus the forward edge control
-    will fail and the instruction will not be executed. These simple examples show
-    how \textit{STEERED} is able to detect and block any type of unwanted
-    control transfer instruction;
+    perform unauthorized control transfers and, in all cases, the Control Flow
+    Integrity Enforcer was able to detect the instruction and prevent the
+    control transfer. Moreover, logging mechanisms were implemented during
+    testing to capture runtime behavior, enabling the detection of any deviation
+    from the expected control flow. We provide two examples in Listings
+    \ref{lst:returncheck} and \ref{lst:jumpcheck}. In the first example, we add
+    the instruction \textit{la t0, malicious\_func} to load the address of some malicious
+    code and then we overwrite the return address of the current function with the
+    instruction \textit{sw t0, 12(sp)}\footnote{Note that \textit{12(sp)} is an example
+    as the return address is usually stored as this by the compiler.}. Now the
+    current function will return to the malicious code as soon as it reaches the
+    return instruction, however, thanks to \textit{STEERED} we are sure that this
+    will not happen as such address was never pushed into the Shadow Stack. In
+    the second example instead, we try to tamper with the jump address of an indirect
+    jump instruction. By adding the instruction \textit{la t0, malicious\_func} we
+    load the address of some malicious code. Then, we use the instruction \textit{mv
+    a5, t0} to substitute the destination address of the jump instruction (stored
+    in \textit{a5}) to perform an unauthorized control transfer. However, we know
+    that such a source-destination pair is not part of the Control Flow Graph,
+    thus the forward edge control will fail and the instruction will not be
+    executed. These simple examples show how \textit{STEERED} is able to detect
+    and block any type of unwanted control transfer instruction;
 
     \begin{lstlisting}[style=CStyle, caption = Return address tampering snippet, label={lst:returncheck}]
 int user_function() {
-  // User code
-  asm("la t0, malicious_func"); // Load addr of malicious code
-  asm("sw t0, 12(sp)"); // Substitute return address
-  return 0;
+ // User code
+ asm("la t0, malicious_func"); // Load addr of malicious code
+ asm("sw t0, 12(sp)"); // Substitute return address
+ return 0;
 }
-    \end{lstlisting}
+ \end{lstlisting}
 
     \begin{lstlisting}[style=CStyle, caption = Jump address tampering snippet, label={lst:jumpcheck}]
 int user_function() {
-  // User code
-  asm("la t0, malicious_func"); // Load addr of malicious code
-  asm("mv a5, t0"); // Substitute jump address
-  // JALR instruction
-  // Other user code
-  return 0;
+ // User code
+ asm("la t0, malicious_func"); // Load addr of malicious code
+ asm("mv a5, t0"); // Substitute jump address
+ // JALR instruction
+ // Other user code
+ return 0;
 }
-    \end{lstlisting}
+ \end{lstlisting}
 
-  \item Edge Case Validation: lastly, we performed tests on edge cases. These
-    tests were conducted to verify system behavior under peculiar circumstances
-    such as an empty or full Shadow Stack.
+  \item Edge Case Validation: In our final phase of testing, we focused on edge case
+    validation. This involved a series of comprehensive tests designed to assess
+    the system's behavior in unusual or extreme scenarios. Specifically, we
+    conducted experiments to observe how the system reacts when the Shadow Stack
+    is either completely empty or completely full. These conditions were intentionally
+    engineered to push the limits of the system, allowing us to identify
+    potential vulnerabilities and ensure robust performance under such peculiar
+    circumstances. Through these tests, we aimed to gain a deeper understanding
+    of the system's stability and reliability when faced with atypical
+    operational situations.
 \end{itemize}
 
 Overall, we can see that \textit{STEERED} has been tested against various attack
@@ -173,7 +179,7 @@ code is preserved.
 While \textit{STEERED} introduces robust protections against control-flow attacks,
 certain limitations must be acknowledged.
 
-Firstly, the project lacks coverage against non-Control-Flow attacks. The system
+Firstly, the project lacks coverage against non-control-flow attacks. The system
 does not mitigate side-channel attacks, such as timing or power analysis, which
 require separate countermeasures. Data-oriented attacks that do not rely on altering
 the control flow are also outside the scope of this implementation. While this
@@ -196,20 +202,20 @@ discovered through exhaustive testing and will be part of future development.
 
 Lastly, we can't know if vulnerabilities related to the \textit{RISC-V}
 Instruction Set Architecture could lead to the exploitation of the user code. In
-such case, we can't be sure that the project will be able to protect the Control
-Flow Integrity and prevent exploitation. For example, the recently discovered
-hardware vulnerability in \textit{T-Head's XuanTie C910} and \textit{C920} CPUs
-named \textit{GhostWrite}\cite{riscvuzz} (Fabian Thomas, Lorenz Hetterich et al.,
-2024) allows an attacker with limited privileges to read and write from and to physical
-memory. This type of vulnerability could not be prevented with \textit{STEERED}'s
-security features as a threat actor may be able to overwrite Physical Memory Protection
-configurations or the Shadow Stack and Control Flow Graph themselves.
+such a case, we can't be sure that the project will be able to protect the
+Control Flow Integrity and prevent exploitation. For example, the recently
+discovered hardware vulnerability in \textit{T-Head's XuanTie C910} and \textit{C920}
+CPUs named \textit{GhostWrite}\cite{riscvuzz} (Fabian Thomas, Lorenz Hetterich, et
+al., 2024) allows an attacker with limited privileges to read and write from and
+to physical memory. This type of vulnerability could not be prevented with \textit{STEERED}'s
+security features as a threat actor may be able to overwrite Physical Memory
+Protection configurations or the Shadow Stack and Control Flow Graph themselves.
 
-In summary, \textit{STEERED} provides robust protection against unauthorized control
-transfers in \textit{RISC-V} microcontrollers, particularly effective in embedded
-environments where code integrity is paramount. While the model is limited in
-handling recursion-heavy applications and relies on Physical Memory Protection
-for data protection, it nonetheless establishes a secure foundation for Control Flow
-Integrity Enforcement, with the potential for further optimization in future
-iterations. Moreover, \textit{STEERED} could be implemented together with other security
-mechanisms to completely secure an embedded device.
+In summary, \textit{STEERED} provides robust protection against unauthorized
+control transfers in \textit{RISC-V} microcontrollers, particularly effective in
+embedded environments where code integrity is paramount. While the model is limited
+in handling recursion-heavy applications and relies on Physical Memory Protection
+for data protection, it nonetheless establishes a secure foundation for Control
+Flow Integrity Enforcement, with the potential for further optimization in future
+iterations. Moreover, \textit{STEERED} could be implemented together with other
+security mechanisms to completely secure an embedded device.

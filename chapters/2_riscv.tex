@@ -185,7 +185,7 @@ jump ($\textit{pc}+ 4$) into the destination register \textit{RD}.
 
 The \textit{JALR} instruction is encoded using the \textit{I}-type format. The immediate
 offset is sign-extended and added to the source register \textit{RS1} to
-determine the jump target address (also the least-significant bit of the result is
+determine the jump target address (also the least significant bit of the result is
 set to $0$). Similarly to \textit{JAL}, \textit{JALR} stores the address of the
 instruction following the jump ($\textit{pc}+ 4$) into the destination register
 \textit{RD}.
@@ -244,9 +244,9 @@ is managed:
     result in a transfer of control to a machine-mode handler within the same \textit{hart};
 
   \item Requested Trap: A synchronous exception explicitly requesting the
-    execution environment to perform an action on behalf of the software inside
-    the environment. The software may or may not resume execution on the \textit{hart}
-    afterward;
+    execution environment to Specifically, the fields are: perform an action on
+    behalf of the software inside the environment. The software may or may not resume
+    execution on the \textit{hart} afterward;
 
   \item Invisible Trap: The execution environment handles the trap transparently,
     so the running software is unaware of it. An example is handling device
@@ -501,7 +501,7 @@ Specifically, the fields are:
     when managing a trap. \textit{SPIE} and \textit{MPIE} hold the previous interrupt
     enable bit for S-mode and M-mode respectively. \textit{SPP} and \textit{MPP}
     hold the previous privilege level for S-mode and M-mode respectively. These bits
-    are used to track the status of the machine prior to the trap and are necessary
+    are used to track the status of the machine before the trap and are necessary
     to correctly restore the context before returning from a trap;
 
   \item The modify privilege bit \textit{MPRV} modifies the effective privilege
@@ -742,7 +742,7 @@ bits inside \textit{mideleg} and \textit{medeleg}. For example, if we wish to
 delegate instruction address misaligned exception to supervisor mode we just
 need to set bit $0$ of \textit{medeleg} because we want to delegate an exception
 and, as we can see in \ref{tab:causes}, it is in position $0$ among the exceptions.
-However, note that higher privilege traps are never delegated, if we decided to
+However, note that higher privilege traps are never delegated, if we decide to
 delegate instruction access fault exceptions and such exception is generated in
 machine mode it will be handled at that privilege level.
 

@@ -112,7 +112,7 @@ these cases instead of impacting the fourth or fifth digit the overhead impacts
 the second or third digit.}. The reason could be due to the processor's
 frequency which, in the case of \textit{Espressif's ESP32-C3-DevKitM-1}, is $160
 \ MHz$. This means that the CPU is able to execute the secure and non-secure
-binaries in a similar time. For example, the \textit{Recursion} algorithm performs
+binaries in similar times. For example, the \textit{Recursion} algorithm performs
 $\sim 4000$ jump instructions and $\sim 4000$ return instructions which translates
 to $\sim 8000$ edge controls and $\sim 16000$ context switches\footnote{The
 number is doubled because for each edge control we need to increase the
@@ -120,12 +120,12 @@ privilege to M-mode, perform the control, and then return to U-mode, resulting i
 two context switches.}. However, if we compare those numbers to the $160$
 million operations the processor can perform in a second we see why the time
 overhead is so small. Note that we add $2$ instructions for every jump instruction
-and $3$ instructions for every return instructions, resulting in an instruction
+and $3$ instructions for every return instruction, resulting in an instruction
 overhead of $4000*2 + 4000*3 = 20000$. Moreover, the handling of forward and
 backward edge controls requires $\sim 800$ instructions which results in
 $(4000 + 4000) * 800 = 6400000$ total instructions. Now, if we compute
-$\frac{20000 + 6400000}{160000000}$ we discover that the utilized processor is
-able to perform all these instructions in $\sim 0.04$ seconds. Depending on the algorithm
+$\frac{20000 + 6400000}{160000000}$ we discover that the utilized processor can
+perform all these instructions in $\sim 0.04$ seconds. Depending on the algorithm
 and the recursion depth we see that the overhead is affecting the second or third
 digit.
 
@@ -141,7 +141,7 @@ deviation of $368.68$. However, if we do not take into account the outliers we c
 see that the median is $0.036\%$. These results clearly show that \textit{STEERED}'s
 time overhead is almost unnoticeable in many cases but, this also demonstrates
 that the project strongly suffers from deeply recursive algorithms and that
-further optimization is required to reduce time impact on these type of
+further optimization is required to reduce the time impact on these types of
 algorithms.
 
 Lastly, in Table \ref{tab:othertimes} we provide the times required to instrument
@@ -154,7 +154,7 @@ requires a lot of time, even algorithms that run in a second or less require a
 few seconds to simulate. This is due to the logging required to extract the indirect
 jump destinations which affects the time performances seriously. Note that we
 can accept this result since the simulation is run only once and the logging is
-removed from the final binary so that this overhead is not affecting the actual
+removed from the final binary so that this overhead does not affect the actual
 execution.
 
 \begin{table}
@@ -240,8 +240,8 @@ Shadow Stack, the binary has an overhead of $\frac{3808-3568}{3568}*100 = \sim 6
 Note that this problem is related strictly to recursive algorithms as they perform
 a high number of jumps and then they start performing the first return instruction.
 However, we could have a similar problem with the Control Flow Graph as for a big
-binary like a firmware we can have many different jump instructions and, as a
-consequence, the CFG would drastically increase in size.
+binary like a firmware we can have many different jump instructions, and, as a consequence,
+the CFG would drastically increase in size.
 
 \begin{table}
   \centering
@@ -287,50 +287,50 @@ consequence, the CFG would drastically increase in size.
   \label{tab:binsize}
 \end{table}
 
-Overall, \textit{STEERED} achieved an average memory overhead of $88.06\%$ with
-a standard deviation of $152.77$. However, similarly to the time overhead, if we
-do not take into consideration the outliers we can see that the median is $1 2.09
-\%$. These results show that in most cases \textit{STEERED} can produce a secure
-binary without affecting too much memory consumption. Even in this case, the project
-suffers from deeply recursive algorithms as we need to allocate a bigger Shadow Stack
-to securely store each address.
+Overall, \textit{STEERED} achieved an average memory overhead of $88.06\%$ with a
+standard deviation of $152.77$. However, similarly to the time overhead, if we
+do not take into consideration the outliers we can see that the median is
+$1 2.09 \%$. These results show that in most cases \textit{STEERED} can produce
+a secure binary without affecting too much memory consumption. Even in this case,
+the project suffers from deeply recursive algorithms as we need to allocate a
+bigger Shadow Stack to securely store each address.
 
 \section{Results and Analysis}
 \label{sec:pa_results}
 
-In this section, we discuss the obtained result and showcase the weak points of \textit{STEERED}.
+In this section, we discuss the obtained result and showcase the weak points of
+\textit{STEERED}.
 
-As we have seen in the previous sections the project showcases promising
-performances in most cases. In almost all the tested algorithms time overhead was
-barely noticeable and memory consumption was acceptable. Overall, the project infrastructure
-is not impacting the normal performances of the non-secure binary.
+As we have seen in the previous sections the project showcases promising performances
+in most cases. In almost all the tested algorithms time overhead was barely
+noticeable and memory consumption was acceptable. Overall, the project
+infrastructure is not impacting the normal performances of the non-secure binary.
 
-However, in the case of deeply recursive algorithms, we have seen that the time overhead
-grows exponentially due to the high number of control transfer instructions and the
-related forward and backward edge controls. Also, the size of the binary grows as
-we need a bigger Shadow Stack to store all the addresses needed to perform the backward
-edge controls.
+However, in the case of deeply recursive algorithms, we have seen that the time
+overhead grows exponentially due to the high number of control transfer
+instructions and the related forward and backward edge controls. Also, the size
+of the binary grows as we need a bigger Shadow Stack to store all the addresses
+needed to perform the backward edge controls.
 
-Moreover, we have seen that if the code is composed of thousands of lines it is
-likely that the Control Flow Graph will be very big. This is because if we have many
+Moreover, we have seen that if the code is composed of thousands of lines it is likely
+that the Control Flow Graph will be very big. This is because if we have many
 jump instructions from different sources to different destinations we must store
 each pair, thus the space occupied by the CFG grows.
 
-In the following section, we provide some optimization techniques that could be applied
-to further increase \textit{STEERED}'s performances. Specifically, we provide
+In the following section, we provide some optimization techniques that could be
+applied to further increase \textit{STEERED}'s performances. Specifically, we provide
 alternative solutions to improve the weak points of the project.
 
 \section{Optimization Techniques}
 \label{sec:pa_optimization}
 
-Since optimization is a key factor when developing projects on embedded devices given
-their hardware limitations we tried to provide an infrastructure as fast as possible
-while preserving memory usage. However, as test results show, there are some
-aspects of the project that require further improvement to be considered
-acceptable.
+Since optimization is a key factor when developing projects on embedded devices
+given their hardware limitations we tried to provide an infrastructure as fast
+as possible while preserving memory usage. However, as test results show, there are
+some aspects of the project that require further improvement to be considered acceptable.
 
-The two identified cases in which \textit{STEERED} strongly impacts the performances
-are:
+The two identified cases in which \textit{STEERED} strongly impacts the
+performances are:
 \begin{itemize}
   \item Deeply recursive algorithms: we have seen that deeply recursive
     algorithms require a big Shadow Stack to hold all the return addresses and
@@ -357,21 +357,26 @@ are:
     the Control Flow Graph from $\mathcal{O}(\log{n})$ to $\mathcal{O}(1)$.
 \end{itemize}
 
-Lastly, we provide a space optimization solution that could be implemented for
-very small source code. Say, for example, that the \textit{.text} section that
-we want to instrument starts at address $0x4038A000$ and ends at address
-$0x4038A000$. Since the first part of the address stays the same it provides no useful
-information, thus we could apply a bit-mask to remove $4038$ from the address, storing
-only the last $16$ bits. This means that we would be able to store an address
-inside an \textit{unsigned short} instead of an \textit{unsigned int}. As a result,
-we would be able to halve the space required to store the Control Flow Graph and
-the Shadow Stack resulting in a great improvement in memory consumption. However,
-this solution only works when the user code is very small because if the \textit{.text}
-section starts at address $0x4038A000$ and ends at address $0x4039F000$ we would
-still need an \textit{unsigned int} to store a correct representation of the
-address.
+Lastly, we provide a space optimization solution that could be implemented for very
+small source code. Say, for example, that the \textit{.text} section that we want
+to instrument starts at address $0x4038A000$ and ends at address $0x4038A000$.
+Since the first part of the address stays the same it provides no useful
+information, thus we could apply a bit-mask to remove $4038$ from the address,
+storing only the last $16$ bits. This means that we would be able to store an address
+inside an \textit{unsigned short} instead of an \textit{unsigned int}. As a
+result, we would be able to halve the space required to store the Control Flow Graph
+and the Shadow Stack resulting in a great improvement in memory consumption.
+However, this solution only works when the user code is very small because if the
+\textit{.text} section starts at address $0x4038A000$ and ends at address
+$0x4039F000$ we would still need an \textit{unsigned int} to store a correct representation
+of the address.
 
-In conclusion, we have seen that \textit{STEERED} offers good performances but
-it has some edge cases where it impacts the performances severely. However, the
-project could be fine-tuned with the proposed solutions to adapt to specific
-situations reducing memory and time overhead.
+In conclusion, our analysis has demonstrated that the \textit{STEERED} framework
+exhibits commendable performance in a variety of scenarios. Nevertheless, there are
+specific edge cases where its efficiency can be significantly compromised,
+leading to suboptimal results. These instances reveal potential vulnerabilities in
+the system that could hinder its overall effectiveness. To address these
+challenges, we suggest implementing the proposed solutions, which aim to refine
+the project's functionality. By fine-tuning the system to better adapt to particular
+situations, we can effectively minimize both memory usage and processing time, thereby
+enhancing the overall performance and reliability of \textit{STEERED}.

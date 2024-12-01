@@ -27,14 +27,14 @@ devices, IoT devices, and automotive systems.
   \item Real-Time Scheduling: \textit{FreeRTOS} supports real-time scheduling with
     both preemptive and cooperative multitasking. In preemptive scheduling, tasks
     are prioritized and can interrupt lower-priority tasks, while in cooperative
-    multitasking, tasks yield control to others explicitly. Moreover, it uses a priority-based
+    multitasking, tasks yield control to others explicitly. Moreover, it uses priority-based
     scheduling, allowing developers to assign priority levels to tasks based on
     their timing requirements;
 
   \item Task Management: Tasks in \textit{FreeRTOS} are individual threads of execution,
-    each with its own stack and context. The kernel allows the creation,
-    deletion, and management of tasks dynamically. Each task operates in its own
-    context, which the kernel saves and restores during context switching;
+    each with its stack and context. The kernel allows the creation, deletion, and
+    management of tasks dynamically. Each task operates in its own context, which
+    the kernel saves and restores during context switching;
 
   \item Memory Management: \textit{FreeRTOS} provides several memory allocation schemes,
     including static and dynamic allocation, through its portable memory allocation
@@ -70,7 +70,7 @@ devices, IoT devices, and automotive systems.
 With all these features it is easy to see why \textit{FreeRTOS} has become a standard
 in the community. However, \textit{FreeRTOS} presents some limitations like the
 limited built-in security and the lack of support for multicore processing. Some
-of this flaws have been addressed by community users and companies with alternative
+of these flaws have been addressed by community users and companies with alternative
 versions of the Operating System. For example, \textit{Espressif} presented
 \textit{IDF FreeRTOS}\cite{idfrtos}, a version of \textit{FreeRTOS} which
 provides support for multicore processing. Moreover, \textit{highintegritysystems}
@@ -124,20 +124,20 @@ Overall, with its lightweight design, real-time capabilities, and extensive ecos
 \textit{Zephyr RTOS} is a versatile platform for developers building secure,
 scalable, and efficient embedded solutions.
 
-\section{FreeRTOS, Zephyr RTOS and STEERED}
+\section{FreeRTOS, Zephyr RTOS, and STEERED}
 \label{sec:rtos_porting}
 
-In this section, we provide a detailed description on how \textit{FreeRTOS}
-could be implemented to work inside \textit{STEERED} and why this could increase
+In this section, we provide a detailed description of how \textit{FreeRTOS}
+could be implemented to work inside \textit{STEERED}and why this could increase
 the scenarios in which \textit{STEERED} could be used. Note that we focus on the
-implementation of \textit{FreeRTOS} but, most of the information provided in this
-section can be applied to the implementation of \textit{Zephyr RTOS}. The same is
-true for the limitations discussed in Section \ref{sec:rtos_limitations} as they
-suffer from the same implementation problem.
+implementation of \textit{FreeRTOS} but, most of the information provided in
+this section can be applied to the implementation of \textit{Zephyr RTOS}. The
+same is true for the limitations discussed in Section \ref{sec:rtos_limitations}
+as they suffer from the same implementation problem.
 
-We have seen that \textit{STEERED} is designed to securely run untrusted user-code
-in bare-metal environments. However, given its simplicity it could be used to
-secure code in more complex environments, for example with a Real Time Operating
+We have seen that \textit{STEERED} is designed to securely run untrusted user code
+in bare-metal environments. However, given its simplicity, it could be used to
+secure code in more complex environments, for example with a Real-Time Operating
 System like \textit{FreeRTOS}.
 
 The main idea is to maintain \textit{STEERED} as the M-mode operator, managing
@@ -154,8 +154,8 @@ could either:
 \begin{itemize}
   \item Prepare two separate Interrupt Vector Tables, one for \textit{STEERED}\footnote{The
     same we have seen in Section \ref{sec:project_isr}} and one for \textit{FreeRTOS}.
-    However, traps at user level are managed by default ad machine level so, if
-    we have an interrupt or an exception in one of the tasks the controls is
+    However, traps at the user level are managed by default ad machine level so,
+    if we have an interrupt or an exception in one of the tasks the controls is
     transferred to the \textit{STEERED} interrupt vector table and we must manually
     transfer the flow to the correct handler of the \textit{FreeRTOS} interrupt
     vector table;
@@ -168,8 +168,8 @@ could either:
     the corresponding code inside \textit{mideleg}. With this, each time a user-level
     interrupt is generated it is trapped at the \textit{FreeRTOS} interrupt vector
     table. Note that this does not mean that \textit{STEERED} will not be able to
-    manage those traps as higher level interrupts and exception can't be delegated
-    to lower level handler. For example, if a machine-level interrupt is generated
+    manage those traps as higher-level interrupts and exceptions can't be delegated
+    to the lower-level handler. For example, if a machine-level interrupt is generated
     it will always be handled by \textit{STEERED} interrupt vector table;
 
   \item The last solution would be to use only \textit{STEERED}'s interrupt
@@ -179,15 +179,15 @@ could either:
     may result in two unwanted situations. Firstly, handling all the traps
     inside \textit{STEERED}'s interrupt vector table may require many controls and
     the code may become overly verbose. Secondly, this means that the traps that
-    are generated in \textit{FreeRTOS} are handled in machine mode and, for some
-    environments, this could constitute a problem if we want to keep separation
+    are generated in \textit{FreeRTOS} are handled in machine mode, and, for
+    some environments, this could constitute a problem if we want to keep separation
     between privileges.
 \end{itemize}
 
 \section{Porting Limitations}
 \label{sec:rtos_limitations}
 
-The presented implementation present one key limitation, \textit{FreeRTOS} needs
+The proposed implementation presents one key limitation, \textit{FreeRTOS} needs
 to perform some operations on Control and Status Registers to function correctly
 but, as we have explained such registers are only available in machine mode. Since
 the implementation inside \textit{STEERED} would require \textit{FreeRTOS} to run
@@ -197,61 +197,59 @@ operations are depicted in Listing \ref{lst:freeoperations}.
 
 To address this problem we could enhance the instrumentation phase to modify
 \textit{FreeRTOS}'s code in the following way. Firstly, we need to find the critical
-instructions, this can be done easily with \textit{regex} functions. With this
-we can extract the operation that \textit{FreeRTOS} is trying to perform (among
-the one seen in Section \ref{sec:riscv_csrs}), the target CSR, and the value that
-is being written. The target CSR can be then translated thanks to the table
-\textit{Currently allocated RISC-V machine-level CSR addresses}\footnote{Provided
-by the \textit{RISC-V Privileged Manual}\cite{riscv} at page $17$.} where we can
-see that for example register \textit{mstatus} is referred to as number $0x300$.
-Now we can precisely describe each target CSR and we just need to inject new
-instructions to perform an \textit{ECALL} to \textit{STEERED}'s interrupt vector
-table which will perform the modification of the CSRs on behalf of \textit{FreeRTOS}.
-\\
-\begin{lstlisting}[style=Assembly, caption = \textit{FreeRTOS} operations on Control and Status Registers, label={lst:freeoperations}]
-  csrrw mstatus, reg
-  csrrw mepc, reg
-  csrrw mtvec, reg
-  csrrw mie, reg
-  csrrw mtval, reg
-  csrrw mip, reg
-  csrrw mscratch, reg
-  csrrw medeleg, reg
-  csrrw mideleg, reg
+instructions, this can be done easily with \textit{regex} functions. With this, we
+can extract the operation that \textit{FreeRTOS} is trying to perform (among the
+one seen in Section \ref{sec:riscv_csrs}), the target CSR, and the value that is
+being written. The target CSR can be then translated thanks to the table \textit{Currently
+allocated RISC-V machine-level CSR addresses}\footnote{Provided by the \textit{RISC-V
+Privileged Manual}\cite{riscv} at page $17$.} where we can see that for example register
+\textit{mstatus} is referred to as number $0x300$. Now we can precisely describe
+each target CSR and we just need to inject new instructions to perform an \textit{ECALL}
+to \textit{STEERED}'s interrupt vector table which will perform the modification
+of the CSRs on behalf of \textit{FreeRTOS}. \\ \begin{lstlisting}[style=Assembly, caption = \textit{FreeRTOS} operations on Control and Status Registers, label={lst:freeoperations}]
+ csrrw mstatus, reg
+ csrrw mepc, reg
+ csrrw mtvec, reg
+ csrrw mie, reg
+ csrrw mtval, reg
+ csrrw mip, reg
+ csrrw mscratch, reg
+ csrrw medeleg, reg
+ csrrw mideleg, reg
 
-  csrr reg, mstatus
-  csrr reg, mepc
-  csrr reg, mtvec
-  csrr reg, mie
-  csrr reg, mtval
-  csrr reg, mip
-  csrr reg, mhartid
-  csrr reg, mcause
-  csrr reg, misa
+ csrr reg, mstatus
+ csrr reg, mepc
+ csrr reg, mtvec
+ csrr reg, mie
+ csrr reg, mtval
+ csrr reg, mip
+ csrr reg, mhartid
+ csrr reg, mcause
+ csrr reg, misa
 
-  csrrc mstatus, reg
-  csrrc medeleg, reg
+ csrrc mstatus, reg
+ csrrc medeleg, reg
 
-  csrrs mstatus, reg
-  csrrs mie, reg
+ csrrs mstatus, reg
+ csrrs mie, reg
 \end{lstlisting}
 
-To do so, we can choose between two options. The first is to use register \textit{a7}
-to hold the new \textit{ECALL} code which determines the operation and three other
-registers, say \textit{a4}, \textit{a5}, and \textit{a6} to hold the CSR number,
-the CSR instruction and the value respectively. However, this solution is highly
-inefficient in the use of registers since we could encode those values into $3$
-registers instead of $4$. Alternatively, we could use register \textit{a7} to hold
-the new \textit{ECALL} code, \textit{a6} to hold the CSR number and the CSR
-instruction, and \textit{a5} to hold the value in case of writing or setting
-operations. Since there are $4$ CSR instructions we just need $2$ bits to encode
-them, Table \ref{tab:instructionenc} depicts a possible representation of the
-encodings of CSR instructions. All other bits would be reserved to describe the target
-CSR for the operation. Note that CSRs numbers go from $0x300$ up to $0xf15$ so
-we need at maximum $12$ bits to represent each of them. Also, we can't encode
-the \textit{ECALL} code inside the same register because we are using the least significant
-bit to represent forward and backward edge controls thus, using it would result
-in ambiguity on the operation to perform.
+To do so, we can choose between two options. The first is to use register
+\textit{a7} to hold the new \textit{ECALL} code which determines the operation
+and three other registers, say \textit{a4}, \textit{a5}, and \textit{a6} to hold
+the CSR number, the CSR instruction, and the value respectively. However, this
+solution is highly inefficient in the use of registers since we could encode
+those values into $3$ registers instead of $4$. Alternatively, we could use
+register \textit{a7} to hold the new \textit{ECALL} code, \textit{a6} to hold
+the CSR number and the CSR instruction, and \textit{a5} to hold the value in
+case of writing or setting operations. Since there are $4$ CSR instructions we just
+need $2$ bits to encode them, Table \ref{tab:instructionenc} depicts a possible
+representation of the encodings of CSR instructions. All other bits would be reserved
+to describe the target CSR for the operation. Note that CSRs numbers go from
+$0x300$ up to $0xf15$ so we need a maximum of $12$ bits to represent each of
+them. Also, we can't encode the \textit{ECALL} code inside the same register because
+we are using the least significant bit to represent forward and backward edge controls
+thus, using it would result in ambiguity on the operation to perform.
 
 \begin{table}
   \centering
@@ -285,11 +283,11 @@ these types of calls. Once all the values are loaded, we can perform the \textit
 instruction itself, the control will be transferred to the correct handler and the
 operation will be performed on behalf of \textit{FreeRTOS}. As soon as the operation
 is handled, execution is resumed at the instruction that was interrupted. \\ \begin{lstlisting}[style=Assembly, caption = \textit{FreeRTOS} instrumentation for Control and Status Register operations, label={lst:csrinstrumentation}]
-  mv a5, w_value # Load the value we need to write into the CSR
-  la a6, a6, csr # Load the address of the target CSR
-  ori a6, op_encoding # Load the encoding of the CSR operation
-  addi a7, a7, 2 # Load the new ECALL value
-  ecall # Perform the ECALL instruction
+ mv a5, w_value # Load the value we need to write into the CSR
+ la a6, a6, csr # Load the address of the target CSR
+ ori a6, op_encoding # Load the encoding of the CSR operation
+ addi a7, a7, 2 # Load the new ECALL value
+ ecall # Perform the ECALL instruction
 \end{lstlisting}
 
 Figure \ref{fig:a6encoding} a depicts a possible encoding for register \textit{a6}
@@ -310,6 +308,6 @@ Note that this is just a proposal of implementation and there are other ways to 
 \textit{FreeRTOS} inside \textit{STEERED}. For example, instead of encoding the CSR
 instruction inside register \textit{a6}, we could define an \textit{ECALL} code
 for each operation and simply use that value to determine the operation to
-perform. This would result in less instructions to instrument (as we could
+perform. This would result in fewer instructions to instrument (as we could
 remove the \textit{or} instruction) but would increase the size of the handler
 as we would need to provide controls for each implemented \textit{ecode}.
