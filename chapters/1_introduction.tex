@@ -1,94 +1,94 @@
 \chapter{Introduction}
 \label{cha:introduction}
 
-This chapter serves as an introduction to \textit{STEERED}, a new security
-infrastructure for \textit{RISC-V}-based embedded devices. The proposed solution
-aims at addressing security flaws in current microcontrollers that use this new
-Instruction Set Architecture.
+This chapter serves as an introduction to \textit{STEERED: Secure Trusted Execution
+Environment for RISC-V-based Embedded Devices}, a new security infrastructure
+for \textit{RISC-V}-based embedded devices. The proposed solution aims at
+providing a Trusted Execution Environment (TEE) to allow execution of untrusted
+user code while guaranteeing that Control Flow Integrity is not compromised. Moreover,
+\textit{STEERED} aims at providing an efficient and lightweight infrastructure that
+complies with the limited hardware capabilities of embedded devices.
 
 \section{Problem}
 \label{sec:intro_context}
 
-Embedded devices are now an integral part of daily life, powering a wide range
-of applications that span from smart home assistants and appliances to connected
-furniture. These compact computing units have expanded across numerous domains,
-supporting diverse tasks that enhance convenience, efficiency, and connectivity
-in everyday environments. A defining feature of embedded devices is their network
-connectivity, which links them to the broader Internet of Things (IoT) ecosystem.
-According to the ``\textit{State of IoT Summer 2024}'' report, $16.6$ billion devices
-were connected by the end of $2023$, a figure expected to rise to $18.8$ billion
-during $2024$\footnote{\url{https://iot-analytics.com/number-connected-iot-devices/}}.
+Embedded devices are now an integral part of daily life, powering a wide range of
+applications that span from smart home assistants and appliances to connected furniture.
+These compact computing units have expanded across numerous domains, supporting diverse
+tasks that enhance convenience, efficiency, and connectivity in everyday environments.
+A defining feature of embedded devices is their network connectivity, which links
+them to the broader Internet of Things (IoT) ecosystem. According to the ``\textit{State
+of IoT Summer 2024}'' report, $16.6$ billion devices were connected by the end
+of $2023$, a figure expected to rise to $18.8$ billion during $2024$\footnote{\url{https://iot-analytics.com/number-connected-iot-devices/}}.
 These devices perform critical functions across industries ranging from consumer
 electronics to industrial automation and healthcare but they are often resource-constrained
-and designed to perform specific tasks with minimal power and computational
-resources, making them inherently vulnerable to cyber threats. In $2022$, approximately
+and designed to perform specific tasks with minimal power and computational resources,
+making them inherently vulnerable to cyber threats. In $2022$, approximately
 $112$ million IoT cyberattacks were reported globally\footnote{\url{https://1nce.com/en-us/resources/news/blog/iot-cybersecurity-landscape}},
-and this figure continues to escalate, with the first half of $2024$ witnessing
-a $107\%$ increase in attacks as highlighted by \textit{SonicWall}'s ``\textit{2024
+and this figure continues to escalate, with the first half of $2024$ witnessing a
+$107\%$ increase in attacks as highlighted by \textit{SonicWall}'s ``\textit{2024
 Mid-Year Cyber Threat Report}''\footnote{\url{https://www.sonicwall.com/threat-report}}.
-Consequently, embedded device security is an increasingly pressing concern, as
-attacks on these devices can result in data breaches, unauthorized system control,
-or disruptions to essential services.
+Consequently, embedded device security is an increasingly pressing concern, as attacks
+on these devices can result in data breaches, unauthorized system control, or disruptions
+to essential services.
 
 Among the potential threats, we have Software-based, Network-based, and Side-based
-attacks that an attacker may use to impact Confidentiality, Integrity, and Availability
-of a system. For example, with a \textit{Man-In-The-Middle} (MITM) attack, an actor
-could gain access to cryptographic keys and steal sensitive information.
-Moreover, if an attacker manages to take control of many devices, creating what
-is known as a \textit{Botnet}, he could use such devices to perpetrate \textit{Denial
+attacks that an attacker may use to impact Confidentiality, Integrity, and
+Availability of a system. For example, with a \textit{Man-In-The-Middle} (MITM) attack,
+an actor could gain access to cryptographic keys and steal sensitive information.
+Moreover, if an attacker manages to take control of many devices, creating what is
+known as a \textit{Botnet}, he could use such devices to perpetrate \textit{Denial
 of Service} (DoS) attacks to external systems.
 
-With all these information it is easy to understand why embedded devices have become
-a suitable target for cyber attacks and why this is a security concern. It would
-be relatively ``easy'' to think of implementing state-of-the-art security
-solution to protect these devices, however, the problem is that many of them
-have limited hardware resources as they may be designed to carry out simple
-tasks. This means that we must apply security measures that are within the device's
-capabilities without affecting its performance. This truly is a challenge
-because, in specific cases, there may be the need to design tailored security
-features to protect device-specific components.
+With all these information it is easy to understand why embedded devices have
+become a suitable target for cyber attacks and why this is a security concern. It
+would be relatively ``easy'' to think of implementing state-of-the-art security solution
+to protect these devices, however, the problem is that many of them have limited
+hardware resources as they may be designed to carry out simple tasks. This means
+that we must apply security measures that are within the device's capabilities
+without affecting its performance. This truly is a challenge because, in
+specific cases, there may be the need to design tailored security features to protect
+device-specific components.
 
 \section{Goals}
 \label{sec:intro_goals}
 
-In this thesis, we introduce \textit{STEERED} (Secure Trusted Execution
-Environment for \textit{RISC-V}-based Embedded Devices), an which incorporates Control
-Flow Integrity (CFI) to safeguard the control paths within embedded \textit{RISC-V}
-systems. This mechanism utilizes a lightweight CFI enforcer, specifically
-designed to be compatible with the limited resources of RISC-V microcontrollers.
-By integrating structures such as a Shadow Stack and Control Flow Graph (CFG),
-\textit{STEERED} ensures that only authorized execution flows occur, thereby
-blocking potential control-flow hijacking attempts without compromising device
-performance.
+In this thesis, we introduce \textit{STEERED} (Secure Trusted Execution Environment
+for \textit{RISC-V}-based Embedded Devices), an which incorporates Control Flow
+Integrity (CFI) to safeguard the control paths within embedded \textit{RISC-V} systems.
+This mechanism utilizes a lightweight CFI enforcer, specifically designed to be compatible
+with the limited resources of RISC-V microcontrollers. By integrating structures
+such as a Shadow Stack and Control Flow Graph (CFG), \textit{STEERED} ensures
+that only authorized execution flows occur, thereby blocking potential control-flow
+hijacking attempts without compromising device performance.
 
-Following this introduction, Chapter $2$ presents the foundational concepts of the
-\textit{RISC-V} Instruction Set Architecture (ISA), essential for understanding the
-architectural basis of the project. Chapter $3$ details the implementation
-specifics of \textit{STEERED}'s infrastructure, discussing critical features
-such as forward and backward edge control mechanisms and the use of Physical
-Memory Protection (PMP) to create secure memory spaces. To validate the effectiveness
-of \textit{STEERED} in real-world scenarios, Chapter $3$ also introduces a Proof
-of Concept (PoC). This PoC will exemplify how the project addresses critical
-security threats, illustrating its impact on device resilience and system integrity.
-A subsequent threat analysis will examine the types of attacks the project is
-designed to defend against, assessing its effectiveness and identifying any potential
-vulnerabilities that may need further consideration. A performance analysis is
-also provided, where the trade-offs between security and system efficiency are evaluated.
-This analysis will help highlight the strengths and limitations of the project
-and explain why it represents a feasible solution for enhancing the security of
-embedded devices.
+Following this introduction, Chapter $2$ presents the foundational concepts of
+the \textit{RISC-V} Instruction Set Architecture (ISA), essential for
+understanding the architectural basis of the project. Chapter $3$ details the implementation
+specifics of \textit{STEERED}'s infrastructure, discussing critical features such
+as forward and backward edge control mechanisms and the use of Physical Memory Protection
+(PMP) to create secure memory spaces. To validate the effectiveness of \textit{STEERED}
+in real-world scenarios, Chapter $3$ also introduces a Proof of Concept (PoC). This
+PoC will exemplify how the project addresses critical security threats,
+illustrating its impact on device resilience and system integrity. A subsequent threat
+analysis will examine the types of attacks the project is designed to defend against,
+assessing its effectiveness and identifying any potential vulnerabilities that
+may need further consideration. A performance analysis is also provided, where
+the trade-offs between security and system efficiency are evaluated. This analysis
+will help highlight the strengths and limitations of the project and explain why
+it represents a feasible solution for enhancing the security of embedded devices.
 
-Finally, the thesis explores the potential integration of \textit{FreeRTOS}, a widely-used
-Real-Time Operating System (RTOS) for embedded devices, into \textit{STEERED}.
+Finally, the thesis explores the potential integration of \textit{FreeRTOS}, a
+widely-used Real-Time Operating System (RTOS) for embedded devices, into \textit{STEERED}.
 This integration could extend the project's applicability, enabling more complex
 programs to operate within the secure environment provided by the infrastructure.
-By supporting an established OS like \textit{FreeRTOS}, the project could
-broaden its reach and utility, making it suitable for a larger variety of use cases
-in the embedded device domain.
+By supporting an established OS like \textit{FreeRTOS}, the project could broaden
+its reach and utility, making it suitable for a larger variety of use cases in
+the embedded device domain.
 
-In summary, this thesis presents a novel approach to securing \textit{RISC-V} microcontrollers,
-leveraging Control Flow Integrity to protect against control-flow attacks and
-providing a secure foundation for running potentially unsafe code. Through detailed
-technical exploration, demonstration, and analysis, this work aims to contribute
-a significant advancement to the field of embedded device security, addressing both
-current and emerging threats in the IoT landscape.
+In summary, this thesis presents a novel approach to securing \textit{RISC-V}
+microcontrollers, leveraging Control Flow Integrity to protect against control-flow
+attacks and providing a secure foundation for running potentially unsafe code.
+Through detailed technical exploration, demonstration, and analysis, this work aims
+to contribute a significant advancement to the field of embedded device security,
+addressing both current and emerging threats in the IoT landscape.
