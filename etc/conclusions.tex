@@ -1,2 +1,84 @@
 \chapter{Conclusions}
 \label{cha:conclusions}
+
+This thesis discussed the design, development, and analysis of \textit{STEERED: a
+Secure Trusted Execution Environment for RISC-V-based Embedded Devices} which poses
+itself as a significant contribution to enhancing security in resource-constrained
+environments. The project successfully addresses key challenges related to
+embedded device security, including mitigating control-flow hijacking attacks such
+as Return-Oriented Programming and Jump-Oriented Programming. With the
+integration of advanced mechanisms like a Shadow Stack and Control Flow Graph, \textit{STEERED}
+ensures robust enforcement of Control Flow Integrity, a critical step in preventing
+unauthorized execution flows or arbitrary code execution.
+
+In chapter \ref{cha:project} we have seen the process behind \textit{STEERED}'s
+design and implementation highlighting its key features. We have also seen how it
+adheres to the principles of lightweight and efficient security, making it
+suitable for devices with limited computational resources. The system leverages the
+flexibility and extensibility of the \textit{RISC-V} Instruction Set
+Architecture to create a tailored solution that balances security and
+performance. The proposed infrastructure achieves this balance through meticulous
+code instrumentation, optimized Physical Memory Protection configurations, and efficient
+trap management mechanisms. Additionally, the modular design of \textit{STEERED}
+ensures that it remains adaptable to various use cases and allows for further
+customization. Lastly, with the Proof of Concept presented in section
+\ref{sec:project_poc} we demonstrated \textit{STEERED}'s ability to effectively detect
+and mitigate attacks that aim at disrupting the code execution flow.
+
+Chapter \ref{cha:ta} was focused on providing an in-depth view of the threat landscape
+with the threat model. Additionally, we proved why and how \textit{STEERED} can
+effectively protect the code from such threats by showcasing the utilized
+testing methodologies. Also, we discussed the weak points of the project, describing
+its limitations in protecting from specific attacks and discussing potential enhancements
+to provide a higher degree of security.
+
+A comprehensive performance analysis presented in chapter \ref{cha:pa} illustrates
+the practical viability of incorporating \textit{STEERED} into real-world
+applications while maintaining a high level of system efficiency. The analysis delves
+into the average overhead associated with the implementation of \textit{STEERED},
+highlighting the importance of this metric in evaluating its effectiveness. We
+explored various optimization techniques specifically designed to mitigate
+elevated overheads that may arise in certain unusual scenarios. By addressing these
+potential challenges, we aim to ensure that \textit{STEERED} can be seamlessly integrated
+into existing systems, ultimately enhancing overall performance while minimizing
+any adverse effects.
+
+The purpose of chapter \ref{cha:rtos} was to provide an implementation idea to
+integrate the system with widely used Real-Time Operating Systems such as
+\textit{FreeRTOS} and \textit{Zephyr RTOS}. Such integration could enhance the project's
+versatility and readiness for broader adoption, allowing for the execution of
+more complex tasks. We focused on this implementation because many real-world applications
+are highly dependent on the features provided by RTOSes to carry out their tasks.
+
+Lastly, the thesis also identifies several areas for future exploration, including
+the incorporation of additional security mechanisms, further code optimization, and
+exhaustive testing under diverse operational conditions in chapter \ref{cha:future}.
+These potential enhancements aim to refine the system and broaden its
+applicability, extending its impact on the security of embedded systems in the rapidly
+expanding Internet of Things landscape.
+
+In conclusion, the framework known as \textit{STEERED} marks a significant milestone
+in the realm of embedded system security. This innovative approach introduces
+practical solutions specifically designed to protect \textit{RISC-V} microcontrollers
+from a variety of emerging cyber threats that have been increasingly targeting these
+systems. By addressing not only the immediate security challenges faced by these
+microcontrollers but also laying the groundwork for future advancements, \textit{STEERED}
+represents a forward-thinking initiative in cybersecurity.
+
+A key achievement of \textit{STEERED} is its focus on safeguarding untrusted code
+from control-flow tampering attacks, a common and dangerous threat in the
+embedded systems landscape. The infrastructure developed under \textit{STEERED}
+has been meticulously designed to ensure that security measures do not
+detrimentally affect the performance of resource-constrained systems. This balance
+between security and efficiency is critical, as many embedded devices operate
+under stringent resource limitations.
+
+Furthermore, this work highlights the increasing necessity of secure and efficient
+design principles within embedded device infrastructures. As embedded systems
+continue to integrate deeper into various aspects of modern technology
+ecosystems, ranging from consumer electronics to critical infrastructure, the
+importance of robust security mechanisms cannot be overstated. The findings and advancements
+brought forth by \textit{STEERED} not only enhance the immediate security
+posture of \textit{RISC-V} microcontrollers but also serve as a foundational framework
+for ongoing innovation in the field, ultimately contributing to a safer and more
+secure technological landscape.
