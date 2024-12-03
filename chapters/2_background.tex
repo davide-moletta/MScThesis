@@ -1,20 +1,492 @@
 \chapter{Background}
 \label{cha:background}
 
+The purpose of this chapter is to provide a comprehensive description of the
+attacks that we aim to mitigate with the implemented security features. We start
+by listing the main threats and discussing how they could disrupt the system causing
+serious damage. Secondly, we describe Control Flow Integrity, its purpose and
+how it this security measure can effectively detect and prevent control-flow
+attacks. Lastly, we present related works discussing the differences between
+them and the novel solution proposed in this thesis.
+
 \section{Control Flow Attacks}
 \label{sec:background_cfa}
 
-\section{Control Flow Integrity}
-\label{sec:background_cfi}
+Control flow attacks are a category of cyber attacks that aim at disrupting the normal
+execution flow of a program. Normally, some code follows one or more paths during
+execution, control flow attacks aim at modifying such flow by transferring
+control to either existing or injected code. The purpose of these types of attacks
+is to alter the execution of the program to execute shellcode, leak information,
+gain higher privileges, or disrupt the system.
 
-\subsection{Direct Jumps}
-\label{subsec:background_dirj}
+This project is primarily focused on detecting and preventing control flow
+attacks on \textit{RISC-V}-based systems. Here, we provide a list of these types
+of threats showcasing how they can affect the execution path to impact the system.
 
-\subsection{Indirect Jumps}
-\label{subsec:background_indirj}
+\subsection{Code Reuse Attacks}
+\label{subsec:background_codereuse}
 
-\subsection{Returns}
-\label{subsec:background_returns}
+\textit{Code Reuse Attacks} are a class of exploit techniques in which an attacker
+uses existing, legitimate code within a program to execute malicious actions, circumventing
+protections like non-executable memory regions. These attacks exploit the fact
+that many software protections assume that code residing in executable regions
+of memory is inherently safe, and they focus instead on preventing execution of data
+in memory. By leveraging already present and authorized code snippets, attackers
+avoid introducing new code, making detection and prevention more challenging.
+
+\begin{wrapfigure}
+  [23]{r}{.35\textwidth}
+  \centering
+  \def\stackalignment{r}\stackunder{ \includegraphics[width=\linewidth]{images/rop.png} } %
+  {\scriptsize \parbox[t]{\linewidth}{Source: \href{http://dx.doi.org/10.1145/3320269.3384738}{Return-Oriented Programming on RISC-V}\cite{rop}}}
+  \caption{\textit{Return-Oriented Programming} principle}
+  \label{fig:rop}
+\end{wrapfigure}
+
+One common example of a \textit{Code Reuse Attack} is \textit{Return-Oriented
+Programming} (ROP). In ROP, an attacker utilize a sequence of ``gadgets'', which
+are small chunks of code ending in a ``return'' instruction. These gadgets are typically
+harvested from the binary or shared libraries of the targeted program and perform
+specific, low-level operations. By chaining gadgets together through careful manipulation
+of the program's stack, the attacker creates a sequence of instructions that
+accomplish a broader malicious goal, such as disabling security mechanisms,
+executing shellcode, or gaining unauthorized access. Figure \ref{fig:rop}
+depicts the principle of \textit{Return-Oriented Programming}.
+
+\textit{Jump-Oriented Programming} (JOP) is a variation of ROP, where instead of
+relying on ``return'' instructions, attackers rely ``jump'' or ``call''
+instructions to chain gadgets. Similarly to ROP, these approaches exploit the
+control flow of the application without introducing new code into the memory
+space.
+
+\textit{Code Reuse Attacks} are particularly dangerous because they bypass certain
+forms of security, such as signature-based detection mechanisms and runtime
+protections that rely on identifying or blocking the introduction of foreign
+code. Techniques like Address Space Layout Randomization (ASLR) attempt to mitigate
+these attacks by randomizing the locations of code in memory, but attackers may
+combine information leakage vulnerabilities or brute force techniques to bypass
+ASLR and successfully locate the needed gadgets.
+
+The sophistication of code reuse attacks lies in their ability to manipulate a
+program's legitimate functionality to achieve unintended behavior while
+leveraging the program's own permissions and resources. This makes them a preferred
+method for attackers seeking reliability in their exploits.
+
+\subsection{Stack Smashing Attacks}
+\label{subsec:background_stacksmashing}
+
+A \textit{Stack Smashing Attack} is a type of exploit that targets vulnerabilities
+in a program's use of memory, specifically the stack, to gain unauthorized access
+or control over the program's execution. It typically occurs in applications
+that improperly handle input data, allowing attackers to overwrite parts of the stack
+with their own crafted data. The stack is a region of memory used by programs to
+store temporary variables, function return addresses, and control flow
+information.
+
+The attack begins with exploiting a buffer overflow vulnerability, which arises when
+a program allocates a fixed-size buffer on the stack to store user input but fails
+to check whether the input exceeds the buffer's size. When the attacker provides
+input that surpasses this limit, the excess data spills over into adjacent memory
+regions of the stack. These regions might contain critical information, such as the
+function's saved return address or local variables.
+
+By carefully crafting the overflowing input, an attacker can overwrite the saved
+return address with the address of malicious code previously injected into the
+memory or a code reuse sequence. When the function attempts to return, it jumps
+to the attacker-controlled location instead of the intended one. This redirection
+allows the attacker to execute arbitrary instructions, potentially leading to
+unauthorized access, data leakage, or system compromise.
+
+\textit{Stack Smashing Attacks} are particularly devastating because they exploit
+the very structure of program execution. They are often used to bypass security
+measures and gain control of systems, especially in older or poorly secured software.
+
+\subsection{Function Pointer Overwrite Attacks}
+\label{subsec:background_pointeroverwrite}
+
+\textit{Function Pointer Overwrite Attacks} exploit vulnerabilities in programs where
+an attacker can modify memory regions containing function pointers to redirect the
+control flow of the application to malicious code. Function pointers are
+variables that store the address of a function and are used in programming
+languages like \textit{C} and \textit{C++} to enable dynamic function calls. If these
+pointers are improperly managed or located in memory regions susceptible to manipulation,
+such as the stack, heap, or global data sections, they become targets for attackers.
+
+The attack begins by identifying a vulnerability that allows writing arbitrary data
+to memory, such as a buffer overflow, use-after-free condition, or format string
+vulnerability. Once access to the function pointer's memory location is obtained,
+the attacker overwrites it with the address of their chosen code. This address could
+point to injected shellcode, a sequence of gadgets crafted to perform unintended
+actions, or malicious functions in shared libraries.
+
+When the program later attempts to use the overwritten function pointer to make a
+call, control flow is redirected to the attacker-specified address instead of
+the intended function. This allows the attacker to execute arbitrary code or alter
+the behavior of the application to perform tasks such as privilege escalation,
+information leakage, or system compromise.
+
+Function pointer overwrites are particularly dangerous because they exploit the flexibility
+and power of dynamic function calls, which are common in modular and object-oriented
+programming. Attackers often pair this technique with other vulnerabilities,
+such as memory corruption, to achieve a reliable exploit.
+
+\subsection{Virtual Table Hijacking Attacks}
+\label{subsec:background_virtualtable}
+
+\textit{Virtual Table (vtable) Hijacking Attacks} exploit vulnerabilities in programs
+that use polymorphism in object-oriented programming, particularly in languages
+like \textit{C++} that implement virtual functions. These attacks target the
+virtual table, a structure used to support dynamic method calls in polymorphic objects.
+The vtable is essentially an array of function pointers associated with a class,
+pointing to the implementations of the class' virtual functions. Each polymorphic
+object contains a pointer, often called a vtable pointer or vptr, that references
+the class' vtable. When a virtual function is called on the object, the function
+pointer in the vtable is dereferenced to invoke the corresponding method.
+
+In a \textit{Virtual Table Hijacking Attack}, the attacker exploits memory
+vulnerabilities, such as a buffer overflow or use-after-free to gain unauthorized
+write access to the vptr or the vtable itself. The goal is to redirect the
+control flow of the program by replacing legitimate function pointers in the
+vtable or altering the vptr to point to a maliciously crafted vtable.
+
+Once the attacker has control, they overwrite the vptr of an object with a pointer
+to their own malicious vtable or modify function pointers in the legitimate vtable
+to point to attacker-controlled code. When the program subsequently invokes a
+virtual function on the compromised object, it executes the attacker's code instead
+of the intended method. This redirection allows the attacker to perform
+arbitrary actions, such as executing injected shellcode, bypassing security
+checks, or escalating privileges.
+
+\textit{Virtual Table Hijacking Attacks} are especially dangerous because they
+exploit a core mechanism of object-oriented programming, making them difficult to
+detect. Additionally, they can bypass certain security measures, as the attack
+typically occurs within legitimate program memory and uses expected program
+structures like vtables and vptrs.
+
+\subsection{Dynamic Linking Attacks}
+\label{subsec:background_dynamiclinking}
+
+\textit{Dynamic Linking Attacks} exploit the mechanism by which programs resolve
+and use shared libraries at runtime. Many modern systems use dynamic linking to reduce
+memory usage and facilitate updates by allowing multiple programs to share the same
+libraries rather than including them in their executables. During execution, the
+operating system's dynamic linker resolves symbols in the program's code to corresponding
+functions or variables in the shared libraries. This process, while efficient,
+introduces a potential attack vector when not properly secured.
+
+An attacker leveraging a \textit{Dynamic Linking Attack} typically manipulates how
+or where the dynamic linker resolves these dependencies. This can occur in
+several ways. One common method is to exploit weaknesses in the search order of libraries.
+If a program relies on a library without specifying its exact path or uses a
+default path search mechanism, an attacker can introduce a malicious library in a
+location searched earlier than the legitimate one. This library might mimic the
+interface of the expected library while performing malicious activities, such as
+executing shellcode or stealing sensitive data.
+
+Another approach involves manipulating environment variables like \textit{LD\_PRELOAD}.
+Such variable forces the dynamic linker to load specific libraries before others,
+overriding the default linking process. An attacker who gains control of these variables
+can inject a malicious library that intercepts or replaces critical function calls.
+
+\textit{Dynamic Linking Attacks} are particularly dangerous because they often
+blend seamlessly with legitimate program behavior, making detection challenging.
+They can be used to escalate privileges, steal information, or execute arbitrary
+code within the context of the targeted application.
+
+\subsection{Indirect Branch Attacks}
+\label{subsec:background_indirectbranch}
+
+\textit{Indirect Branch Attacks} exploit the control flow of a program by
+targeting indirect branch instructions, which are used to transfer execution to an
+address determined at runtime. Indirect branches are commonly found in
+constructs like function pointers, virtual table lookups, and dynamic jump
+tables. Unlike direct branches, where the target address is fixed at compile-time,
+indirect branches are flexible and rely on runtime-determined values stored in registers
+or memory. This flexibility makes them a prime target for attackers seeking to
+redirect program execution.
+
+These attacks typically involve corrupting the data used to calculate the target
+of the indirect branch. For example, in an indirect function call via a function
+pointer, an attacker might use a memory corruption vulnerability such as a buffer
+overflow to overwrite the function pointer with an address of their choosing.
+
+Attackers can also exploit jump tables used in implementations of features like switch
+statements. By corrupting the memory that stores jump table entries, they can redirect
+execution to arbitrary addresses when the program uses the table to determine the
+branch target.
+
+\textit{Indirect Branch Attacks} are particularly dangerous because they can
+bypass many conventional control flow defenses. They often do not introduce new code
+into memory, instead relying on existing executable code, which allows them to evade
+protections like Data Execution Prevention (DEP). Additionally, they leverage the
+program's legitimate branching mechanisms, making them harder to detect and
+mitigate.
+
+\section{Control Flow Attacks Mitigation}
+\label{sec:background_mitigation}
+
+Given the impact that control flow attacks may have on a program's execution the
+necessity for security measures increased drastically over the last years. Many
+techniques have been devised to address this specif kind of attacks. In this section
+we describe the security measures currently used to prevent these threats giving
+great importance to Control Flow Integrity which is the security feature implemented
+within this project.
+
+\subsection{Address Space Layout Randomization (ASLR)}
+\label{subsec:background_aslr}
+
+\textit{Address Space Layout Randomization} (ASLR) is a security technique used to
+protect systems against memory corruption attacks by randomizing the memory locations
+of key data areas within a process. These areas include the stack, heap, dynamic
+libraries, and executable code. By introducing unpredictability into the memory
+layout, ASLR significantly complicates the exploitation of vulnerabilities that rely
+on knowing or predicting the addresses of specific code or data structures.
+
+ASLR operates by changing the base addresses of these memory regions each time a
+program is executed. For example, the starting address of the stack might be shifted
+by a random offset on every program launch, making it nearly impossible for an
+attacker to predict where specific variables or return addresses are stored. Similarly,
+the heap and dynamically loaded libraries are relocated to different positions
+in memory, disrupting any attempt to exploit predictable layouts.
+
+This technique is particularly effective against attacks such as buffer overflows,
+Return-Oriented Programming, and Jump-Oriented Programming. Without knowing the
+exact location of data or executable code, attackers face significant difficulty
+in crafting reliable exploits. They need to resort to brute-force attacks, repeatedly
+guessing memory addresses, or to leverage memory-leak vulnerabilities that may
+be present in the program.
+
+However, note that on systems with insufficient randomness, the predictability
+of memory layouts may still be exploited. Despite this, ASLR remains a valid
+security practice.
+
+\subsection{Data Execution Prevention (DEP)}
+\label{subsec:background_dep}
+
+\textit{Data Execution Prevention} (DEP) is a security feature designed to
+prevent code from being executed in regions of memory that are intended to store
+data. Its primary purpose is to mitigate the risk of exploits that rely on executing
+malicious code injected into non-executable regions, such as buffer overflow
+attacks, where attackers attempt to inject and run arbitrary code within areas like
+the stack or heap.
+
+In a typical program, memory is divided into different segments, such as the stack,
+heap, and data sections. Traditionally, data sections of memory are writable but
+not executable, while code sections are executable but not writable. This separation
+ensures that code is only executed from areas where it is supposed to run, like
+the code segment, while other areas are reserved for data storage.
+
+DEP works by marking certain regions of memory as non-executable, meaning that
+even if an attacker successfully injects code into these regions, the system will
+prevent it from executing. For instance, in the case of a buffer overflow, if an
+attacker tries to overwrite the return address with a pointer to malicious code
+stored in the stack, DEP will prevent the execution of that code, as the stack
+is designated as non-executable. On the other hand, for an attacker is
+impossible to inject code in a executable memory region as such region would be
+non-writable.
+
+While DEP provides a significant layer of protection against certain types of
+exploits, it is not a complete solution. For example, attackers may still bypass
+DEP through techniques like Return-Oriented Programming. Despite this, DEP remains
+a valid defense mechanism, as it helps to prevent a wide range of exploits.
+
+\subsection{Stack Canaries}
+\label{subsec:background_canaries}
+
+\textit{Stack Canaries} are a security mechanism designed to protect against
+stack buffer overflow attacks. The concept of a \textit{Stack Canary} is based
+on the idea of placing a special value, known as the ``canary'', between the
+local variables of a function and its return address on the stack. This canary value
+acts as a sentinel, designed to detect any buffer overflow that overwrites it.
+
+\begin{wrapfigure}
+  [19]{r}{.25\textwidth}
+  \centering
+  \def\stackalignment{r}\stackunder{ \includegraphics[width=\linewidth]{images/canary.png} } %
+  {\scriptsize \parbox[t]{\linewidth}{}}
+  \caption{\textit{Stack Canary} positioning}
+  \label{fig:canary}
+\end{wrapfigure}
+
+The canary value is typically placed right before the return address during a function
+call. When a function returns, the program checks whether the canary value has been
+altered. If an attacker attempts to exploit a buffer overflow and overwrite the
+return address, they will likely change the canary value as well. When the
+function attempts to return, the altered canary is detected, and the program
+takes a protective action such as terminating the process. This prevents the attacker
+from successfully hijacking the control flow. Figure \ref{fig:canary} provides a
+visual representation of the positioning of the \textit{Stack Canary} inside the
+stack.
+
+The ``canary'' is chosen randomly during program startup and is kept secret,
+making it difficult for attackers to predict and overwrite. This randomness adds
+an additional layer of protection by ensuring that the attacker cannot easily craft
+an exploit to target the canary directly.
+
+While \textit{Stack Canaries} provide an effective defense against many types of
+buffer overflow attacks, they are not foolproof. Sophisticated attackers may
+attempt to bypass canaries by exploiting vulnerabilities that do not trigger a
+canary check, such as in cases of non-stack buffer overflows or when the attacker
+has partial control over the canary value itself. However, \textit{Stack
+Canaries} significantly increase the difficulty of exploiting stack-based buffer
+overflows and are a valuable tool in defending against this class of
+vulnerabilities.
+
+\subsection{Control Flow Integrity (CFI)}
+\label{subsec:background_cfi}
+
+\textit{Control Flow Integrity} (CFI) is a security mechanism designed to
+prevent attackers from hijacking the control flow of a program. Its primary goal
+is to ensure that a program executes along its intended paths and that any attempt
+to divert execution to arbitrary, malicious code is detected and blocked. CFI achieves
+this by enforcing constraints on the control flow of a program, specifically the
+transfer of control during function calls and returns.
+
+During the compilation process CFI validates all possible paths that the program
+can take during execution. This contains the legitimate destinations for all indirect
+control transfers, such as function pointers or virtual function calls, as well as
+the valid locations for return instructions. A commonly used technique to do so
+is extracting the Control Flow Graph (CFG) of the executable which is a graph
+that depicts all possible paths the program can take. By comparing the actual execution
+flow against the predefined valid paths, CFI can detect when a program deviates
+from its expected behavior and take countermeasures.
+
+At runtime, Control Flow Integrity enforces two main types of protection:
+\begin{itemize}
+  \item Forward Edge Protection: This protects against attacks that attempt to
+    divert execution to unintended code via indirect function calls or jumps as
+    in the example of \textit{Jump-Oriented Programming}. When a program
+    attempts to execute an indirect control flow instruction, CFI checks whether
+    the target of the instruction is a valid destination or not to determine the
+    validity of the instruction. These controls are further explained in section
+    \ref{subsubsec:background_forward};
+
+  \item Backward Edge Protection: This ensures that return instructions execute
+    at the correct locations. \textit{Return-Oriented Programming} attacks, for example,
+    often hijack return addresses to redirect control flow to malicious code. CFI
+    prevents such attacks by validating that a return address corresponds to an allowed
+    function return point, ensuring that execution returns to a legitimate
+    location. These controls are further explained in section \ref{subsubsec:background_backward}.
+\end{itemize}
+
+To enforce Control Flow Integrity, the program is instrumented with additional
+runtime checks that validate each control transfer. These checks should be lightweight
+and efficient as they need to reduce the performance overhead due to the extra verification
+steps as much as possible.
+
+CFI is highly effective against several classes of attacks, including buffer
+overflow exploits, \textit{Return-Oriented Programming}, and \textit{Jump-Oriented
+Programming}, all of which rely on manipulating control flow to execute arbitrary
+instructions. By blocking any control flow that does not align with the intended
+program execution, CFI makes it much harder for attackers to successfully execute
+these types of attacks.
+
+Despite its effectiveness, CFI is not foolproof. Attackers can sometimes bypass CFI
+protections if they are able to manipulate the Control Flow Graph, exploit
+information leaks, or find ways to corrupt the runtime checks. However, CFI provides
+a powerful defense by ensuring that a program's control flow adheres strictly to
+predefined, legitimate paths, greatly reducing the success of many advanced exploits.
+
+Overall, Control Flow Integrity is an essential part of modern security
+practices, offering a robust way to protect programs from control flow hijacking
+and ensuring that software behaves as intended even in the presence of sophisticated
+attacks.
+
+\subsubsection{Forward Edge Protection}
+\label{subsubsec:background_forward}
+
+Forward Edge Protection is the part of Control Flow Integrity that determines
+the validity of jump and call transfer instructions. This protection is crucial to
+detect and prevent attacks such as \textit{Jump-Oriented Programming}.
+
+The first part of this process involves identifying all the forward edges that
+needs protection. This can be done by inspecting the source code either manually
+or with tools. Once the edges have been identified we must construct a Control
+Flow Graph which lists all the valid transfer of control within the executable. Such
+graph is needed to later inspect runtime control transfer instruction and determine
+if they stay within the boundaries of the expected execution path of the program.
+Direct jump instruction are defined at compile time so it is trivial to
+determine the source and destination of each instruction. On the other hand, the
+targets of indirect jump instructions are calculated at runtime so we need
+further inspection to determine all the possible targets. To achieve this result
+we can perform simulations of the execution to gather information about the source
+and destination of each indirect jump instruction.
+
+Moreover, we need to instrument the code adding instructions that allow a
+Control Flow Integrity enforcer to examine each control transfer during
+execution. At runtime, whenever the code tries to perform a jump instruction, the
+source and destination of such instruction are checked. If the inspected pair is
+legal according to the Control Flow Graph the instruction is allowed and the
+execution continues normally. On the other hand, if the pair is not part of the
+CFG, we need to terminate execution to prevent the execution of malicious code.
+
+It is easy to see how Control Flow Integrity prevents threats such as \textit{Jump-Oriented
+Programming}. In fact, if an attacker tries to tamper with the target of a
+control transfer instruction to execute a ``gadget'' or some malicious code that
+was previously injected we can be sure that such targets are not part of the
+Control Flow Graph, thus the attack will be detected and prevented.
+
+Note that there are other ways to implement Forward Edge Protection. An example
+is by using \textit{Landing Pads} which are specific blocks of code designed to handle
+a control flow transfer in a safe and predictable manner. The idea is to uses a
+\textit{Landing Pad} to validate that the target of the jump is a valid function
+or routine within the legitimate control flow graph instead of directly jumping to
+arbitrary locations. If the target is not valid, the landing pad can trigger a security
+response, such as halting execution or triggering an alert.
+
+\textit{Landing Pads} can be implemented with minimal runtime performance overhead
+and allow for flexible control over indirect control flow while maintaining security.
+However, they are typically more context-specific and not as widely applicable as
+other techniques such as Control Flow Graph validation.
+
+\subsubsection{Backward Edge Protection}
+\label{subsubsec:background_backward}
+
+Backward Edge Protection is the part of Control Flow Integrity that determines
+the validity of return instructions. This protection is crucial to detect and prevent
+attacks such as \textit{Return-Oriented Programming}.
+
+Unlike Forward Edge Protection we do not need to predefine valid targets at
+compile time. This is because, during execution the code will eventually perform
+a jump instruction and, as a consequence, it will eventually return to the same
+function that previously made the jump. This part of Control Flow Integrity focuses
+on guaranteeing that every function returns to its expected caller.
+
+Backward Edge Protection is usually enforced with a Shadow Stack which is a separate
+stack used to store return addresses. The idea is that every time that a jump
+instruction is performed we insert the corresponding return address inside the
+Shadow Stack. By doing this, we can effectively compare the last return address
+inserted in the stack with the address to which a return instruction is trying
+to transfer control. If the addresses match we know that the return address is correct
+and thus the instruction is safe and can be performed. On the other hand, if the
+addresses mismatch, we terminate the program to prevent the execution of
+malicious code.
+
+Say that an attacker performs a buffer overflow attack to overwrite the return
+address stored in the stack so that it points to some malicious code or to a ``gadget''.
+As soon as the current function tries to perform the return instruction we see that
+the return address and the address stored in the Shadow Stack are not the same.
+This happens because the current function was not called neither by the
+malicious code nor the gadget so it is impossible that it is trying to transfer
+control to those part of memory.
 
 \section{Related Works}
 \label{sec:background_related}
+
+In this section we aim at discussing relevant projects that provide Control Flow
+Integrity across different architectures. We also discuss their functioning and
+how they implemented this security feature.
+
+ch cfi: \@article{mishra2022survey, title={Survey of control-flow integrity techniques for real-time embedded systems}, author={Mishra, Tanmaya and Chantem, Thidapat and Gerdes, Ryan}, journal={ACM Transactions on Embedded Computing Systems (TECS)}, volume={21}, number={4}, pages={1--32}, year={2022}, publisher={ACM New York, NY} }
+
+multicore cfi: @inproceedings{moghadam2022real, title={Real-Time Control-Flow Integrity for Multicore Mixed-Criticality IoT Systems}, author={Moghadam, Vahid Eftekhari and Prinetto, Paolo and Roascio, Gianluca}, booktitle={2022 IEEE European Test Symposium (ETS)}, pages={1--4}, year={2022}, organization={IEEE} }
+
+hardware assisted cfi: @article{zhang2018hcic, title={HCIC: Hardware-assisted control-flow integrity checking}, author={Zhang, Jiliang and Qi, Binhang and Qin, Zheng and Qu, Gang}, journal={IEEE Internet of Things Journal}, volume={6}, number={1}, pages={458--471}, year={2018}, publisher={IEEE} }
+
+sponge based: @inproceedings{werner2018sponge, title={Sponge-based control-flow protection for IoT devices}, author={Werner, Mario and Unterluggauer, Thomas and Schaffenrath, David and Mangard, Stefan}, booktitle={2018 IEEE European Symposium on Security and Privacy (EuroS\&P)}, pages={214--226}, year={2018}, organization={IEEE} }
+
+prolepsis: ce gia
+
+performance counters: @inproceedings{biswas2020control, title={Control Flow Integrity in IoT Devices with Performance Counters and DWT}, author={Biswas, Ananda and Li, Zelong and Tyagi, Akhilesh}, booktitle={2020 IEEE International Symposium on Smart Electronic Systems (iSES)(Formerly iNiS)}, pages={171--176}, year={2020}, organization={IEEE} }
+
+survey: @article{mishra2022survey, title={Survey of control-flow integrity techniques for real-time embedded systems}, author={Mishra, Tanmaya and Chantem, Thidapat and Gerdes, Ryan}, journal={ACM Transactions on Embedded Computing Systems (TECS)}, volume={21}, number={4}, pages={1--32}, year={2022}, publisher={ACM New York, NY} }

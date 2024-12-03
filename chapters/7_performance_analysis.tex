@@ -1,23 +1,22 @@
 \chapter{Performance Analysis}
 \label{cha:pa}
 
-The purpose of this chapter is to examine and discuss \textit{STEERED}'s performance
+The purpose of this chapter is to examine and discuss the project's performance
 impact on the code. Firstly, we present the difference in execution time between
-a standard binary and a \textit{STEERED}-secured one. In this part we will give great
-importance to the time overhead, describing the reason behind the collected
-values. Secondly, we present the difference in size between the produced
-binaries, giving great importance to memory overhead. Lastly, we provide an analysis
-of the obtained results as well as some optimization ideas to further reduce the
-performance impact of \textit{STEERED} on the code.
+a standard binary and a secure one. In this part we will give great importance to
+the time overhead, describing the reason behind the collected values. Secondly,
+we present the difference in size between the produced binaries, giving great importance
+to memory overhead. Lastly, we provide an analysis of the obtained results as well
+as some optimization ideas to further reduce the performance impact on the code.
 
 The performance analysis took inspiration from the articles \textit{Efficient
 CFI Enforcement for Embedded Systems Using ARM TrustZone-M}\cite{article1} (Gisu
 Yeo, Yeryeong Kim et al., 2022) and \textit{PROLEPSIS: Binary Analysis and Instrumentation
-of IoT Software for Control-Flow Integrity}\cite{article2} (Valentina Forte, Nicol\`{o}
-Maunero et al., 2021) where the writers propose a solution similar to \textit{STEERED}
-for \textit{ARM}-based embedded devices. We tested the infrastructure on the same
-algorithms proposed by the papers, providing tests on $13$ different algorithms
-+ $4$ variations with indirect jumps.
+of IoT Software for Control-Flow Integrity}\cite{article2} (Valentina Forte,
+Nicol\`{o} Maunero et al., 2021) where the writers propose a solution similar to
+the discussed one for \textit{ARM}-based embedded devices. We tested the infrastructure
+on the same algorithms proposed by the papers, providing tests on $13$ different
+algorithms + $4$ variations with indirect jumps.
 
 Moreover, to present correct and realistic data, all tests have been conducted
 on the aforementioned \textit{Espressif's ESP32-C3-DevKitM-1}.
@@ -25,10 +24,10 @@ on the aforementioned \textit{Espressif's ESP32-C3-DevKitM-1}.
 \section{Time Performances}
 \label{sec:pa_time}
 
-In this section, we will see how \textit{STEERED}'s infrastructure affects the
-execution time of the code. Two histograms depicting test results can be seen in
-Figures \ref{fig:lowtime} and \ref{fig:hightime}, note that execution times have
-been separated into two different charts to enhance readability.
+In this section, we will see how the infrastructure affects the execution time of
+the code. Two histograms depicting test results can be seen in Figures
+\ref{fig:lowtime} and \ref{fig:hightime}, note that execution times have been separated
+into two different charts to enhance readability.
 
 \begin{figure}[htbp]
   \centering
@@ -44,11 +43,11 @@ been separated into two different charts to enhance readability.
   \label{fig:hightime}
 \end{figure}
 
-Table \ref{tab:times} depicts test results for each algorithm as well as the
-percentage of time overhead. As we can see, in most cases the time overhead
-affects the fourth or fifth digit resulting in an unnoticeable increase in
-execution time. However, there are two cases in which the time overhead is very
-big and it impacts performances in a relevant way.
+Table \ref{tab:times} depicts test results for each algorithm as well as the percentage
+of time overhead. As we can see, in most cases the time overhead affects the fourth
+or fifth digit resulting in an unnoticeable increase in execution time. However,
+there are two cases in which the time overhead is very big and it impacts performances
+in a relevant way.
 
 \begin{table}
   \centering
@@ -94,68 +93,65 @@ big and it impacts performances in a relevant way.
   \label{tab:times}
 \end{table}
 
-It is straightforward to understand why the overhead is small for algorithms like
-\textit{Binary Search} and \textit{Duff's Device} since these programs perform few
-jumps and most of the computation is performed inside a while or for loop so,
-the overhead given by the instrumentation is unnoticeable if compared to the
-total execution time. For example, the \textit{Binary Search} algorithm performs
-$3$ jump instruction and $3$ return instructions even if it is working on a rather
-big array. Given this behavior, such a small time overhead is expected in similar
-situations.
+It is straightforward to understand why the overhead is small for algorithms
+like \textit{Binary Search} and \textit{Duff's Device} since these programs
+perform few jumps and most of the computation is performed inside a while or for
+loop so, the overhead given by the instrumentation is unnoticeable if compared to
+the total execution time. For example, the \textit{Binary Search} algorithm
+performs $3$ jump instruction and $3$ return instructions even if it is working
+on a rather big array. Given this behavior, such a small time overhead is
+expected in similar situations.
 
 Instead, examples like \textit{Prime} and \textit{Recursive} are a bit trickier.
-Since these algorithms work with a recursive approach they perform many control transfer
-instructions consequently thus, we expect the time required for the context
-switch and the forward and backward edge controls to be somewhat impactful. However,
-results show that even in these cases the difference is barely noticeable\footnote{In
+Since these algorithms work with a recursive approach they perform many control
+transfer instructions consequently thus, we expect the time required for the context
+switch and the forward and backward edge controls to be somewhat impactful.
+However, results show that even in these cases the difference is barely noticeable\footnote{In
 these cases instead of impacting the fourth or fifth digit the overhead impacts
-the second or third digit.}. The reason could be due to the processor's
-frequency which, in the case of \textit{Espressif's ESP32-C3-DevKitM-1}, is $160
-\ MHz$. This means that the CPU is able to execute the secure and non-secure
-binaries in similar times. For example, the \textit{Recursion} algorithm performs
-$\sim 4000$ jump instructions and $\sim 4000$ return instructions which translates
-to $\sim 8000$ edge controls and $\sim 16000$ context switches\footnote{The
-number is doubled because for each edge control we need to increase the
-privilege to M-mode, perform the control, and then return to U-mode, resulting in
-two context switches.}. However, if we compare those numbers to the $160$
-million operations the processor can perform in a second we see why the time
-overhead is so small. Note that we add $2$ instructions for every jump instruction
-and $3$ instructions for every return instruction, resulting in an instruction
-overhead of $4000*2 + 4000*3 = 20000$. Moreover, the handling of forward and
-backward edge controls requires $\sim 800$ instructions which results in
-$(4000 + 4000) * 800 = 6400000$ total instructions. Now, if we compute
-$\frac{20000 + 6400000}{160000000}$ we discover that the utilized processor can
-perform all these instructions in $\sim 0.04$ seconds. Depending on the algorithm
-and the recursion depth we see that the overhead is affecting the second or third
-digit.
+the second or third digit.}. The reason could be due to the processor's frequency
+which, in the case of \textit{Espressif's ESP32-C3-DevKitM-1}, is $160 \ MHz$. This
+means that the CPU is able to execute the secure and non-secure binaries in similar
+times. For example, the \textit{Recursion} algorithm performs $\sim 4000$ jump
+instructions and $\sim 4000$ return instructions which translates to $\sim 8000$
+edge controls and $\sim 16000$ context switches\footnote{The number is doubled
+because for each edge control we need to increase the privilege to M-mode, perform
+the control, and then return to U-mode, resulting in two context switches.}.
+However, if we compare those numbers to the $160$ million operations the processor
+can perform in a second we see why the time overhead is so small. Note that we
+add $2$ instructions for every jump instruction and $3$ instructions for every
+return instruction, resulting in an instruction overhead of $4000*2 + 4000*3 = 20
+000$. Moreover, the handling of forward and backward edge controls requires $\sim
+800$ instructions which results in $(4000 + 4000) * 800 = 6400000$ total instructions.
+Now, if we compute $\frac{20000 + 6400000}{160000000}$ we discover that the utilized
+processor can perform all these instructions in $\sim 0.04$ seconds. Depending
+on the algorithm and the recursion depth we see that the overhead is affecting
+the second or third digit.
 
 Two peculiar cases are the ones of the \textit{Fibonacci} and \textit{Fibonacci
-Indirect} algorithms, in these cases, the overheads are $1523.24\%$ and $77.97\%$
-respectively. The possible reason for these enormous overheads is that these
-algorithms make two recursive calls each time so we end up with an exponential
+Indirect} algorithms, in these cases, the overheads are $1523.24\%$ and
+$77.97\%$ respectively. The possible reason for these enormous overheads is that
+these algorithms make two recursive calls each time so we end up with an exponential
 amount of jump and return instructions. This leads to many edge controls and the
 execution is strongly affected by this.
 
-Overall, \textit{STEERED} achieved an average time overhead of $94.38\%$ with a standard
-deviation of $368.68$. However, if we do not take into account the outliers we can
-see that the median is $0.036\%$. These results clearly show that \textit{STEERED}'s
-time overhead is almost unnoticeable in many cases but, this also demonstrates
-that the project strongly suffers from deeply recursive algorithms and that
-further optimization is required to reduce the time impact on these types of
-algorithms.
+Overall, we achieved an average time overhead of $94.38\%$ with a standard deviation
+of $368.68$. However, if we do not take into account the outliers we can see that
+the median is $0.036\%$. These results clearly show that the time overhead is
+almost unnoticeable in many cases but, this also demonstrates that the project strongly
+suffers from deeply recursive algorithms and that further optimization is required
+to reduce the time impact on these types of algorithms.
 
-Lastly, in Table \ref{tab:othertimes} we provide the times required to instrument
-the code, extract the CFG, and perform the simulation. As we can see the
+Lastly, in Table \ref{tab:othertimes} we provide the times required to
+instrument the code, extract the CFG, and perform the simulation. As we can see the
 instrumentation and CFG extraction phases always require less than a fraction of
-a second to finish. However, we must take into consideration that the tested
-algorithms are composed of few lines of code and the situation could change if
-we were to instrument a firmware composed of thousands of lines. The simulation instead
-requires a lot of time, even algorithms that run in a second or less require a
-few seconds to simulate. This is due to the logging required to extract the indirect
-jump destinations which affects the time performances seriously. Note that we
-can accept this result since the simulation is run only once and the logging is
-removed from the final binary so that this overhead does not affect the actual
-execution.
+a second to finish. However, we must take into consideration that the tested algorithms
+are composed of few lines of code and the situation could change if we were to instrument
+a firmware composed of thousands of lines. The simulation instead requires a lot
+of time, even algorithms that run in a second or less require a few seconds to simulate.
+This is due to the logging required to extract the indirect jump destinations
+which affects the time performances seriously. Note that we can accept this result
+since the simulation is run only once and the logging is removed from the final binary
+so that this overhead does not affect the actual execution.
 
 \begin{table}
   \centering
@@ -204,9 +200,8 @@ execution.
 \section{Memory Overhead}
 \label{sec:pa_memory}
 
-In this section, we showcase how \textit{STEERED}'s infrastructure affects the
-size of the produced binary. A histogram depicting test results can be seen in Figure
-\ref{fig:binsize}.
+In this section, we showcase how the infrastructure affects the size of the
+produced binary. A histogram depicting test results can be seen in Figure \ref{fig:binsize}.
 
 \begin{figure}[htbp]
   \centering
@@ -287,39 +282,39 @@ the CFG would drastically increase in size.
   \label{tab:binsize}
 \end{table}
 
-Overall, \textit{STEERED} achieved an average memory overhead of $88.06\%$ with a
-standard deviation of $152.77$. However, similarly to the time overhead, if we
-do not take into consideration the outliers we can see that the median is
-$1 2.09 \%$. These results show that in most cases \textit{STEERED} can produce
-a secure binary without affecting too much memory consumption. Even in this case,
-the project suffers from deeply recursive algorithms as we need to allocate a
-bigger Shadow Stack to securely store each address.
+Overall, we achieved an average memory overhead of $88.06\%$ with a standard
+deviation of $152.77$. However, similarly to the time overhead, if we do not take
+into consideration the outliers we can see that the median is $1 2.09 \%$. These
+results show that in most cases the project can produce a secure binary without
+affecting too much memory consumption. Even in this case, the project suffers
+from deeply recursive algorithms as we need to allocate a bigger Shadow Stack to
+securely store each address.
 
 \section{Results and Analysis}
 \label{sec:pa_results}
 
 In this section, we discuss the obtained result and showcase the weak points of
-\textit{STEERED}.
+the implementation.
 
-As we have seen in the previous sections the project showcases promising performances
-in most cases. In almost all the tested algorithms time overhead was barely
-noticeable and memory consumption was acceptable. Overall, the project
-infrastructure is not impacting the normal performances of the non-secure binary.
+As we have seen in the previous sections the project showcases promising
+performances in most cases. In almost all the tested algorithms time overhead was
+barely noticeable and memory consumption was acceptable. Overall, the project infrastructure
+is not impacting the normal performances of the non-secure binary.
 
-However, in the case of deeply recursive algorithms, we have seen that the time
-overhead grows exponentially due to the high number of control transfer
-instructions and the related forward and backward edge controls. Also, the size
-of the binary grows as we need a bigger Shadow Stack to store all the addresses
-needed to perform the backward edge controls.
+However, in the case of deeply recursive algorithms, we have seen that the time overhead
+grows exponentially due to the high number of control transfer instructions and the
+related forward and backward edge controls. Also, the size of the binary grows as
+we need a bigger Shadow Stack to store all the addresses needed to perform the backward
+edge controls.
 
-Moreover, we have seen that if the code is composed of thousands of lines it is likely
-that the Control Flow Graph will be very big. This is because if we have many
+Moreover, we have seen that if the code is composed of thousands of lines it is
+likely that the Control Flow Graph will be very big. This is because if we have many
 jump instructions from different sources to different destinations we must store
 each pair, thus the space occupied by the CFG grows.
 
-In the following section, we provide some optimization techniques that could be
-applied to further increase \textit{STEERED}'s performances. Specifically, we provide
-alternative solutions to improve the weak points of the project.
+In the following section, we provide some optimization techniques that could be applied
+to further increase the performances. Specifically, we provide alternative solutions
+to improve the weak points of the project.
 
 \section{Optimization Techniques}
 \label{sec:pa_optimization}
@@ -329,8 +324,7 @@ given their hardware limitations we tried to provide an infrastructure as fast
 as possible while preserving memory usage. However, as test results show, there are
 some aspects of the project that require further improvement to be considered acceptable.
 
-The two identified cases in which \textit{STEERED} strongly impacts the
-performances are:
+The two identified cases in which the project strongly impacts the performances are:
 \begin{itemize}
   \item Deeply recursive algorithms: we have seen that deeply recursive
     algorithms require a big Shadow Stack to hold all the return addresses and
@@ -343,8 +337,8 @@ performances are:
     need to \textit{pop} the ``recursive'' address and then \textit{pop} the
     following one to see if it matches with the one we are checking. With such modification,
     we could effectively reduce the amount of space occupied by the Shadow Stack
-    in case of recursive algorithms without impacting the security features that
-    \textit{STEERED} provides;
+    in case of recursive algorithms without impacting the provided security
+    features;
 
   \item Big user code: we have seen that with very big codes (like the aforementioned
     firmware one) we could end up in a situation where the Control Flow Graph
@@ -357,26 +351,26 @@ performances are:
     the Control Flow Graph from $\mathcal{O}(\log{n})$ to $\mathcal{O}(1)$.
 \end{itemize}
 
-Lastly, we provide a space optimization solution that could be implemented for very
-small source code. Say, for example, that the \textit{.text} section that we want
-to instrument starts at address $0x4038A000$ and ends at address $0x4038A000$.
-Since the first part of the address stays the same it provides no useful
-information, thus we could apply a bit-mask to remove $4038$ from the address,
-storing only the last $16$ bits. This means that we would be able to store an address
-inside an \textit{unsigned short} instead of an \textit{unsigned int}. As a
-result, we would be able to halve the space required to store the Control Flow Graph
-and the Shadow Stack resulting in a great improvement in memory consumption.
-However, this solution only works when the user code is very small because if the
-\textit{.text} section starts at address $0x4038A000$ and ends at address
-$0x4039F000$ we would still need an \textit{unsigned int} to store a correct representation
-of the address.
+Lastly, we provide a space optimization solution that could be implemented for
+very small source code. Say, for example, that the \textit{.text} section that
+we want to instrument starts at address $0x4038A000$ and ends at address
+$0x4038A000$. Since the first part of the address stays the same it provides no useful
+information, thus we could apply a bit-mask to remove $4038$ from the address, storing
+only the last $16$ bits. This means that we would be able to store an address
+inside an \textit{unsigned short} instead of an \textit{unsigned int}. As a result,
+we would be able to halve the space required to store the Control Flow Graph and
+the Shadow Stack resulting in a great improvement in memory consumption. However,
+this solution only works when the user code is very small because if the \textit{.text}
+section starts at address $0x4038A000$ and ends at address $0x4039F000$ we would
+still need an \textit{unsigned int} to store a correct representation of the
+address.
 
-In conclusion, our analysis has demonstrated that the \textit{STEERED} framework
-exhibits commendable performance in a variety of scenarios. Nevertheless, there are
-specific edge cases where its efficiency can be significantly compromised,
-leading to suboptimal results. These instances reveal potential vulnerabilities in
-the system that could hinder its overall effectiveness. To address these
-challenges, we suggest implementing the proposed solutions, which aim to refine
-the project's functionality. By fine-tuning the system to better adapt to particular
-situations, we can effectively minimize both memory usage and processing time, thereby
-enhancing the overall performance and reliability of \textit{STEERED}.
+In conclusion, our analysis has demonstrated that the framework exhibits commendable
+performance in a variety of scenarios. Nevertheless, there are specific edge cases
+where its efficiency can be significantly compromised, leading to suboptimal
+results. These instances reveal potential vulnerabilities in the system that could
+hinder its overall effectiveness. To address these challenges, we suggest implementing
+the proposed solutions, which aim to refine the project's functionality. By fine-tuning
+the system to better adapt to particular situations, we can effectively minimize
+both memory usage and processing time, thereby enhancing the overall performance
+and reliability.
