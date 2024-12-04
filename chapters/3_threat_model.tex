@@ -1,0 +1,38 @@
+\chapter{Threat Model and Assumptions}
+\label{cha:threatmodel}
+
+This chapter aims to provide a detailed exploration of the threat model and the
+underlying assumptions associated with the project. By analyzing potential risks
+and vulnerabilities, we seek to understand the implications these threats may
+pose to the project's success and integrity.
+
+During the design and development phase of this project, we focused on a \textit{RISC-V}-based
+embedded device that operates within a network environment potentially
+compromised by an attacker. The device is executing unverified code in a bare-metal
+environment, meaning there is no underlying operating system to manage resource
+allocation or security. This setup may expose the device to various risks. At
+least one vulnerability is present within the executable, which could be exploited
+by malicious entities. Additionally, there is a possibility that the codebase may
+contain malicious software or gadgets.
+
+The threat is posed by a malicious actor whom, thanks to any present
+vulnerability can hijack the device by perpetrating one or more control flow
+hijacking attacks among the ones seen in section \ref{sec:background_cfa}. Note that
+given the bare-metal execution environment there are no dynamically linked or shared
+libraries so we mostly focus on attacks such as Return-Oriented Programming and Jump-Oriented
+Programming. Also, the attacker has undefined access to the source code or binary
+file, meaning that he may or may not have access to them. Since the focus of the
+project is to detect and mitigate control flow hijacking attacks, any other type
+of attack is out of scope and should be addressed via other means.
+
+The target device in question is fundamentally based on the \textit{RISC-V} Instruction
+Set Architecture, which does not impose any particular assumptions regarding its
+specifications or configurations. It is important to note that we are operating under
+the assumption that, despite the attacker possibly having access to the source
+code of the software, they are unable to modify this source code in any way that
+would allow them to upload or flash a version that has been tampered with onto the
+device. Furthermore, we maintain the assumption that the attacker does not have the
+capability to physically interfere with, or modify, the target device in any manner.
+This includes actions such as opening the device, accessing hardware components,
+or conducting any form of hardware-based attacks that could compromise the
+integrity of the system.
