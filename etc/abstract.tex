@@ -5,45 +5,45 @@
 The proliferation of embedded devices across industries and daily life, from consumer
 electronics to healthcare and industrial automation, has amplified the urgency
 of securing these systems against an escalating array of cyber threats. This thesis
-presents \textit{STEERED: Secure Trusted Execution Environment for RISC-V-based Embedded
-Devices}, a novel security framework designed to protect embedded systems leveraging
-the open \textit{RISC-V} Instruction Set Architecture. Unlike proprietary ISAs,
-\textit{RISC-V} enables the development of customized processors and solutions tailored
-to specific use cases. \textit{STEERED} exploits this flexibility to address control-flow
-tampering attacks, such as Return-Oriented Programming and Jump-Oriented
-Programming, which threaten the integrity of execution paths in microcontroller-based
-devices.
+presents a novel security framework designed to enforce Control Flow Integrity to
+protect embedded systems based on the open \textit{RISC-V} Instruction Set
+Architecture. Unlike proprietary ISAs, \textit{RISC-V} enables the development of
+customized processors and solutions tailored to specific use cases. This project
+exploits this flexibility to address control-flow hijacking attacks, such as Return-Oriented
+Programming and Jump-Oriented Programming, which threaten the integrity of
+execution paths in microcontroller-based devices.
 
-\textit{STEERED} incorporates lightweight Control Flow Integrity enforcement
-mechanisms, including a Shadow Stack and a Control Flow Graph, to ensure that
-software execution adheres strictly to predefined paths. This prevents unauthorized
-deviations caused by potential attackers, ensuring the security of both the
-system and its data. The solution employs code instrumentation techniques that automatically
-integrate CFI into user applications, simplifying deployment and reducing
-development time. Moreover, the use of \textit{RISC-V}'s Physical Memory Protection
-safeguards critical data structures, enhancing the robustness of the framework.
+The proposed solution incorporates lightweight Control Flow Integrity
+enforcement mechanisms, including a shadow stack and a Control Flow Graph, to
+ensure that software execution adheres strictly to predefined paths. This prevents
+unauthorized deviations caused by potential attackers, ensuring the security of
+both the system and its data. The solution employs code instrumentation techniques
+that automatically integrate CFI into user applications, simplifying deployment
+and reducing development time. Moreover, the use of \textit{RISC-V}'s Physical Memory
+Protection safeguards critical data structures, enhancing the robustness of the
+framework.
 
-The design philosophy behind \textit{STEERED} emphasizes efficiency and scalability,
-enabling it to operate effectively on resource-constrained embedded devices. A key
-feature is its ability to provide strong security guarantees with minimal performance
-overhead, making it suitable for IoT devices that often have limited
-computational and power resources. A proof-of-concept implementation demonstrates
-the effectiveness of \textit{STEERED} in defending against control-flow
+The design philosophy behind the project emphasizes efficiency and scalability, enabling
+it to operate effectively on resource-constrained embedded devices. A key
+feature is its ability to provide strong security guarantees with minimal
+performance overhead, making it suitable for IoT devices that often have limited
+computational and power resources. A Proof-of-Concept implementation
+demonstrates the effectiveness of our solution in defending against control-flow
 hijacking attacks. Detailed performance analysis reveals that the framework achieves
 a balance between security and operational efficiency, with an evaluation of
 memory overhead and execution time supporting its feasibility for practical
 applications.
 
-Furthermore, this thesis explores the integration of \textit{STEERED} with Real-Time
-Operating Systems such as \textit{FreeRTOS} and \textit{Zephyr RTOS}, showcasing
-its adaptability to complex software environments. This integration broadens the
-applicability of \textit{STEERED}, enabling the secure execution of real-time
-and multitasking applications in IoT and embedded domains.
+Furthermore, this thesis explores the integration of Real-Time Operating Systems
+such as \textit{FreeRTOS} and \textit{Zephyr RTOS}, showcasing the project's
+adaptability to complex software environments. This integration broadens the applicability,
+enabling the secure execution of real-time and multitasking applications in IoT
+and embedded domains.
 
-In conclusion, \textit{STEERED} addresses the pressing challenge of securing
-embedded \textit{RISC-V} devices by combining innovative security mechanisms,
-automated processes, and adherence to \textit{RISC-V}'s open and customizable
-principles. This work contributes significantly to the field of embedded system security
-by offering a scalable, efficient, and customizable framework that meets the needs
-of modern IoT environments while anticipating future challenges in the cybersecurity
-landscape.
+In conclusion, the proposed solution addresses the pressing challenge of securing
+embedded \textit{RISC-V} devices by combining innovative security mechanisms, automated
+processes, and adherence to \textit{RISC-V}'s open and customizable principles.
+This work contributes significantly to the field of embedded system security by
+offering a scalable, efficient, and customizable framework that meets the needs
+of modern IoT environments while anticipating future challenges in the
+cybersecurity landscape.
