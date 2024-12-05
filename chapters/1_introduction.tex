@@ -1,13 +1,13 @@
 \chapter{Introduction}
 \label{cha:introduction}
 
-This chapter serves as an introduction to \textit{STEERED: Secure Trusted Execution
-Environment for RISC-V-based Embedded Devices}, a new security infrastructure
-for \textit{RISC-V}-based embedded devices. The proposed solution aims to
-provide a Trusted Execution Environment (TEE) to allow the execution of
-untrusted user code while guaranteeing that Control Flow Integrity is not
-compromised. Moreover, \textit{STEERED} aims at providing an efficient and lightweight
-infrastructure that complies with the limited hardware capabilities of embedded devices.
+This chapter serves as an introduction to a new security infrastructure for
+\textit{RISC-V}-based embedded devices. The proposed solution aims to provide
+security features to mitigate control flow hijacking attacks and allow the
+execution of untrusted user code. This result is accomplished by enforcing Control
+Flow Integrity on the target code. Moreover, great focus has been put on providing
+an efficient and lightweight infrastructure that complies with the limited hardware
+capabilities of embedded devices.
 
 \section{Problem}
 \label{sec:intro_context}
@@ -39,112 +39,127 @@ Availability of a system. One notable example of a Network-based attack is the \
 between two parties, thereby gaining unauthorized access to sensitive data such as
 cryptographic keys, login credentials, and personal information. This breach can
 lead to severe consequences, including data theft, identity fraud, and loss of trust
-in communication channels. Additionally, when an attacker manages to compromise a
-significant number of devices, they can form what is known as a \textit{Botnet}.
-This network of infected devices can be orchestrated to launch large-scale
-\textit{Denial of Service} (DoS) attacks against external systems. In a DoS
-attack, the botnet floods a targeted server or network with excessive traffic,
-overwhelming it and rendering it unable to process legitimate requests. This disruption
-can lead to service outages, financial losses, and damage to the organization's reputation.
+in communication channels. Another example is the threat posed by control flow
+hijacking attacks, a family of cyber attacks that aim at disrupting the normal execution
+flow of a program to execute arbitrary code or gain control of the target device.
+These types of attacks may result in additional threats, for example, if an
+attacker manages to gain control of a significant number of devices, they can form
+what is known as a \textit{Botnet}. This network of infected devices can be orchestrated
+to launch large-scale \textit{Denial of Service} (DoS) attacks against external
+systems. In a DoS attack, the botnet floods a targeted server or network with
+excessive traffic, overwhelming it and rendering it unable to process legitimate
+requests. This disruption can lead to service outages, financial losses, and
+damage to the organization's reputation.
 
-With all this information it is easy to understand why embedded devices have become
-a suitable target for cyber attacks and why this is a security concern. It would
-be relatively ``easy'' to think of implementing state-of-the-art security
-solutions to protect these devices, however, the problem is that many of them
-have limited hardware resources as they may be designed to carry out simple
-tasks. This means we must apply security measures within the device's capabilities
-without affecting its performance. This is a challenge because, in specific cases,
-there may be the need to design tailored security features to protect device-specific
-components.
+With all this information it is easy to understand why embedded devices have
+become a suitable target for cyber attacks and why this is a major security
+concern. It would be relatively ``easy'' to think of implementing state-of-the-art
+security solutions to protect these devices, however, the problem is that many of
+them have limited hardware resources as they may be designed to carry out simple
+tasks. This means we must apply security measures within the device's
+capabilities without affecting performance. This is a challenge because, in
+specific cases, there may be the need to design tailored security features to protect
+device-specific components.
 
 \section{Goals}
 \label{sec:intro_goals}
 
-The primary objective of the \textit{STEERED} project is to establish a robust
-software-based execution environment that facilitates the secure execution of
-untrusted user code. This is particularly crucial in scenarios where running potentially
-malicious or unverified code can pose significant risks to system integrity and security.
-A key focus of the project is to ensure that Control Flow Integrity remains
-intact throughout the execution process, thereby preventing any unauthorized modifications
-to the flow of control within the program. This protection is vital in
-safeguarding against various control-flow tampering attacks that could exploit
-vulnerabilities in the code's execution path.
+The primary objective of the presented project is to establish a robust software-based
+Control Flow Integrity enforcer that allows secure execution of untrusted user
+code, guaranteeing that its control flow is not disrupted by control flow hijacking
+attacks. This is particularly crucial in scenarios where running potentially
+malicious or unverified code can pose significant risks to system integrity and
+security. A key focus of the project is to ensure that Control Flow Integrity remains
+intact throughout the execution process, thereby preventing any unauthorized
+modifications to the flow of control within the program. This protection is achieved
+by enforcing backward and forward edge protection using state-of-the-art techniques
+such as a shadow stack and Control Flow Graph validation. Moreover, Physical Memory
+Protection is integrated into the project to protect critical areas of the memory.
 
-Additionally, considering that the target platform for this project includes embedded
-devices, which often have constrained hardware resources, special emphasis has been
-placed on employing optimization techniques. These techniques are designed to
-minimize the impact of the execution environment on both memory consumption and
-execution performance. Our aim is to enable the secure execution of untrusted code
-without imposing excessive overhead that could hinder the functionality of resource-limited
-embedded systems.
+Additionally, considering that this project aims at protecting embedded devices,
+which often have constrained hardware resources, special emphasis has been
+placed on employing optimization techniques. These techniques are designed to minimize
+the impact of the Control Flow Integrity enforcer on both memory consumption and
+execution performance. We aim to enable the secure execution of untrusted code
+without imposing excessive overhead that could hinder the functionality of
+resource-limited embedded systems.
 
 Furthermore, throughout the development process, we have adhered to the open and
-modular design principles inspired by \textit{RISC-V}. This commitment to modularity
-and openness has resulted in a highly adaptable infrastructure that can be easily
-modified to suit a variety of deployment scenarios. By fostering a modifiable
-framework, we aim to streamline the deployment process, making it faster and
-more efficient in diverse environments, thereby enhancing the overall utility and
-effectiveness of the \textit{STEERED} execution environment.
+modular design principles inspired by \textit{RISC-V}. This commitment to
+modularity and openness has resulted in a highly adaptable infrastructure that
+can be easily modified to suit a variety of deployment scenarios. By fostering a
+modifiable framework, we aim to streamline the deployment process, making it faster
+and more efficient in diverse environments, thereby enhancing the overall
+utility and effectiveness of provided security features.
 
-Overall, \textit{STEERED} poses itself as a novel infrastructure which
-incorporates Control Flow Integrity to safeguard the control paths within
-embedded \textit{RISC-V} systems. This proposal aims to provide a valid
-alternative to \textit{ARM}'s \textit{TrustZone}\footnote{\url{https://www.arm.com/technologies/trustzone-for-cortex-m}},
-a hardware-based security technology integrated into \textit{ARM Cortex-M} processors,
-designed to create a trusted execution environment for handling sensitive
-operations and critical data. During this thesis we will highlight the main differences
-between \textit{ARM}'s \textit{TrustZone} and \textit{STEERED}, showing how the latter
-can effectively contribute to the current state-of-the-art of security mechanisms
-to protect embedded devices.
+This project introduces an innovative infrastructure designed specifically for
+embedded \textit{RISC-V} systems. By integrating Control Flow Integrity
+mechanisms, it aims to enhance the security of control paths within these systems.
+Control Flow Integrity ensures that the execution of the embedded system remains
+trusted and reliable, safeguarding it from potential exploits or vulnerabilities
+that could compromise its operations. Through this advancement, the project not only
+improves the robustness of \textit{RISC-V} architectures but also contributes to
+the overall resilience of embedded applications in various critical fields.
 
 \section{Structure}
 \label{sec:intro_structure}
 
-Following this introduction, chapter \ref{cha:riscv} presents the foundational concepts
-of the \textit{RISC-V} Instruction Set Architecture (ISA). Such a chapter focuses
-only on essential information needed for a deeper understanding of the architectural
-basis of the project.
+Following this introduction, chapter \ref{cha:background} presents a
+comprehensive background about the problem, security techniques, and related
+works that provide a similar solution to the one provided in this thesis. We start
+by describing the problem, its severity, and the relevant attacks we aim to mitigate.
+Secondly, we discuss state-of-the-art security measures that aim at mitigating control
+flow hijacking attacks focusing on Control Flow Integrity. Lastly, we present related
+projects discussing what differentiates them from our approach.
 
-Chapter \ref{cha:project} details the implementation specifics of \textit{STEERED}'s
-infrastructure, discussing critical features such as forward and backward edge control
-mechanisms and the use of Physical Memory Protection (PMP) to create secure memory
-spaces. To validate the effectiveness of \textit{STEERED} in real-world scenarios,
-the third chapter also introduces a Proof of Concept (PoC). This PoC will exemplify
-how the project addresses critical security threats, illustrating its impact on
-device resilience and system integrity.
+In chapter \ref{cha:threatmodel} we provide the threat model and assumptions for
+this project. We state the problem and the target of our security measures. Also,
+we discuss assumptions we made about the threat scenario and the capabilities of
+the attacker.
 
-A subsequent threat analysis, discussed in chapter \ref{cha:ta}, will examine
-the types of attacks the project is designed to defend against, assessing its effectiveness
-and identifying any potential vulnerabilities that may need further consideration.
-In this part of the thesis, we analyze areas of improvement for \textit{STEERED}
-while highlighting its strengths.
+Chapter \ref{cha:riscv} presents the foundational concepts of the \textit{RISC-V}
+Instruction Set Architecture. In this chapter, we focus only on essential information
+needed for a complete understanding of the architectural basis of the project.
+
+Chapter \ref{cha:project} details the implementation specifics of the Control Flow
+Integrity enforcer, discussing critical features such as forward and backward
+edge control mechanisms and the use of Physical Memory Protection to create
+secure memory spaces. To validate the effectiveness of the project in real-world
+scenarios, this chapter also introduces a Proof of Concept which will exemplify
+how the project addresses critical security threats, illustrating its impact on device
+resilience and system integrity.
+
+A subsequent security analysis, discussed in chapter \ref{cha:ta}, will describe
+the testing methodologies used to assess the project's effectiveness in identifying
+and preventing control flow hijacking attacks. Moreover, we discuss the security
+limitations of the Control Flow Integrity enforcer identifying any potential vulnerabilities
+that may need further consideration.
 
 A performance analysis is also provided in chapter \ref{cha:pa}, where the trade-offs
-between security and system efficiency are evaluated. This analysis will help
-highlight the strengths and limitations of the project and explain why it
-represents a feasible solution for enhancing the security of \textit{RISC-V}-based
-embedded devices. During this chapter we showcase test results for time and
-memory consumption, showcasing the average overhead of \textit{STEERED}. Lastly,
-we provide insights on optimization ideas to further increase the project's
-performance.
+between security and system efficiency are evaluated. This analysis will help highlight
+the strengths and limitations of the project and explain why it represents a feasible
+solution for enhancing the security of \textit{RISC-V}-based embedded devices. During
+this chapter we showcase test results for time and memory consumption,
+showcasing the average overhead of the project. Lastly, we provide insights on
+optimization ideas to further increase performance.
 
 Additionally, the thesis explores the potential integration of a Real-Time Operating
-System (RTOS) for embedded devices into \textit{STEERED} during chapter
-\ref{cha:rtos}. In particular, we propose the integration of \textit{FreeRTOS} and
-\textit{Zephyr RTOS}, two widely-used RTOSes. This integration could extend the
-project's applicability, enabling more complex programs to operate within the secure
-environment provided by \textit{STEERED}. By supporting an established RTOS like
-\textit{FreeRTOS}, the project could broaden its reach and utility, making it
-suitable for a larger variety of use cases in the embedded device domain.
+System (RTOS) for embedded devices during chapter \ref{cha:rtos}. In particular,
+we propose the integration of \textit{FreeRTOS} and \textit{Zephyr RTOS}, two
+widely-used Real-Time Operating Systems. This integration could extend the project's
+applicability, enabling more complex programs to operate under the Control Flow
+Integrity enforcer. By supporting an established RTOS like \textit{FreeRTOS}, the
+project could broaden its reach and utility, making it suitable for a larger
+variety of use cases in the embedded device domain.
 
 Finally, in chapter \ref{cha:future}, we discuss future enhancements we plan to
-implement in \textit{STEERED}. In this chapter, we mainly focus on security and performance-oriented
-solutions that could broaden the security of \textit{STEERED} while reducing its
+integrate. In this chapter, we mainly focus on security and performance-oriented
+solutions that could broaden the security of the project while reducing its
 impact on the device's performance.
 
 In summary, this thesis presents a novel approach to securing \textit{RISC-V}
-microcontrollers, leveraging Control Flow Integrity to protect against control-flow
-attacks and providing a secure foundation for running potentially unsafe code.
-Through detailed technical exploration, demonstration, and analysis, this work aims
-to contribute a significant advancement to the field of embedded device security,
+microcontrollers, leveraging Control Flow Integrity to protect against control flow
+hijacking attacks and providing a secure foundation for running potentially unsafe
+code. Through detailed technical exploration, demonstration, and analysis, this work
+aims to contribute a significant advancement to the field of embedded device security,
 addressing both current and emerging threats in the IoT landscape.

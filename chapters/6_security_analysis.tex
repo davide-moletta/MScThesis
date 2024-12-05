@@ -50,10 +50,10 @@ and Physical Memory Protection. Testing has been conducted as follows:
     \begin{lstlisting}[style=CStyle, caption = PMP configuration validation, label={lst:pmpcheck}]
 #include "shadow_stack.h"
 int user_function() {
- u_int malicious_address = 10;
- push(malicious_address);
- printf("Pushed: %d\n", pop());
- return 0;
+  u_int malicious_address = 10;
+  push(malicious_address);
+  printf("Pushed: %d\n", pop());
+  return 0;
 }
  \end{lstlisting}
 
