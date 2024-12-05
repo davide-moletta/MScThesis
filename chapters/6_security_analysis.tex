@@ -74,9 +74,9 @@ and Physical Memory Protection. The testing procedure has been conducted as foll
     \begin{lstlisting}[style=CStyle, caption = Physical Memory Protection testing, label={lst:pmpcheck}]
 #include "shadow_stack.h"
 void user_function() {
- u_int malicious_address = 10;
- push(malicious_address);
- printf("Pushed: %d\n", pop());
+  u_int malicious_address = 10;
+  push(malicious_address);
+  printf("Pushed: %d\n", pop());
 }
  \end{lstlisting}
 
