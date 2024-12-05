@@ -1,153 +1,185 @@
 \chapter{Security Analysis}
 \label{cha:ta}
 
-This chapter focuses on exploring the potential security vulnerabilities that
-the project aims to mitigate, alongside the methodologies used to evaluate the threat
-resilience of the project. Additionally, we discuss the limitations of the system,
-providing an accurate portrayal of its practical scope and constraints. Lastly,
-we showcase how the project may be improved from a security perspective.
+This chapter delves into a comprehensive analysis of the various security
+vulnerabilities that the project seeks to address. We will thoroughly examine the
+methodologies employed to assess the project's resilience against potential threats,
+highlighting the rigorous testing and evaluation processes involved. Furthermore,
+we will outline the system's limitations, offering a clear depiction of its practical
+capabilities and constraints. Finally, we will present recommendations for enhancing
+the project's security features, illustrating paths for future improvement and
+adaptation to evolving security challenges.
 
 \section{Testing Methodologies}
 \label{sec:ta_methodologies}
 
 The evaluation of the project's security has been conducted with both static and
 dynamic analysis techniques, tailored to assess the system's resilience to the
-identified threats. Moreover, we provided additional analysis specifically
-designed to establish the correctness of the Control Flow Graph, Shadow Stack,
-and Physical Memory Protection. Testing has been conducted as follows:
+threats identified in the threat model described in chapter
+\ref{cha:threatmodel}. Moreover, we provide additional analysis specifically
+designed to establish the correctness of the Control Flow Graph, shadow stack,
+and Physical Memory Protection. The testing procedure has been conducted as follows:
 
 \begin{itemize}
-  \item Static Analysis: during this step, we analyzed the source code of the project,
-    identifying eventual flaws or implementation errors. Furthermore, we
-    identified the expected scenarios during execution. This led to the actual implementation
-    of the project where all the ``standard'' routes have been manually vetted to
-    determine their correctness;
+  \item Static Analysis: in the initial phase of our project, we conducted a thorough
+    analysis of the source code to uncover any potential flaws or implementation
+    errors. This meticulous review allowed us to address all identified static
+    issues during our testing process, ultimately leading to a more robust and accurate
+    codebase. Furthermore, we carefully outlined all expected scenarios that could
+    arise during execution. This preparation laid the groundwork for the
+    implementation phase, during which we manually examined each of the standard
+    paths to ensure their correctness and reliability;
 
-  \item Control Flow Graph Validation: in this phase, we extracted the CFG and validated
-    it against predefined legitimate execution paths. Any deviation observed
-    during testing was flagged as a potential vulnerability. This led us to define
-    a Control Flow Graph extraction function that is reliable and provides an accurate
-    representation of the CFG;
+  \item Control Flow Graph Validation: in this phase, we extracted the Control Flow
+    Graph from the target application. Our primary objective was to ensure that
+    the extracted graph accurately reflects the legitimate execution paths
+    predetermined as acceptable for the application's intended functionality. To
+    achieve this, we compared the extracted CFG against these predefined
+    legitimate paths. Any discrepancies or deviations from what was expected during
+    our testing phase were meticulously flagged as potential vulnerabilities.
+    This assessment allowed us to identify areas of concern that could be
+    exploited or lead to unexpected behaviors. As part of this rigorous validation
+    process, we developed a reliable Control Flow Graph extraction function. This
+    function was specifically designed to ensure that the CFG provided a precise
+    and accurate representation of the application's control flow. The
+    reliability of this extraction is crucial, as it serves as the foundation for
+    our subsequent analyses and security assessments, facilitating a deeper
+    understanding of the application's behavior and potential security risks;
 
-  \item Shadow Stack Validation: in this step, we validated the functions used to
-    interact with the Shadow Stack. We ensured that addresses were stored
-    correctly and that the popping and matching logic was applied securely to
-    provide reliable information about return instruction legality;
+  \item Shadow Stack Validation: in this step, we meticulously examined the functions
+    involved in interacting with the shadow stack mechanism. Our validation
+    process included a thorough review of the address storage methods to ensure
+    that each address was recorded accurately and securely. We also implemented rigorous
+    checks on the popping and matching logic to confirm that it operated correctly,
+    thereby guaranteeing the integrity of the return instruction data. This comprehensive
+    evaluation aimed to provide a high level of assurance regarding the legality
+    of return instructions, preventing potential vulnerabilities in the return
+    flow of execution;
 
   \item Physical Memory Protection Validation: we conducted some tests to check
-    the PMP configuration. Such tests involved trying to access secure parts of the
-    memory from the user code. As a result, we determined that each access both in
-    read and write mode resulted in the generation of a trap that was then handled
-    by the interrupt vector table accordingly. This testing validated that
-    Physical Memory Protection effectively restricts access, protecting the integrity
-    of the Shadow Stack and Control Flow Graph from unauthorized modifications.
-    We provide an example of Physical Memory Protection in Listing
-    \ref{lst:pmpcheck}. Here, we try to perform both a \textit{push} and a \textit{pop}
-    from within the user-mode world to the Shadow Stack. However, thanks to the
-    devised PMP, both instructions will be blocked and generate a trap that will
-    be handled by the interrupt vector table;
+    the implemented Physical Memory Protection configuration. Such tests involved
+    trying to access secure parts of the memory from a low-privilege environment.
+    As a result, we determined that each access in read, write, and execute mode
+    resulted in the generation of a trap that was then handled by the interrupt vector
+    table accordingly. This testing validated that Physical Memory Protection
+    effectively restricts access, protecting the integrity of the shadow stack and
+    Control Flow Graph from unauthorized modifications. Also, we assessed that higher
+    privilege code can effectively access the data structures without generating
+    traps. We provide an example of Physical Memory Protection validation in
+    Listing \ref{lst:pmpcheck}. Here, we try to call both the \textit{push} and \textit{pop}
+    functions of the shadow stack from within the user-mode world. However,
+    thanks to the devised PMP, both instructions have been blocked and a trap has
+    been generated and handled by the interrupt vector table;
 
-    \begin{lstlisting}[style=CStyle, caption = PMP configuration validation, label={lst:pmpcheck}]
+    \begin{lstlisting}[style=CStyle, caption = Physical Memory Protection testing, label={lst:pmpcheck}]
 #include "shadow_stack.h"
-int user_function() {
-  u_int malicious_address = 10;
-  push(malicious_address);
-  printf("Pushed: %d\n", pop());
-  return 0;
+void user_function() {
+ u_int malicious_address = 10;
+ push(malicious_address);
+ printf("Pushed: %d\n", pop());
 }
  \end{lstlisting}
 
   \item Dynamic Analysis: we performed dynamic testing of edge controls to test
     their secureness. The system was subjected to simulations using a variety of
-    inputs designed to trigger control-flow vulnerabilities, such as crafted
-    payloads that mimic ROP and JOP attacks. With such instructions, we tried to
-    perform unauthorized control transfers and, in all cases, the Control Flow
-    Integrity Enforcer was able to detect the instruction and prevent the
-    control transfer. Moreover, logging mechanisms were implemented during
-    testing to capture runtime behavior, enabling the detection of any deviation
-    from the expected control flow. We provide two examples in Listings
-    \ref{lst:returncheck} and \ref{lst:jumpcheck}. In the first example, we add
-    the instruction \textit{la t0, malicious\_func} to load the address of some malicious
-    code and then we overwrite the return address of the current function with the
-    instruction \textit{sw t0, 12(sp)}\footnote{Note that \textit{12(sp)} is an example
-    as the return address is usually stored as this by the compiler.}. Now the
-    current function will return to the malicious code as soon as it reaches the
-    return instruction, however, thanks to the Control Flow Integrity Enforcer
-    we are sure that this will not happen as such address was never pushed into
-    the Shadow Stack. In the second example instead, we try to tamper with the
-    jump address of an indirect jump instruction. By adding the instruction \textit{la
-    t0, malicious\_func} we load the address of some malicious code. Then, we
+    inputs designed to leverage control flow hijacking vulnerabilities, such as
+    crafted payloads that mimic Return-Oriented Programming and Jump-Oriented
+    Programming attacks. With such instructions, we tried to perform
+    unauthorized control transfers and, in all cases, the Control Flow Integrity
+    enforcer was able to detect the attack and prevent the control transfer. Moreover,
+    logging mechanisms were implemented during testing to capture runtime
+    behavior, enabling the detection of any deviation from the expected control flow.
+    We provide two examples of dynamic testing in Listings \ref{lst:returncheck}
+    and \ref{lst:jumpcheck}.
+
+    \begin{lstlisting}[style=CStyle, caption = Return-Oriented Programming simulation attack, label={lst:returncheck}]
+int user_function() {
+  // Other code ...
+  asm("la t0, malicious_func"); // Load addr of malicious code
+  asm("sw t0, 12(sp)");         // Substitute return address
+  return 0;
+}
+       \end{lstlisting}
+
+    In the first example, we add the instruction \textit{la t0, malicious\_func}
+    to load the address of some malicious code into register \textit{t0}. Then,
+    we overwrite the return address of the current function with the instruction
+    \textit{sw t0, 12(sp)}\footnote{Note that \textit{12(sp)} is an example as the
+    return address is usually stored as this by the compiler.}. Now the current function
+    will return to the malicious code as soon as it reaches the return instruction,
+    however, thanks to the Control Flow Integrity enforcer we are sure that this
+    will not happen as such address was never pushed into the shadow stack.
+
+    \begin{lstlisting}[style=CStyle, caption = Jump-Oriented Programming simulation attack, label={lst:jumpcheck}]
+int user_function() {
+  // Other code ...
+  asm("la t0, malicious_func"); // Load addr of malicious code
+  asm("mv a5, t0");             // Substitute jump address
+  // JALR instruction
+  // Other code ...
+  return 0;
+}
+    \end{lstlisting}
+
+    In the second example instead, we try to tamper with the jump address of an indirect
+    jump instruction. By adding the instruction \textit{la t0, malicious\_func} we
+    load the address of some malicious code into register \textit{t0}. Then, we
     use the instruction \textit{mv a5, t0} to substitute the destination address
-    of the jump instruction (stored in \textit{a5}) to perform an unauthorized
-    control transfer. However, we know that such a source-destination pair is
-    not part of the Control Flow Graph, thus the forward edge control will fail and
-    the instruction will not be executed. These simple examples show how the
-    project is able to detect and block any type of unwanted control transfer
-    instruction;
-
-    \begin{lstlisting}[style=CStyle, caption = Return address tampering snippet, label={lst:returncheck}]
-int user_function() {
- // User code
- asm("la t0, malicious_func"); // Load addr of malicious code
- asm("sw t0, 12(sp)"); // Substitute return address
- return 0;
-}
- \end{lstlisting}
-
-    \begin{lstlisting}[style=CStyle, caption = Jump address tampering snippet, label={lst:jumpcheck}]
-int user_function() {
- // User code
- asm("la t0, malicious_func"); // Load addr of malicious code
- asm("mv a5, t0"); // Substitute jump address
- // JALR instruction
- // Other user code
- return 0;
-}
- \end{lstlisting}
+    of the jump instruction\footnote{Note that this is an example as the
+    compiler usually uses register \textit{a5} to store the address of indirect jump
+    instructions by calling convention.} to perform an unauthorized control
+    transfer. However, we know that such a source-destination pair is not part
+    of the Control Flow Graph, thus the forward edge control will fail and the instruction
+    will not be executed. These simple examples show how the project is able to
+    detect and block any type of unwanted control transfer instruction;
 
   \item Edge Case Validation: In our final phase of testing, we focused on edge case
     validation. This involved a series of comprehensive tests designed to assess
     the system's behavior in unusual or extreme scenarios. Specifically, we
-    conducted experiments to observe how the system reacts when the Shadow Stack
-    is either completely empty or completely full. These conditions were intentionally
-    engineered to push the limits of the system, allowing us to identify
-    potential vulnerabilities and ensure robust performance under such peculiar
+    conducted experiments to observe how the system reacts when the shadow stack
+    is either completely empty or full. These conditions were intentionally engineered
+    to push the limits of the system, allowing us to identify potential
+    vulnerabilities and ensure robust performance under such peculiar
     circumstances. Through these tests, we aimed to gain a deeper understanding
     of the system's stability and reliability when faced with atypical
     operational situations.
 \end{itemize}
 
-Overall, we can see that the project has been tested against various attack scenarios
-and unexpected cases. Test results show that the system is capable of managing
-such situations and can be trusted to ensure that the control flow integrity of
-the code is preserved.
+The project has undergone rigorous testing across a range of potential attack
+scenarios and unforeseen circumstances. The results of these tests indicate that
+the system demonstrates a robust ability to handle these challenges effectively.
+This reliability ensures that the Control Flow Integrity of the code remains
+intact, instilling confidence that the system can be trusted to function securely
+in various threat environments.
 
 \section{Limitations}
 \label{sec:ta_limitations}
 
-While we introduce robust protections against control-flow attacks, certain
+While we introduce robust protections against control flow hijacking attacks, certain
 limitations must be acknowledged.
 
-Firstly, the project lacks coverage against non-control-flow attacks. The system
-does not mitigate side-channel attacks, such as timing or power analysis, which
-require separate countermeasures. Data-oriented attacks that do not rely on altering
-the control flow are also outside the scope of this implementation. While this
-does not represent a problem for the project development itself as these threats
-were out of scope during the definition part of the project they are indeed a
-real-life problem. This means that the project must be paired with other security
-measures to effectively protect a device from different attacks.
+Firstly, the project lacks coverage against non-control-flow hijacking attacks. The
+system does not mitigate side-channel attacks, such as timing or power analysis,
+which require separate countermeasures. Data-oriented attacks that do not rely
+on altering the control flow are also outside the scope of this implementation. While
+this does not represent a problem for the project development itself as these threats
+were out of scope during the definition part of the project, as described in the
+threat model, they are indeed a real-life problem. This means that the project
+must be paired with other security measures to effectively protect a device from
+various types of attacks.
 
 Moreover, we assume software integrity to be guaranteed. The system assumes that
-the base software, including the compilers, is trusted and free of pre-existing vulnerabilities.
-Compromised base software could undermine the integrity of the Control Flow
-Integrity Enforcer protections. Furthermore, if the source code gets compromised
-we can't ensure its correctness in protecting the Control Flow Integrity of the
-code. Thus, additional security measures must be put in place to avoid possible
-tampering with the code.
+the source code of the project, including the compilers, is trusted and free of
+pre-existing vulnerabilities. Compromised source code could undermine the integrity
+of the Control Flow Integrity enforcer protections. Furthermore, if the source code
+gets compromised we can't ensure its correctness in protecting the Control Flow Integrity
+of the code. Thus, additional security measures must be put in place to avoid possible
+tampering with the code. Again, as already explained in the threat model, this
+is out of scope as we assume that the code is inherently safe.
 
 Additionally, there could be edge cases that have not been discovered which could
-lead to potential exploitations of the code. However, these can be discovered through
-exhaustive testing and will be part of future development.
+lead to potential exploitations of the Control Flow Integrity enforcer. However,
+these can be discovered through exhaustive testing and will be part of future development.
 
 Lastly, we can't know if vulnerabilities related to the \textit{RISC-V} Instruction
 Set Architecture could lead to the exploitation of the user code. In such a case,
@@ -157,14 +189,15 @@ in \textit{T-Head's XuanTie C910} and \textit{C920} CPUs named \textit{GhostWrit
 (Fabian Thomas, Lorenz Hetterich, et al., 2024) allows an attacker with limited privileges
 to read and write from and to physical memory. This type of vulnerability could
 not be prevented with the provided security features as a threat actor may be
-able to overwrite Physical Memory Protection configurations or the Shadow Stack
-and Control Flow Graph themselves.
+able to overwrite Physical Memory Protection configurations or the shadow stack
+and Control Flow Graph themselves to modify these data structure, leading to a compromisation
+of the Control Flow Integrity enforcer.
 
-In summary, we provide robust protection against unauthorized control transfers in
-\textit{RISC-V} microcontrollers, particularly effective in embedded environments
-where code integrity is paramount. While the model is limited in handling
-recursion-heavy applications and relies on Physical Memory Protection for data
-protection, it nonetheless establishes a secure foundation for Control Flow Integrity
-Enforcement, with the potential for further optimization in future iterations. Moreover,
-other security mechanisms could be implemented to completely secure an embedded
-device.
+In summary, we provide robust protection against unauthorized control transfers
+in \textit{RISC-V} microcontrollers, particularly effective in embedded
+environments where code integrity is paramount. While the model is limited in handling
+recursion-heavy applications and relies on Physical Memory Protection for data protection,
+it nonetheless establishes a secure foundation for Control Flow Integrity
+enforcement, with the potential for further optimization in future iterations.
+Moreover, other security mechanisms could be implemented to completely secure an
+embedded device.
