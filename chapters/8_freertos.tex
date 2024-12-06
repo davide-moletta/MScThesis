@@ -8,7 +8,7 @@ support the execution. The purpose of this chapter is to provide insights on how
 the project could be implemented to work with Real-Time Operating Systems (RTOS)
 to secure and support complex tasks and environments. Specifically, we provide an
 implementation idea for two famous RTOSes, \textit{Free Real-Time Operating
-System} (\textit{FreeRTOS}) and \textit{Zephyr RTOS}, depicting their strength
+System} (\textit{FreeRTOS}) and \textit{Zephyr RTOS}, depicting their strengths
 and the limitations that may arise during implementation.
 
 \section{FreeRTOS}
@@ -135,12 +135,12 @@ applied to the implementation of \textit{Zephyr RTOS}. The same is true for the 
 discussed in Section \ref{sec:rtos_limitations} as they suffer from the same implementation
 problem.
 
-We have seen that the project is designed to securely run untrusted user code in
-bare-metal environments. However, given its simplicity, it could be used to
-secure code in more complex environments, for example with a Real-Time Operating
-System like \textit{FreeRTOS}.
+We have seen that the project is designed to enforce Control Flow Integrity on running
+untrusted user code in bare-metal environments. However, given its simplicity,
+it could be used to secure code in more complex environments, for example with a
+Real-Time Operating System like \textit{FreeRTOS}.
 
-The main idea is to maintain the Control Flow Integrity Enforcer as the M-mode
+The main idea is to maintain the Control Flow Integrity enforcer as the M-mode
 operator, managing system boot and edge controls. The user code in this case is
 represented by the various tasks generated thanks to \textit{FreeRTOS}. Code
 instrumentation would not change much as we would just need to add the \textit{regex}
@@ -149,12 +149,12 @@ control transfer during execution. Finally, \textit{FreeRTOS} could be used as a
 ``supervisor'', either trusted or untrusted depending on the case. It would be in
 charge of managing task scheduling and memory operations.
 
-Moreover, since \textit{FreeRTOS} requires its own Interrupt Service Routine we could
+Moreover, since \textit{FreeRTOS} requires its own interrupt service routine we could
 either:
 \begin{itemize}
-  \item Prepare two separate Interrupt Vector Tables, one for the project\footnote{The
+  \item Prepare two separate interrupt vector tables, one for the project\footnote{The
     same we have seen in Section \ref{sec:project_isr}} and one for \textit{FreeRTOS}.
-    However, traps at the user level are managed by default ad machine level so,
+    However, traps at the user level are managed by default at machine level so,
     if we have an interrupt or an exception in one of the tasks the controls is transferred
     to the project's interrupt vector table and we must manually transfer the flow
     to the correct handler of the \textit{FreeRTOS} interrupt vector table;
@@ -166,7 +166,7 @@ either:
     that user interrupts are always managed by \textit{FreeRTOS} we could insert
     the corresponding code inside \textit{mideleg}. With this, each time a user-level
     interrupt is generated it is trapped at the \textit{FreeRTOS} interrupt vector
-    table. Note that this does not mean that the Control Flow Integrity Enforcer
+    table. Note that this does not mean that the Control Flow Integrity enforcer
     will not be able to manage those traps as higher-level interrupts and
     exceptions can't be delegated to the lower-level handler. For example, if a
     machine-level interrupt is generated it will always be handled by the
@@ -192,8 +192,8 @@ to perform some operations on Control and Status Registers to function correctly
 but, as we have explained such registers are only available in machine mode.
 Since the implementation would require \textit{FreeRTOS} to run either in supervisor
 or user mode all those operations would generate an illegal instruction exception
-as those privilege modes can't access machine CSRs. The operations are depicted
-in Listing \ref{lst:freeoperations}.
+as those privilege modes can't access machine CSRs. The critical operations on
+CSRs are depicted in Listing \ref{lst:freeoperations}.
 
 To address this problem we could enhance the instrumentation phase to modify
 \textit{FreeRTOS}'s code in the following way. Firstly, we need to find the critical
@@ -203,8 +203,8 @@ one seen in Section \ref{sec:riscv_csrs}), the target CSR, and the value that is
 being written. The target CSR can be then translated thanks to the table \textit{Currently
 allocated RISC-V machine-level CSR addresses}\footnote{Provided by the \textit{RISC-V
 Privileged Manual}\cite{riscv} at page $17$.} where we can see that for example register
-\textit{mstatus} is referred to as number $0x300$. Now we can precisely describe
-each target CSR and we just need to inject new instructions to perform an \textit{ECALL}
+\textit{mstatus} is stored at address $0x300$. Now we can precisely describe each
+target CSR and we just need to inject new instructions to perform an \textit{ECALL}
 to the project's interrupt vector table which will perform the modification of
 the CSRs on behalf of \textit{FreeRTOS}. \\
 \begin{lstlisting}[style=Assembly, caption = \textit{FreeRTOS} operations on Control and Status Registers, label={lst:freeoperations}]
@@ -238,19 +238,19 @@ the CSRs on behalf of \textit{FreeRTOS}. \\
 To do so, we can choose between two options. The first is to use register \textit{a7}
 to hold the new \textit{ECALL} code which determines the operation and three other
 registers, say \textit{a4}, \textit{a5}, and \textit{a6} to hold the CSR number,
-the CSR instruction, and the value respectively. However, this solution is highly
-inefficient in the use of registers since we could encode those values into $3$ registers
-instead of $4$. Alternatively, we could use register \textit{a7} to hold the new
-\textit{ECALL} code, \textit{a6} to hold the CSR number and the CSR instruction,
-and \textit{a5} to hold the value in case of writing or setting operations.
-Since there are $4$ CSR instructions we just need $2$ bits to encode them, Table
-\ref{tab:instructionenc} depicts a possible representation of the encodings of CSR
-instructions. All other bits would be reserved to describe the target CSR for
-the operation. Note that CSRs numbers go from $0x300$ up to $0xf15$ so we need a
-maximum of $12$ bits to represent each of them. Also, we can't encode the \textit{ECALL}
-code inside the same register because we are using the least significant bit to
-represent forward and backward edge controls thus, using it would result in ambiguity
-on the operation to perform.
+the CSR instruction, and the value being written respectively. However, this solution
+is highly inefficient in the use of registers since we could encode those values
+into $3$ registers instead of $4$. Alternatively, we could use register \textit{a7}
+to hold the new \textit{ECALL} code, register \textit{a6} to hold the CSR number
+and the CSR instruction, and register \textit{a5} to hold the value in case of writing
+or setting operations. Since there are $4$ CSR instructions we just need $2$
+bits to encode them, Table \ref{tab:instructionenc} depicts a possible representation
+of the encodings of CSR instructions. All other bits would be reserved to
+describe the target CSR for the operation. Note that CSRs addresses go from $0x30
+0$ up to $0xf15$ so we need a maximum of $12$ bits to represent each of them.
+Also, we can't encode the \textit{ECALL} code inside the same register because
+we are using the least significant bit to represent forward and backward edge
+controls thus, using it would result in ambiguity on the operation to perform.
 
 \begin{table}
   \centering
@@ -284,28 +284,26 @@ represent these types of calls. Once all the values are loaded, we can perform
 the \textit{ECALL} instruction itself, the control will be transferred to the
 correct handler and the operation will be performed on behalf of \textit{FreeRTOS}.
 As soon as the operation is handled, execution is resumed at the instruction that
-was interrupted. \\
-\begin{lstlisting}[style=Assembly, caption = \textit{FreeRTOS} instrumentation for Control and Status Register operations, label={lst:csrinstrumentation}]
- mv a5, w_value # Load the value we need to write into the CSR
- la a6, a6, csr # Load the address of the target CSR
- ori a6, op_encoding # Load the encoding of the CSR operation
- addi a7, a7, 2 # Load the new ECALL value
- ecall # Perform the ECALL instruction
-\end{lstlisting}
-
-Figure \ref{fig:a6encoding} a depicts a possible encoding for register \textit{a6}
-where we use the two most significant bits to encode the CSR instruction we want
-to perform and all the other bits to represent the target CSR. \\
+was interrupted. Figure \ref{fig:a6encoding} a depicts a possible encoding for
+register \textit{a6} where we use the two most significant bits to encode the CSR
+instruction we want to perform and all the other bits to represent the target CSR.
+\\
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=.9\linewidth]{images/freertos_encoding.png}
   \caption{Possible encoding for register \textit{a6}}
   \label{fig:a6encoding}
-\end{figure}\\
+\end{figure}
 
 Inside the interrupt vector table, we would just need to add an if statement to
 determine if we are requesting to perform a CSR instruction on behalf of \textit{FreeRTOS}
-based on the \textit{ECALL} code.
+based on the \textit{ECALL} code. \\ \begin{lstlisting}[style=Assembly, caption = \textit{FreeRTOS} instrumentation for Control and Status Register operations, label={lst:csrinstrumentation}]
+ mv a5, w_value      # Load the value to write into the CSR
+ la a6, a6, csr      # Load the address of the target CSR
+ ori a6, op_encoding # Load the encoding of the CSR operation
+ addi a7, a7, ecode  # Load the new ECALL value
+ ecall               # Perform the ECALL instruction
+\end{lstlisting}
 
 Note that this is just a proposal of implementation and there are other ways to
 implement \textit{FreeRTOS} within the project. For example, instead of encoding
