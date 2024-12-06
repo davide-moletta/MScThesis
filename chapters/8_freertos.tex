@@ -298,11 +298,11 @@ instruction we want to perform and all the other bits to represent the target CS
 Inside the interrupt vector table, we would just need to add an if statement to
 determine if we are requesting to perform a CSR instruction on behalf of \textit{FreeRTOS}
 based on the \textit{ECALL} code. \\ \begin{lstlisting}[style=Assembly, caption = \textit{FreeRTOS} instrumentation for Control and Status Register operations, label={lst:csrinstrumentation}]
- mv a5, w_value      # Load the value to write into the CSR
- la a6, a6, csr      # Load the address of the target CSR
- ori a6, op_encoding # Load the encoding of the CSR operation
- addi a7, a7, ecode  # Load the new ECALL value
- ecall               # Perform the ECALL instruction
+ mv a5, w_value     # Move the value to write into the CSR
+ la a6, csr         # Load the address of the target CSR
+ ori a6, a6, csr_op # Or with the encoding of the CSR operation
+ addi a7, a7, ecode # Load the new ECALL value
+ ecall              # Perform the ECALL instruction
 \end{lstlisting}
 
 Note that this is just a proposal of implementation and there are other ways to
