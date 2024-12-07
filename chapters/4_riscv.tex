@@ -19,13 +19,13 @@ ISA and the aspects that are necessary to understand the underlying infrastructu
 of the project\footnote{Every information will refer to the $32$-bit \textit{RV32I}
 ISA since it is the one utilized in the project.}\footnote{Most of the
 information in this chapter is taken from both the Unprivileged and Privileged
-Specifications\cite{specifications} published from \textit{RISC-V} International.}.
+Specifications\cite{specifications} published from \textit{RISC-V International}.}.
 Specifically, we will see how the ISA works and how it can be expanded to meet specific
 requirements. Moreover, technical aspects like the Physical Memory Protection and
-the Control and Status Register will be analyzed in detail as they are needed to
+the Control and Status Registers will be analyzed in detail as they are needed to
 understand core sections of the project.
 
-\section{RISC-V ISA Overview}
+\section{RISC-V Instruction Set Architecture Overview}
 \label{sec:riscv_isa}
 
 The \textit{RISC-V} ISA is structured around a minimal base integer ISA, which
@@ -33,10 +33,10 @@ is mandatory for all implementations. Even if we refer to the ``base integer ISA
 there are actually four base ISAs within the \textit{RISC-V} family: \textit{RV32I},
 \textit{RV64I}, \textit{RV32E}, and \textit{RV64E}, each differing primarily in the
 width of integer registers ($32$ or $64$ bits) and the number of available registers
-(\textit{E} ISAa support half the number of registers). These variations support
-different use cases, from small microcontrollers (\textit{RV32E} and \textit{RV64E})
-to larger systems (\textit{RV64I}). Moreover, RISC-V International is currently working
-on a $128$-bit ISA known as \textit{RV128I}.
+(\textit{RV32E} and \textit{RV64E} ISAs support half the number of registers).
+These variations support different use cases, from small microcontrollers (\textit{RV32E}
+and \textit{RV64E}) to larger systems (\textit{RV64I}). Moreover, \textit{RISC-V
+International} is currently working on a $128$-bit ISA known as \textit{RV128I}.
 
 These base ISAs are designed to provide the bare minimum instructions for
 essential software tools while allowing for extensive customization and
@@ -178,8 +178,8 @@ and jump and link register (\textit{JALR}).
 The \textit{JAL} instruction is encoded using the \textit{J}-type format. The immediate
 offset is sign-extended and added to the address of the jump instruction (current
 \textit{pc}\footnote{\textit{pc} stands for program counter and holds the address
-of the current instruction}) to determine the jump target address. As a result, jumps
-can target a range within $\pm 1 MiB$ from their address. Moreover, \textit{JAL}
+of the current instruction.}) to determine the jump target address. As a result,
+jumps can target a range within $\pm 1 MiB$ from their address. Moreover, \textit{JAL}
 stores the address of the instruction following the jump ($\textit{pc}+ 4$) into
 the destination register \textit{RD}.
 
@@ -195,12 +195,13 @@ and it is simply encoded as a \textit{JAL} instruction with $\textit{RD}= x0$.
 \subsubsection{Conditional Branches}
 \label{subsubsec:riscv_conditionalb}
 
-\textit{RISC-V} defines six branch instructions that compare two registers.
-\textit{BEQ} and \textit{BNE} take the branch if registers \textit{RS1} and \textit{RS2}
-are equal or different respectively. \textit{BLT} and \textit{BLTU} take the branch
-if \textit{RS1} is less than \textit{RS2}, using signed and unsigned comparison
-respectively. Lastly, \textit{BGE} and \textit{BGEU} take the branch if \textit{RS1}
-is greater than or equal to \textit{RS2}, using signed and unsigned comparisons respectively.
+\textit{RISC-V} defines six branch instructions that compare two registers. The
+\textit{BEQ} and \textit{BNE} instructions take the branch if registers \textit{RS1}
+and \textit{RS2} are equal or different respectively. \textit{BLT} and \textit{BLTU}
+take the branch if \textit{RS1} is less than \textit{RS2}, using signed and
+unsigned comparison respectively. Lastly, \textit{BGE} and \textit{BGEU} take
+the branch if \textit{RS1} is greater than or equal to \textit{RS2}, using signed
+and unsigned comparisons respectively.
 
 All conditional branch instructions are encoded using the \textit{B}-type format.
 The immediate offset is sign-extended and added to the address of the branch instruction
@@ -228,7 +229,7 @@ Instead, \textit{EBREAK} is used to return control to a debugging environment.
 
 In \textit{RISC-V}, exceptions are unusual conditions tied to the execution of an
 instruction within the \textit{hart}\footnote{A \textit{hart} in \textit{RISC-V}
-is defined as a hardware thread}, while interrupts are external asynchronous
+is defined as a hardware thread.}, while interrupts are external asynchronous
 events that may cause an unexpected control transfer within the \textit{hart}.
 Both exceptions and interrupts lead to a trap, which causes a control transfer to
 a trap handler.
@@ -239,13 +240,14 @@ trap is managed:
 \begin{itemize}
   \item Contained Trap: The trap is visible to software in the current execution
     environment and is handled within it. For example, in an EII that provides
-    both Machine and User mode , an \textit{ECALL} made by user-mode will generally
-    result in a transfer of control to a machine-mode handler within the same \textit{hart};
+    both Machine and User mode, an \textit{ECALL} instruction made by user-mode
+    will generally result in a transfer of control to a machine-mode handler
+    within the same \textit{hart};
 
   \item Requested Trap: A synchronous exception explicitly requesting the
-    execution environment to Specifically, the fields are: perform an action on
-    behalf of the software inside the environment. The software may or may not resume
-    execution on the \textit{hart} afterward;
+    execution environment to perform an action on behalf of the software inside
+    the environment. The software may or may not resume execution on the \textit{hart}
+    afterward;
 
   \item Invisible Trap: The execution environment handles the trap transparently,
     so the running software is unaware of it. An example is handling device
@@ -288,7 +290,7 @@ they interact with eachother.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=.7\linewidth]{images/privileges.png}
+  \includegraphics[width=.5\linewidth]{images/privileges.png}
   \caption{Abstraction of \textit{RISC-V}'s privilege levels}
   \label{fig:priv}
 \end{figure}
@@ -321,16 +323,16 @@ different privilege levels with the following characteristics:
 
 \begin{table}
   \centering
-  \begin{tabular}{|c|c|c|c|}
+  \begin{tabular}{|c|c|c|c|c|}
     \hline
-    \textbf{Level}  & \textbf{Encoding} & \textbf{Name}    & \textbf{Abbreviation} \\
-    \hhline{====} 0 & 00                & User/Application & U                     \\
+    \textbf{Level}   & \textbf{Encoding} & \textbf{Name}    & \textbf{Abbreviation} & \textbf{Use}                     \\
+    \hhline{=====} 0 & 00                & User/Application & U                     & Intended for user applications   \\
     \hline
-    1               & 01                & Supervisor       & S                     \\
+    1                & 01                & Supervisor       & S                     & Intended for operating systems   \\
     \hline
-    2               & 10                & Reserved         & -                     \\
+    2                & 10                & Reserved         & -                     & Not currently defined            \\
     \hline
-    3               & 11                & Machine          & M                     \\
+    3                & 11                & Machine          & M                     & Intended for firmware/hypervisor \\
     \hline
   \end{tabular}
   \caption{RISC-V privilege levels}
