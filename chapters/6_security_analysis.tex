@@ -185,19 +185,18 @@ Lastly, we can't know if vulnerabilities related to the \textit{RISC-V} Instruct
 Set Architecture could lead to the exploitation of the user code. In such a case,
 we can't be sure that the project will be able to protect the Control Flow Integrity
 and prevent exploitation. For example, the recently discovered hardware vulnerability
-in \textit{T-Head's XuanTie C910} and \textit{C920} CPUs named \textit{GhostWrite}\cite{riscvuzz}
-(Fabian Thomas, Lorenz Hetterich, et al., 2024) allows an attacker with limited privileges
-to read and write from and to physical memory. This type of vulnerability could
-not be prevented with the provided security features as a threat actor may be
-able to overwrite Physical Memory Protection configurations or the shadow stack
-and Control Flow Graph themselves to modify these data structure, leading to a compromisation
-of the Control Flow Integrity enforcer.
+in \textit{T-Head's XuanTie C910} and \textit{C920} CPUs named \textit{GhostWrite}
+(Fabian Thomas, Lorenz Hetterich et al., 2024)\cite{riscvuzz} allows an attacker
+with limited privileges to read and write from and to physical memory. This type
+of vulnerability could not be prevented with the provided security features as a
+threat actor may be able to overwrite Physical Memory Protection configurations or
+the shadow stack and Control Flow Graph themselves to modify these data structure,
+leading to a compromisation of the Control Flow Integrity enforcer.
 
-In summary, we provide robust protection against unauthorized control transfers
-in \textit{RISC-V} microcontrollers, particularly effective in embedded
-environments where code integrity is paramount. While the model is limited in handling
-recursion-heavy applications and relies on Physical Memory Protection for data protection,
-it nonetheless establishes a secure foundation for Control Flow Integrity
-enforcement, with the potential for further optimization in future iterations.
-Moreover, other security mechanisms could be implemented to completely secure an
-embedded device.
+In summary, we provide robust protection against unauthorized control transfers in
+\textit{RISC-V} microcontrollers, particularly effective in embedded environments
+where code integrity is paramount. While the project relies on PMP for data
+protection, it nonetheless establishes a secure foundation for Control Flow Integrity
+enforcement, with the potential for further optimization in future iterations. Moreover,
+other security mechanisms could be implemented to completely secure an embedded
+device.

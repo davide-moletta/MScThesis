@@ -228,11 +228,10 @@ Instead, \textit{EBREAK} is used to return control to a debugging environment.
 \label{sec:riscv_eti}
 
 In \textit{RISC-V}, exceptions are unusual conditions tied to the execution of an
-instruction within the \textit{hart}\footnote{A \textit{hart} in \textit{RISC-V}
-is defined as a hardware thread.}, while interrupts are external asynchronous
-events that may cause an unexpected control transfer within the \textit{hart}.
-Both exceptions and interrupts lead to a trap, which causes a control transfer to
-a trap handler.
+instruction within the hart\footnote{A hart in \textit{RISC-V} is defined as a hardware
+thread.}, while interrupts are external asynchronous events that may cause an unexpected
+control transfer within the hart. Both exceptions and interrupts lead to a trap,
+which causes a control transfer to a trap handler.
 
 Traps in RISC-V can have four possible effects, each corresponding to how the
 trap is managed:
@@ -242,12 +241,11 @@ trap is managed:
     environment and is handled within it. For example, in an EII that provides
     both Machine and User mode, an \textit{ECALL} instruction made by user-mode
     will generally result in a transfer of control to a machine-mode handler
-    within the same \textit{hart};
+    within the same hart;
 
   \item Requested Trap: A synchronous exception explicitly requesting the
     execution environment to perform an action on behalf of the software inside
-    the environment. The software may or may not resume execution on the \textit{hart}
-    afterward;
+    the environment. The software may or may not resume execution on the hart afterward;
 
   \item Invisible Trap: The execution environment handles the trap transparently,
     so the running software is unaware of it. An example is handling device
@@ -304,11 +302,11 @@ different privilege levels with the following characteristics:
     required privilege level in all \textit{RISC-V} implementations and provides
     complete access to hardware resources and system configurations. It is
     responsible for configuring the hardware, setting up system resources, and
-    initializing other privilege levels. Furthermore, trap handling is performed
-    by M-mode;
+    initializing other privilege levels. Furthermore, by default, trap handling is
+    performed in M-mode;
 
   \item Supervisor Mode (S-mode): Supervisor mode is an optional privilege level
-    designed for running operating systems or hypervisors. It offers more privileges
+    designed for running operating system-like software. It offers more privileges
     than U-mode but less than M-mode. S-mode enables an operating system to
     manage resources and control hardware with enough authority while ensuring
     that user applications cannot access or alter critical system configurations;
@@ -335,7 +333,7 @@ different privilege levels with the following characteristics:
     3                & 11                & Machine          & M                     & Intended for firmware/hypervisor \\
     \hline
   \end{tabular}
-  \caption{RISC-V privilege levels}
+  \caption{\textit{RISC-V} privilege levels}
   \label{tab:priv}
 \end{table}
 
@@ -346,23 +344,27 @@ The base \textit{RISC-V} ISA provides $32$ general purpose registers all $32$ bi
 wide. Table \ref{tab:registers} depicts all the described registers.
 
 Except for \textit{x0} which is hardwired to $0$ no other registers are assigned
-to a specific role. However, the standard calling convention uses:
-\begin{itemize}
-  \item register \textit{x1}: as return address for a \textit{JAL} or \textit{JALR}
-    instruction;
+to a specific role. However, the standard calling convention defines:
+\begin{itemize}[noitemsep]
+  \item register \textit{x1} as return address for a \textit{JAL} or \textit{JALR}
+    instructions;
 
-  \item register \textit{x5}: as an alternate link register for \textit{JAL} and
-    \textit{JALR} instructions;
+  \item register \textit{x2} as the stack pointer;
 
-  \item register \textit{x2}: as the stack pointer;
+  \item register \textit{x3} as the global pointer;
 
-  \item \textit{t}-registers: as temporary registers which are to be saved by the
+  \item register \textit{x4} as the thread pointer;
+
+  \item register \textit{x5} as an alternate link register for \textit{JAL} and \textit{JALR}
+    instructions;
+
+  \item \textit{t}-registers as temporary registers which are to be saved by the
     caller when needed;
 
-  \item \textit{a}-registers: as function arguments and return values;
+  \item \textit{a}-registers as function arguments and return values;
 
-  \item \textit{s}-registers: as saved registers which are to be saved by the callee
-    when needed.
+  \item \textit{s}-registers as saved registers which are to be saved by the
+    callee when needed.
 \end{itemize}
 
 \begin{table}
@@ -405,10 +407,9 @@ to a specific role. However, the standard calling convention uses:
 \label{sec:riscv_csrs}
 
 \textit{RISC-V} defines a separate address space of $4096$ Control and Status
-Registers (CSRs) associated with each \textit{hart}. CSRs are particular
-registers used to control specific functions of the machine. Thanks to the \textit{ZICSR}
-standard extension we can import into our ISA the following CSR-related
-instructions:
+Registers (CSRs) associated with each hart. CSRs are particular registers used to
+control specific functions of the machine. Thanks to the \textit{ZICSR} standard
+extension we can import into our ISA the following CSR-related instructions:
 \begin{itemize}
   \item \textit{CSRRW} (Atomic Read/Write CSR): atomically swaps values in the CSRs
     and integer registers. \textit{CSRRW} reads the old value of the CSR and writes
@@ -439,13 +440,14 @@ instructions:
     instead of the source register.
 \end{itemize}
 
-Moreover, \textit{RISC-V} provides the CSR pseudo-instruction \textit{CSRR} which
-is used to read a CSR and is encoded as \textit{CSRRS rd, csr, x0}. Furthermore,
-the pseudo-instructions \textit{CSRW}, \textit{CSRS}, and \textit{CSRC} are variants
-of the described instructions used to write, set, and clear the CSR respectively
-without reading its previous content. All CSR instructions atomically read-modify-write
-a single CSR, whose specifier is encoded in the $12$-bit \textit{CSR} field (Image
-\ref{fig:csrinstr} shows the encoding of CSR instructions). \\
+Moreover, \textit{RISC-V} provides the CSR pseudo-instruction \textit{CSRR}
+which is used to read a CSR and is encoded as \textit{CSRRS rd, csr, x0}.
+Furthermore, the pseudo-instructions \textit{CSRW}, \textit{CSRS}, and \textit{CSRC}
+are variants of the described instructions used to write, set, and clear the CSR
+respectively without reading its previous content. All CSR instructions atomically
+read-modify-write a single CSR, whose specifier is encoded in the $12$-bit
+\textit{CSR} field (Image \ref{fig:csrinstr} shows the encoding of CSR
+instructions). \\
 \begin{figure}[htbp]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/csr_instructions.png} } %
@@ -455,8 +457,7 @@ a single CSR, whose specifier is encoded in the $12$-bit \textit{CSR} field (Ima
 \end{figure}
 \\
 
-Table \ref{tab:csrop} depicts whether a CSR is read or written by every
-operation.
+Table \ref{tab:csrop} depicts whether a CSR is read or written by every operation.
 
 \begin{table}
   \centering
@@ -476,16 +477,15 @@ operation.
   \label{tab:csrop}
 \end{table}
 
-Out of all the CSRs, only a few will be described in the following sections
-since they will be necessary to understand the functioning of this project.
+Out of all the CSRs, only a few will be described in the following sections since
+they will be necessary to understand the functioning of this project.
 
 \subsection{Machine Status Register (MSTATUS) CSR}
 \label{subsec:mstatus}
 
-The \textit{mstatus} register keeps track of and controls the \textit{hart}'s current
-operating state. This register will be used to manage interrupts and privilege
-levels. Figure \ref{fig:mstatus} depicts a representation of the \textit{mstatus}
-CSR. \\
+The \textit{mstatus} register keeps track of and controls the hart's current operating
+state. This register will be used to manage interrupts and privilege levels. Figure
+\ref{fig:mstatus} depicts a representation of the \textit{mstatus} CSR. \\
 \begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/mstatus_csr.png} } %
@@ -498,20 +498,20 @@ Each field in \textit{mstatus} is used to control a specific function of the ISA
 Specifically, the fields are:
 \begin{itemize}
   \item Global interrupt-enable bits \textit{MIE} and \textit{SIE} are used to enable
-    and disable interrupts for M-mode and S-mode respectively. When a \textit{hart}
-    is executing in privilege mode \textit{x}, interrupts are globally enabled when
-    $\textit{xIE}= 1$ and globally disabled when $\textit{xIE}= 0$. Interrupts
-    for privilege modes \textit{w}, where $\textit{w}< \textit{x}$ are always
-    globally disabled regardless of any \textit{wIE} bit set. Interrupts for
-    privilege modes \textit{y}, where $\textit{y}> \textit{x}$ are always
-    globally enabled regardless of any \textit{yIE} bit set;
+    and disable interrupts for M-mode and S-mode respectively. When a hart is
+    executing in privilege mode \textit{x}, interrupts are globally enabled when
+    $\textit{xIE}= 1$ and globally disabled when $\textit{xIE}= 0$. Interrupts for
+    privilege modes \textit{w}, where $\textit{w}< \textit{x}$ are always globally
+    disabled regardless of any \textit{wIE} bit set. Interrupts for privilege modes
+    \textit{y}, where $\textit{y}> \textit{x}$ are always globally enabled regardless
+    of any \textit{yIE} bit set;
 
   \item \textit{SPIE}, \textit{MPIE}, \textit{SPP}, and \textit{MPP} are used
     when managing a trap. \textit{SPIE} and \textit{MPIE} hold the previous interrupt
     enable bit for S-mode and M-mode respectively. \textit{SPP} and \textit{MPP}
     hold the previous privilege level for S-mode and M-mode respectively. These bits
     are used to track the status of the machine before the trap and are necessary
-    to correctly restore the context before returning from a trap;
+    to correctly restore the context before resuming execution;
 
   \item The modify privilege bit \textit{MPRV} modifies the effective privilege
     mode. When $\textit{MPRV}= 0$ loads and store behave normally while, if
@@ -556,7 +556,8 @@ Specifically, the fields are:
 
 The \textit{mepc} register is used, when a trap is taken in M-mode, to store the
 address of the instruction that was interrupted or that encountered the exception.
-Figure \ref{fig:mepc} depicts a representation of \textit{mepc}. \\
+Such value is then used to resume execution at the correct address after
+handling. Figure \ref{fig:mepc} depicts a representation of \textit{mepc}. \\
 \begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/mepc_csr.png} } %
@@ -568,10 +569,12 @@ Figure \ref{fig:mepc} depicts a representation of \textit{mepc}. \\
 \subsection{Machine Cause Register (MCAUSE) CSR}
 \label{subsec:mcause}
 
-The \textit{mcause} register is used, when a trap is taken in M-mode, to store the
-code that indicates the event that caused the trap. All the possible codes can
-be seen in Table \ref{tab:causes}. Figure \ref{fig:mcause} depicts a representation
-of \textit{mcause}. \\
+The \textit{mcause} register is used, when a trap is taken in M-mode, to store
+the code (all codes can be seen in Tables \ref{tab:interruptcauses} and \ref{tab:exceptioncauses}
+for interrupts and exceptions respectively) that indicates the event that caused
+the trap. Such value is then used to decide how the trap should be handled. Note
+that the \textit{INTERRUPT} bit is set to $1$ for interrupts and to $0$ for exceptions.
+Figure \ref{fig:mcause} depicts a representation of \textit{mcause}. \\
 \begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/mcause_csr.png} } %
@@ -582,91 +585,102 @@ of \textit{mcause}. \\
 
 \begin{table}
   \centering
+  \small
   \begin{tabular}{|c|c|c|}
     \hline
-    \textbf{Interrupt} & \textbf{Code} & \textbf{Description}           \\
-    \hhline{===} 1     & 0             & User software interrupt        \\
+    \textbf{Interrupt bit} & \textbf{Code} & \textbf{Description}          \\
+    \hhline{===} 1         & 0             & User software interrupt       \\
     \hline
-    1                  & 1             & Supervisor software interrupt  \\
+    1                      & 1             & Supervisor software interrupt \\
     \hline
-    1                  & 2             & Reserved                       \\
+    1                      & 2             & Reserved                      \\
     \hline
-    1                  & 3             & Machine software interrupt     \\
+    1                      & 3             & Machine software interrupt    \\
     \hline
-    1                  & 4             & User timer interrupt           \\
+    1                      & 4             & User timer interrupt          \\
     \hline
-    1                  & 5             & Supervisor timer interrupt     \\
+    1                      & 5             & Supervisor timer interrupt    \\
     \hline
-    1                  & 6             & Reserved                       \\
+    1                      & 6             & Reserved                      \\
     \hline
-    1                  & 7             & Machine timer interrupt        \\
+    1                      & 7             & Machine timer interrupt       \\
     \hline
-    1                  & 8             & User external interrupt        \\
+    1                      & 8             & User external interrupt       \\
     \hline
-    1                  & 9             & Supervisor external interrupt  \\
+    1                      & 9             & Supervisor external interrupt \\
     \hline
-    1                  & 10            & Reserved                       \\
+    1                      & 10            & Reserved                      \\
     \hline
-    1                  & 11            & Machine external interrupt     \\
+    1                      & 11            & Machine external interrupt    \\
     \hline
-    1                  & 12            & Reserved                       \\
+    1                      & 12            & Reserved                      \\
     \hline
-    1                  & 13            & Counter-overflow interrupt     \\
+    1                      & 13            & Counter-overflow interrupt    \\
     \hline
-    1                  & 14-15         & Reserved                       \\
+    1                      & 14-15         & Reserved                      \\
     \hline
-    1                  & $\geq 16$     & Designated for platform use    \\
-    \hhline{===} 0     & 0             & Instruction address misaligned \\
-    \hline
-    0                  & 1             & Instruction access fault       \\
-    \hline
-    0                  & 2             & Illegal instruction            \\
-    \hline
-    0                  & 3             & Breakpoint                     \\
-    \hline
-    0                  & 4             & Load address misaligned        \\
-    \hline
-    0                  & 5             & Load access fault              \\
-    \hline
-    0                  & 6             & Store/AMO address misaligned   \\
-    \hline
-    0                  & 7             & Store/AMO access fault         \\
-    \hline
-    0                  & 8             & Environment call from U-mode   \\
-    \hline
-    0                  & 9             & Environment call from S-mode   \\
-    \hline
-    0                  & 10            & Reserved                       \\
-    \hline
-    0                  & 11            & Environment call from M-mode   \\
-    \hline
-    0                  & 12            & Instruction page fault         \\
-    \hline
-    0                  & 13            & Load page fault                \\
-    \hline
-    0                  & 14            & Reserved                       \\
-    \hline
-    0                  & 15            & Store/AMO page fault           \\
-    \hline
-    0                  & 16-17         & Reserved                       \\
-    \hline
-    0                  & 18            & Software check                 \\
-    \hline
-    0                  & 19            & Hardware check                 \\
-    \hline
-    0                  & 20-23         & Reserved                       \\
-    \hline
-    0                  & 24-31         & Designated for custom use      \\
-    \hline
-    0                  & 32-47         & Reserved                       \\
-    \hline
-    0                  & 48-63         & Designated for custom use      \\
-    \hline
-    0                  & $\geq 64$     & Designated for custom use      \\
+    1                      & $\geq 16$     & Designated for platform use   \\
     \hline
   \end{tabular}
-  \caption{Interrupts and Exception causes}
-  \label{tab:causes}
+  \caption{Interrupts cause codes}
+  \label{tab:interruptcauses}
+\end{table}
+
+\begin{table}
+  \centering
+  \small
+  \begin{tabular}{|c|c|c|}
+    \hline
+    \textbf{Interrupt bit} & \textbf{Code} & \textbf{Description}           \\
+    \hhline{===} 0         & 0             & Instruction address misaligned \\
+    \hline
+    0                      & 1             & Instruction access fault       \\
+    \hline
+    0                      & 2             & Illegal instruction            \\
+    \hline
+    0                      & 3             & Breakpoint                     \\
+    \hline
+    0                      & 4             & Load address misaligned        \\
+    \hline
+    0                      & 5             & Load access fault              \\
+    \hline
+    0                      & 6             & Store/AMO address misaligned   \\
+    \hline
+    0                      & 7             & Store/AMO access fault         \\
+    \hline
+    0                      & 8             & Environment call from U-mode   \\
+    \hline
+    0                      & 9             & Environment call from S-mode   \\
+    \hline
+    0                      & 10            & Reserved                       \\
+    \hline
+    0                      & 11            & Environment call from M-mode   \\
+    \hline
+    0                      & 12            & Instruction page fault         \\
+    \hline
+    0                      & 13            & Load page fault                \\
+    \hline
+    0                      & 14            & Reserved                       \\
+    \hline
+    0                      & 15            & Store/AMO page fault           \\
+    \hline
+    0                      & 16-17         & Reserved                       \\
+    \hline
+    0                      & 18            & Software check                 \\
+    \hline
+    0                      & 19            & Hardware check                 \\
+    \hline
+    0                      & 20-23         & Reserved                       \\
+    \hline
+    0                      & 24-31         & Designated for custom use      \\
+    \hline
+    0                      & 32-47         & Reserved                       \\
+    \hline
+    0                      & $\geq 48$     & Designated for custom use      \\
+    \hline
+  \end{tabular}
+  \caption{Exception cause codes}
+  \label{tab:exceptioncauses}
 \end{table}
 
 \subsection{Machine Trap Value Register (MTVAL) CSR}
@@ -691,8 +705,9 @@ configuration. Figure \ref{fig:mtvec} depicts a representation of \textit{mtvec}
 The \textit{MODE} field can be set according to Table \ref{tab:mode}. If we set
 the \textit{MODE} to vectored, all asynchronous interrupts will set the program
 counter to the base address encoded in \textit{mtvec} plus $4$ times the cause of
-the interrupt (causes can be seen in Table \ref{tab:causes}). With \textit{MODE}
-set to direct instead, all traps set the program counter to the base address. \\
+the interrupt (causes can be seen in Table \ref{tab:interruptcauses}). With
+\textit{MODE} set to direct instead, all traps set the program counter to the
+base address. \\
 \begin{figure}[H]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/mtvec_csr.png} } %
@@ -705,15 +720,15 @@ set to direct instead, all traps set the program counter to the base address. \\
   \centering
   \begin{tabular}{|c|c|c|}
     \hline
-    \textbf{Value}   & \textbf{Name} & \textbf{Description}                                                      \\
-    \hhline{===} $0$ & Direct        & All traps set $\textit{pc}= \textit{BASE}$                                \\
+    \textbf{Value}   & \textbf{Name} & \textbf{Description}                                                        \\
+    \hhline{===} $0$ & Direct        & All traps set $\textit{pc}= \textit{BASE}$                                  \\
     \hline
-    $1$              & Vectored      & Asynchronous interrupts set $\textit{pc}= \textit{BASE}+4*\textit{cause}$ \\
+    $1$              & Vectored      & Asynchronous interrupts set $\textit{pc}= \textit{BASE}+(4*\textit{cause})$ \\
     \hline
-    $\geq 2$         & -             & Reserved                                                                  \\
+    $\geq 2$         & -             & Reserved                                                                    \\
     \hline
   \end{tabular}
-  \caption{Encoding of \textit{MODE} for \textit{mtvec} register}
+  \caption{Encoding of the \textit{MODE} field for \textit{mtvec}}
   \label{tab:mode}
 \end{table}
 
@@ -749,37 +764,36 @@ of the registers). \\
 If we wish to delegate a subset of traps we just need to set the corresponding
 bits inside \textit{mideleg} and \textit{medeleg}. For example, if we wish to
 delegate instruction address misaligned exception to supervisor mode we just
-need to set bit $0$ of \textit{medeleg} because we want to delegate an exception
-and, as we can see in \ref{tab:causes}, it is in position $0$ among the exceptions.
-However, note that higher privilege traps are never delegated, if we decide to
-delegate instruction access fault exceptions and such exception is generated in
-machine mode it will be handled at that privilege level.
+need to set bit $0$ of \textit{medeleg}. This is because we want to delegate an
+exception and, as we can see in Table \ref{tab:exceptioncauses}, such exception
+has the code $0$. However, note that higher privilege traps are never delegated,
+if we decide to delegate instruction access fault exceptions and such exception is
+generated in machine mode it will be handled at that privilege level.
 
 \section{RISC-V Physical Memory Protection (PMP)}
 \label{sec:riscv_pmp}
 
-\textit{RISC-V} provides an optional Physical Memory Protection (PMP) unit that
-allows to configure access privileges (read, write, and execute) for each
-physical memory region. The PMP ensures secure processing and helps to contain faults.
+\textit{RISC-V} provides an optional Physical Memory Protection (PMP) unit that allows
+to configure access privileges (read, write, and execute) for each physical memory
+region. The PMP ensures secure processing and helps to contain faults.
 
-PMP checks are applied at all accesses in S or U mode. Optionally, PMP checks may
-additionally apply to M-mode accesses, in which case the PMP registers
-themselves are locked, so that even M-mode software cannot change them until the
-hart is reset. Each PMP check results either in a violation which is trapped at
-the processor or in a granted permission.
+PMP checks are applied at all accesses in S or U mode. Optionally, PMP checks
+may additionally apply to M-mode accesses, in which case the PMP registers themselves
+are locked, so that even M-mode software cannot change them until the hart is
+reset. Each PMP check results either in a violation which is trapped at the processor
+or in a granted permission.
 
 \subsection{PMP CSRs}
 \label{subsec:riscv_pmpcsr}
 
 Each PMP entry is described by an 8-bit configuration register (\textit{pmpXcfg})
 and one $32$-bit address register (\textit{pmpaddrX}). Sixteen CSRs, \textit{pmpcfg0-pmpcfg15},
-hold the configurations \textit{pmp0cfg-pmp63cfg} for the 64 PMP entries (as shown
-in Figure \ref{fig:pmpcfgs}). Each PMP address (\textit{pmpaddr0-pmpaddr63})
-encodes bits $33$-$2$ of a $34$-bit physical address as shown in Figure
-\ref{fig:pmpaddr}.
+hold the configurations \textit{pmp0cfg-pmp63cfg} for the 64 PMP entries (as
+shown in Figure \ref{fig:pmpcfgs}). Each PMP address (\textit{pmpaddr0-pmpaddr63})
+encodes bits $33$-$2$ of a $34$-bit physical address as shown in Figure \ref{fig:pmpaddr}.
 
 Each PMP configuration register (Figure \ref{fig:pmpconf}) contains:
-\begin{itemize}
+\begin{itemize}[noitemsep]
   \item R-bit: when set allows read access;
 
   \item W-bit: when set allows write access;
@@ -793,7 +807,7 @@ Each PMP configuration register (Figure \ref{fig:pmpconf}) contains:
     without a system reset.
 \end{itemize}
 
-\begin{figure}[H]
+\begin{figure}[htbp]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/pmpcfgs_csr.png}}
   {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $60$}}
@@ -801,7 +815,7 @@ Each PMP configuration register (Figure \ref{fig:pmpconf}) contains:
   \label{fig:pmpcfgs}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[htbp]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/pmpaddress_csr.png} } %
   {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $61$}}
@@ -809,7 +823,7 @@ Each PMP configuration register (Figure \ref{fig:pmpconf}) contains:
   \label{fig:pmpaddr}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[htbp]
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=.9\linewidth]{images/pmpconf_csr.png} } %
   {\scriptsize Source: \href{https://drive.google.com/file/d/17GeetSnT5wW3xNuAHI95-SI1gPGd5sJ_/view}{\textit{RISC-V} Privileged Manual, page $61$}}
@@ -821,7 +835,8 @@ Each PMP configuration register (Figure \ref{fig:pmpconf}) contains:
 \label{subsec:pmpaddressmatching}
 
 The A field in a PMP entry's configuration register encodes the address-matching
-mode of the associated PMP address register (encoding shown in Table \ref{tab:addressmatching}).
+mode of the associated PMP address register (encoding shown in Table
+\ref{tab:addressmatching}).
 
 \begin{table}
   \centering
@@ -841,13 +856,13 @@ mode of the associated PMP address register (encoding shown in Table \ref{tab:ad
   \label{tab:addressmatching}
 \end{table}
 
-When $A=0$, this PMP entry is disabled and matches no addresses. Two other address-matching
-modes are supported:
+When $A=0$, this PMP entry is disabled and matches no addresses. Two other
+address-matching modes are supported:
 \begin{itemize}
   \item Naturally aligned power-of-$2$ regions (NAPOT): NAPOT ranges make use of
     the low-order bits of the associated address register to encode the size of
-    the range. This includes the special case of naturally aligned four-byte regions
-    (NA4);
+    the range as shown in Table \ref{tab:napotencodings}. This includes the special
+    case of naturally aligned four-byte regions (NA4);
 
   \item Top boundary of an arbitrary range (TOR): If TOR is selected, the associated
     address register forms the top of the address range, and the preceding PMP
@@ -855,6 +870,32 @@ modes are supported:
     first PMP address is configured as TOR the lower boundary is considered to
     be \textit{0x0}.
 \end{itemize}
+
+\begin{table}
+  \centering
+  \begin{tabular}{|c|c|c|}
+    \hline
+    \textbf{pmpaddr}          & \textbf{pmpcfg A value} & \textbf{Match type and size}  \\
+    \hhline {===} yyyy...yyyy & NA4                     & $4$-byte NAPOT range          \\
+    \hline
+    yyyy...yyy0               & NAPOT                   & $8$-byte NAPOT range          \\
+    \hline
+    yyyy...yy01               & NAPOT                   & $16$-byte NAPOT range         \\
+    \hline
+    yyyy...y011               & NAPOT                   & $32$-byte NAPOT range         \\
+    \hline
+    ...                       & ...                     & ...                           \\
+    \hline
+    y011...1111               & NAPOT                   & $2^{XLEN+1}$-byte NAPOT range \\
+    \hline
+    0111...1111               & NAPOT                   & $2^{XLEN+2}$-byte NAPOT range \\
+    \hline
+    1111...1111               & NAPOT                   & $2^{XLEN+3}$-byte NAPOT range \\
+    \hline
+  \end{tabular}
+  \caption{NAPOT range encoding in PMP address and configuration registers}
+  \label{tab:napotencodings}
+\end{table}
 
 \subsection{PMP Matching Logic}
 \label{subsec:matchinglogic}
