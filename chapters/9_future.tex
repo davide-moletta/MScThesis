@@ -47,17 +47,17 @@ be some devices that provide hardware modules that could be used to further
 increase the security of the project. However, this process requires exhaustive
 testing and would lead to possible enhancement only on a few embedded devices.
 
-Note that we can't add security measures such as Data Execution Prevention (DEP)
-or Address Space Layout Randomization (ASLR) to the binary as they would
-conflict with the system's configuration. Data Execution Prevention requires setting
-memory regions with either write but not execute privileges or execute but not write
-privileges. This would obviously impact the project as it provides memory
-regions that require both privileges. Address Space Layout Randomization instead
-would randomize all the addresses so that they are different at each execution.
-While this technique provides good security it would render the Control Flow
-Graph completely useless as the addresses we collect during the extraction would
-be different from the addresses at execution time leading to a situation where
-each forward edge control fails.
+Note that we can't add security measures such as Data Execution Prevention or
+Address Space Layout Randomization to the binary as they would conflict with the
+system's configuration. Data Execution Prevention requires setting memory regions
+with either write but not execute privileges or execute but not write privileges.
+This would obviously impact the project as it provides memory regions that
+require both privileges. Address Space Layout Randomization instead would randomize
+all the addresses so that they are different at each execution. While this
+technique provides good security it would render the Control Flow Graph
+completely useless as the addresses we collect during the extraction would be
+different from the addresses at execution time leading to a situation where each
+forward edge control fails.
 
 Lastly, note that the project is designed to protect the code from control flow hijacking
 attacks and must be paired with other security measures before deployment. This
@@ -87,9 +87,9 @@ times. On the other hand, when we need to perform a backward edge control we
 look at the first value of the shadow stack. If the two addresses are equal we approve
 the return instruction without popping the value. Instead, if the addresses differ,
 we pop two values and compare the second one with the return address we are
-checking. With this solution, we could effectively address the problem with
-deeply recursive algorithms without affecting the security capabilities of the
-project.
+checking. With this solution, we could effectively address the memory
+consumption problem of deeply recursive algorithms without affecting the
+security capabilities of the project.
 
 Secondly, we provided a solution to reduce memory usage in cases where the user code
 is small. For example, say that the user code starts at address $0x4038A000$ and
@@ -140,9 +140,9 @@ The main focus for future works sees the integration of a Real-Time Operating Sy
 such as \textit{FreeRTOS} or \textit{Zephyr RTOS}. Such a task is of great
 importance since an implementation providing the features of both the project
 and an RTOS would drastically increase the number of fields in which this
-project could be used. This would open the door to more complex solutions and would
-allow embedded devices to carry out complex tasks while Control Flow Integrity is
-preserved by the project.
+project could be deployed. This would open the door to more complex solutions and
+would allow embedded devices to carry out complex tasks while Control Flow Integrity
+is preserved by the project.
 
 We already discussed all the additional features that an RTOS can provide in chapter
 \ref{cha:rtos} giving insights on the advantages of using such technology. Also,
@@ -157,7 +157,7 @@ idea, the Control Flow Integrity enforcer is the only code that runs at M-mode a
 it is responsible for managing machine-level traps as well as forward and backward
 edge controls. The selected RTOS, be it \textit{FreeRTOS}, \textit{Zephyr RTOS},
 or any other RTOS, would run in supervisor mode. This is because we want the RTOS
-to be less privileged than teh CFI enforcer but more privileged than the user code.
+to be less privileged than the CFI enforcer but more privileged than the user code.
 Lastly, the user code would run in U-mode as already described in this thesis.
 Figure \ref{fig:rtos} depicts an abstraction of the described implementations
 where green, orange, and red colors represent machine, supervisor, and user
@@ -196,5 +196,5 @@ to the input of \textit{flasher.py}. As of now, the file can be launched with
 the commands described in section \ref{sec:project_instrumentation} but, by simply
 adding a parameter like \textit{RTOS=(y/n)} we could launch \textit{flasher.py} with
 \textit{python3 flasher.py command rtos}. Such simple modification would make it
-easier to either include the RTOS files or not. Providing a simple and fast
+easier to either include the RTOS files or not, thus providing a simple and fast
 building process to any kind of project.
