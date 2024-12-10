@@ -74,9 +74,9 @@ and Physical Memory Protection. The testing procedure has been conducted as foll
     \begin{lstlisting}[style=CStyle, caption = Physical Memory Protection testing, label={lst:pmpcheck}]
 #include "shadow_stack.h"
 void user_function() {
- u_int malicious_address = 10;
- push(malicious_address);
- printf("Pushed: %d\n", pop());
+  u_int malicious_address = 10;
+  push(malicious_address);
+  printf("Pushed: %d\n", pop());
 }
  \end{lstlisting}
 
@@ -94,10 +94,10 @@ void user_function() {
 
     \begin{lstlisting}[style=CStyle, caption = \textit{Return-Oriented Programming} simulation attack, label={lst:returncheck}]
 int user_function() {
- // Other code ...
- asm("la t0, malicious_func"); // Load addr of malicious code
- asm("sw t0, 12(sp)");         // Substitute return address
- return 0;
+  // Other code ...
+  asm("la t0, malicious_func"); // Load addr of malicious code
+  asm("sw t0, 12(sp)");         // Substitute return address
+  return 0;
 }
  \end{lstlisting}
 
@@ -112,12 +112,12 @@ int user_function() {
 
     \begin{lstlisting}[style=CStyle, caption = \textit{Jump-Oriented Programming} simulation attack, label={lst:jumpcheck}]
 int user_function() {
- // Other code ...
- asm("la t0, malicious_func"); // Load addr of malicious code
- asm("mv a5, t0");             // Substitute jump address
- // JALR instruction
- // Other code ...
- return 0;
+  // Other code ...
+  asm("la t0, malicious_func"); // Load addr of malicious code
+  asm("mv a5, t0");             // Substitute jump address
+  // JALR instruction
+  // Other code ...
+  return 0;
 }
  \end{lstlisting}
 

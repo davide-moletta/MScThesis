@@ -5,20 +5,20 @@ This thesis discussed the design, development, and analysis of a Control Flow
 Integrity enforcer for \textit{RISC-V}-based embedded devices which poses itself
 as a significant contribution to enhancing security in resource-constrained environments.
 The project successfully addresses key challenges related to embedded device
-security, including mitigating control flow hijacking attacks such as Return-Oriented
-Programming and Jump-Oriented Programming. With the integration of advanced
-mechanisms like a shadow stack and Control Flow Graph, the project ensures robust
-enforcement of Control Flow Integrity, a critical step in preventing
+security, including mitigating control flow hijacking attacks such as \textit{Return-Oriented
+Programming} and \textit{Jump-Oriented Programming}. With the integration of
+advanced mechanisms like a shadow stack and Control Flow Graph, the project ensures
+robust enforcement of Control Flow Integrity, a critical step in preventing
 unauthorized execution flows or arbitrary code execution.
 
 In chapters \ref{cha:background} and \ref{cha:threatmodel}, we provided a comprehensive
-description of control flow hijacking attacks describing hwo they work and why they
-pose such a threat to modern-day security of embedded systems. Moreover, we described
-the currently available security measures to mitigate this class of cyber threats.
-Lastly, we discussed the project's threat model, highlighting the scope and
-limitations of the provided security features.
+description of control flow hijacking attacks, describing how they work and why
+they pose such a threat to the modern-day security of embedded systems. Moreover,
+we described the currently available security measures to mitigate this class of
+cyber threats. Lastly, we discussed the project's threat model, highlighting the
+scope and limitations of the provided security features.
 
-In chapter \ref{cha:project} we have seen the design and implementation
+In chapter \ref{cha:project}, we have seen the design and implementation
 processes highlighting their key features. We have also seen how the project adheres
 to the principles of lightweight and efficient security, making it suitable for
 devices with limited computational resources. The system leverages the flexibility
@@ -28,50 +28,51 @@ achieves this balance through meticulous code instrumentation, optimized
 Physical Memory Protection configurations, and efficient trap management mechanisms.
 Additionally, the modular design of the project ensures that it remains adaptable
 to various use cases and allows for further customization. Lastly, with the Proof
-of Concept presented in section \ref{sec:project_poc} we demonstrated the project's
-ability to effectively detect and mitigate attacks that aim at disrupting the code
-execution flow.
+of Concept presented in section \ref{sec:project_poc}, we demonstrated the
+project's ability to effectively detect and mitigate attacks that aim at
+disrupting the code execution flow.
 
-Chapter \ref{cha:ta} was focused on providing an in-depth view of the testing methodologies
-used during the project's security assessment. Additionally, we proved how the Control
-Flow Integrity enforcer can effectively protect the code from control flow hijacking
-attacks. Also, we discussed the weak points of the project, describing its
-limitations in protecting from specific attacks and discussing potential
-enhancements to provide a higher degree of security.
+Chapter \ref{cha:ta} was focused on providing an in-depth view of the testing
+methodologies used during the project's security assessment. Additionally, we
+proved how the Control Flow Integrity enforcer can effectively protect the code
+from control flow hijacking attacks. Also, we discussed the project's weak
+points, describing its limitations in protecting from specific attacks and discussing
+potential enhancements to provide a higher degree of security.
 
-A comprehensive performance analysis presented in chapter \ref{cha:pa}
-illustrates the practical viability of incorporating the project into real-world
-applications while maintaining a high level of system efficiency. The analysis delves
-into the average overhead associated with the implementation, highlighting the
-importance of this metric in evaluating its effectiveness. We explored various optimization
-techniques specifically designed to mitigate elevated overheads that may arise in
-certain unusual scenarios. By addressing these potential challenges, we aim to ensure
-that the proposed solution can be seamlessly integrated into existing systems,
-ultimately enhancing overall performance while minimizing any adverse effects.
+A comprehensive performance analysis presented in chapter \ref{cha:pa} illustrates
+the practical viability of incorporating the project into real-world applications
+while maintaining high levels of system efficiency. The analysis delves into the
+average overhead associated with the implementation, highlighting the importance
+of this metric in evaluating its effectiveness. We explored various optimization
+techniques specifically designed to mitigate elevated overheads that may arise
+in certain unusual scenarios. By addressing these potential challenges, we aim
+to ensure that the proposed solution can be seamlessly integrated into existing
+systems, ultimately enhancing overall performance while minimizing any adverse effects.
 
-The purpose of chapter \ref{cha:rtos} was to provide an implementation idea to
-integrate the system with widely used Real-Time Operating Systems such as
-\textit{FreeRTOS} and \textit{Zephyr RTOS}. Such integration could enhance the project's
-versatility and readiness for broader adoption, allowing for the execution of
-more complex tasks. We focused on this implementation because many real-world applications
-are highly dependent on the features provided by RTOSes to carry out their tasks.
+The purpose of chapter \ref{cha:rtos} was to provide an implementation idea to integrate
+the system with widely used Real-Time Operating Systems such as \textit{FreeRTOS}
+and \textit{Zephyr RTOS}. Such integration could enhance the project's
+versatility and readiness for broader adoption, allowing for the execution of more
+complex tasks. We focused on this implementation because many real-world
+applications are highly dependent on the features provided by RTOSes to carry
+out their tasks.
 
-Lastly, the thesis also identifies several areas for future exploration, including
-the incorporation of additional security mechanisms, further code optimization, and
-exhaustive testing under diverse operational conditions in chapter \ref{cha:future}.
-These potential enhancements aim to refine the system and broaden its
-applicability, extending its impact on the security of embedded systems in the rapidly
-expanding Internet of Things landscape.
+Lastly, the thesis also identifies several areas for future exploration,
+including the incorporation of additional security mechanisms, further code optimization,
+and exhaustive testing under diverse operational conditions in chapter
+\ref{cha:future}. These potential enhancements aim to refine the system and broaden
+its applicability, extending its impact on the security of embedded systems in
+the rapidly expanding Internet of Things landscape.
 
-In conclusion, the project discussed in this thesis marks a significant
-milestone in the realm of embedded system security. This innovative approach introduces
-practical solutions specifically designed to protect \textit{RISC-V}
-microcontrollers from a variety of emerging cyber threats that have been
-increasingly targeting these systems. By addressing not only the immediate security
-challenges faced by these microcontrollers but also laying the groundwork for future
-advancements, it represents a forward-thinking initiative in cybersecurity.
+In conclusion, the project discussed in this thesis marks a significant milestone
+in the realm of embedded system security. This innovative approach introduces
+practical solutions specifically designed to protect \textit{RISC-V} microcontrollers
+from a variety of emerging cyber threats that have been increasingly targeting these
+systems. By tackling not just the immediate security challenges of these
+microcontrollers, but also establishing a foundation for future progress, it
+embodies a proactive approach to cybersecurity.
 
-A key achievement is the focus on safeguarding untrusted code from control-flow
+A key achievement is the focus on safeguarding untrusted code from control flow
 hijacking attacks, a common and dangerous threat in the embedded systems landscape.
 The developed infrastructure has been meticulously designed to ensure that
 security measures do not detrimentally affect the performance of resource-constrained
