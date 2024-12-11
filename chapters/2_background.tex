@@ -40,7 +40,7 @@ avoid introducing new code, making detection and prevention more challenging.
   [23]{r}{.35\textwidth}
   \centering
   \def\stackalignment{r}\stackunder{ \includegraphics[width=\linewidth]{images/rop.png} } %
-  {\scriptsize \parbox[t]{\linewidth}{Source: \href{http://dx.doi.org/10.1145/3320269.3384738}{Return-Oriented Programming on RISC-V}\cite{rop}}}
+  {\scriptsize \parbox[t]{\linewidth}{Source: \href{http://dx.doi.org/10.1145/3320269.3384738}{\textit{Return-Oriented Programming} on \textit{RISC-V}}\cite{rop}}}
   \caption{\textit{Return-Oriented Programming} principle}
   \label{fig:rop}
 \end{wrapfigure}
@@ -122,7 +122,7 @@ When the program later attempts to use the overwritten function pointer to make 
 call, control flow is redirected to the attacker-specified address instead of
 the intended function. This allows the attacker to execute arbitrary code or alter
 the behavior of the application to perform tasks such as privilege escalation,
-information leakage, or system compromise.
+information leakage, or system compromisation.
 
 Function pointer overwrites are particularly dangerous because they exploit the flexibility
 and power of dynamic function calls, which are common in modular and object-oriented
@@ -471,7 +471,7 @@ stored in the stack so that it points to some malicious code or a gadget. As
 soon as the current function tries to perform the return instruction we see that
 the return address and the address stored in the shadow stack are not the same. This
 happens because the current function was called neither by the malicious code nor
-by the gadget, thus the control should not be transfered to those memory parts.
+by the gadget, thus the control should not be transferred to those memory parts.
 
 \section{Related Works}
 \label{sec:background_related}
@@ -572,14 +572,14 @@ protect the execution flow from control flow hijacking attacks. In this thesis, 
 focus on developing a robust, software-based CFI enforcer tailored for embedded
 devices that utilize the \textit{RISC-V} Instruction Set Architecture.
 
-Our proposed solution adopts the following approach. First, we implement a shadow
+Our proposed solution adopts the following approach. Firstly, we implement a shadow
 stack mechanism designed to secure backward edges. This method ensures that
 return addresses are stored in a separate stack, effectively protecting against common
 vulnerabilities such as stack overflows and \textit{Return-Oriented Programming}
 attacks.
 
-Second, we utilize a Control Flow Graph to monitor and enforce the integrity of forward
-edges. By analyzing the program's control flow path, we can detect any unauthorized
+Secondly, we utilize a Control Flow Graph to monitor and enforce the integrity of
+forward edges. By analyzing the program's control flow path, we can detect any unauthorized
 or anomalous jumps in execution, thus mitigating risks associated with control
 hijacking.
 

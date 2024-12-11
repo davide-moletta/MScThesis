@@ -132,7 +132,7 @@ The base \textit{RV32I} ISA uses four main instruction formats: \textit{R},
 \textit{I}, \textit{S}, and \textit{U}, all fixed at $32$ bits in length (shown in
 Figure \ref{fig:instrformats}).
 
-Additionally, RV32I includes formats \texttt{B} and \texttt{J} (shown in Figure
+Additionally, RV32I includes formats \textit{B} and \textit{J} (shown in Figure
 \ref{fig:extrainstrformats}), which vary in immediate encoding to optimize
 hardware design. The immediate structure across formats is designed to minimize hardware
 complexity and overlap, focusing on efficiency for both compilation and runtime
@@ -225,7 +225,7 @@ class of \textit{SYSTEM} instructions, we need to define \textit{ECALL} and \tex
 The Execution Environment Interface (EII) defines how parameters should be passed.
 Instead, \textit{EBREAK} is used to return control to a debugging environment.
 
-\section{RISC-V Exceptions, Traps and Interrupts}
+\section{RISC-V Exceptions and Interrupts}
 \label{sec:riscv_eti}
 
 In \textit{RISC-V}, exceptions are unusual conditions tied to the execution of an
@@ -364,8 +364,6 @@ to a specific role. However, the standard calling convention defines:
     caller when needed;
 
   \item \textit{a}-registers as function arguments and return values;
-
-      
 
   \item \textit{s}-registers as saved registers, which are to be saved by the callee
     when needed.
@@ -574,10 +572,10 @@ depicts a representation of \textit{mepc}. \\
 \label{subsec:mcause}
 
 The \textit{mcause} register is used when a trap is taken in M-mode to store the
-code (all codes can be seen in Tables \ref{tab:interruptcauses} and \ref{tab:exceptioncauses}
-for interrupts and exceptions, respectively) that indicates the event that caused
-the trap. Such value is then used to decide how the trap should be handled. Note
-that the \textit{INTERRUPT} bit is set to $1$ for interrupts and to $0$ for
+code that indicates the event that caused the trap (all codes can be seen in Tables
+\ref{tab:interruptcauses} and \ref{tab:exceptioncauses} for interrupts and exceptions,
+respectively). Such value is then used to decide how the trap should be handled.
+Note that the \textit{INTERRUPT} bit is set to $1$ for interrupts and to $0$ for
 exceptions. Figure \ref{fig:mcause} depicts a representation of \textit{mcause}.
 \\
 \begin{figure}[H]
@@ -767,12 +765,13 @@ of the registers). \\
 
 If we wish to delegate a subset of traps, we just need to set the corresponding
 bits inside \textit{mideleg} and \textit{medeleg}. For example, if we wish to
-delegate instruction address misaligned exception to supervisor mode, we just need
-to set bit $0$ of \textit{medeleg}. This is because we want to delegate an exception
-and, as we can see in table \ref{tab:exceptioncauses}, such exception has the code
-$0$. However, note that higher privilege traps are never delegated. If we decide
-to delegate instruction access fault exceptions and such exception is generated
-in machine mode, it will be handled at that privilege level.
+delegate \textit{Instruction Address Misaligned} exception to supervisor mode,
+we just need to set bit $0$ of \textit{medeleg}. This is because we want to
+delegate an exception and, as we can see in table \ref{tab:exceptioncauses},
+such exception has the code $0$. However, note that higher privilege traps are
+never delegated. If we decide to delegate \textit{Instruction Access Fault}
+exceptions and such exception is generated in machine mode, it will be handled at
+that privilege level.
 
 \section{RISC-V Physical Memory Protection (PMP)}
 \label{sec:riscv_pmp}
@@ -919,5 +918,5 @@ the privilege mode of the access is S or U, then the access succeeds if and only
 if the R, W, or X bit corresponding to the access type is set.
 
 If no PMP entry matches an S-mode or U-mode access, but at least one PMP entry
-is implemented, the access fails, generating a load, store, or instruction
-access exception.
+is implemented, the access fails, generating a \textit{Load}, \textit{Store}, or
+\textit{Instruction Access} exception.

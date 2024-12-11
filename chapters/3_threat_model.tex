@@ -1,4 +1,4 @@
-\chapter{Threat Model and Assumptions}
+\chapter{Threat Model}
 \label{cha:threatmodel}
 
 This chapter aims to provide a detailed exploration of the threat model and the
@@ -19,8 +19,8 @@ The threat is posed by a malicious actor who, thanks to any present vulnerabilit
 can hijack the device by perpetrating one or more control flow hijacking attacks
 among the ones seen in section \ref{sec:background_cfa}. Note that given the
 bare-metal execution environment, there are no dynamically linked or shared libraries,
-so we focus mostly on attacks such as Return-Oriented Programming and Jump-Oriented
-Programming. Also, the attacker may have access to the source code or binary
+so we focus mostly on attacks such as \textit{Return-Oriented Programming} and \textit{Jump-Oriented
+Programming}. Also, the attacker may have access to the source code or binary
 file. As the project aims to detect and prevent control flow hijacking attacks,
 other attack types are not within its scope, and alternative approaches should be
 utilized to address them.

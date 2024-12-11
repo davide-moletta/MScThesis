@@ -32,9 +32,9 @@ Consequently, embedded device security is an increasingly pressing concern, as a
 on these devices can result in data breaches, unauthorized system control, or disruptions
 to essential services.
 
-Among the potential threats, we have Software-based, Network-based, and Side-based
+Among the potential threats, we have software-based, network-based, and side-based
 attacks that an attacker may use to impact the Confidentiality, Integrity, and
-Availability of a system. One notable example of a Network-based attack is the \textit{Man-In-The-Middle}
+Availability of a system. One notable example of a network-based attack is the \textit{Man-In-The-Middle}
 (MITM) attack. In this scenario, a malicious actor intercepts the communication
 between two parties, thereby gaining unauthorized access to sensitive data such as
 cryptographic keys, login credentials, and personal information. This breach can
@@ -59,8 +59,8 @@ them have limited hardware resources as they may be designed to carry out simple
 tasks. This means we must apply security measures within the device's
 capabilities without affecting performance. This is a challenge because, in
 embedded systems security, we often need to design tailored security features to
-protect the device while maintaining high efficiency. Here, we discuss how we aim
-to contribute to the world of embedded security with the presented project.
+protect the device while maintaining high efficiency. In this thesis, we discuss
+how we aim to contribute to the world of embedded security with the presented project.
 
 \section{Goals}
 \label{sec:intro_goals}
@@ -108,10 +108,10 @@ overall resilience of embedded applications in various critical fields.
 Following this introduction, chapter \ref{cha:background} presents a
 comprehensive background about the problem, security techniques, and related
 works that provide a similar solution to the one presented in this thesis. We start
-with the problem's description, severity, and the relevant attacks we aim to mitigate.
-Secondly, we discuss state-of-the-art security measures against control flow hijacking
-attacks, strongly focusing on Control Flow Integrity. Lastly, we present related
-projects discussing what differentiates them from our approach.
+with the problem's description, listing the relevant attacks we aim to mitigate.
+Secondly, we discuss state-of-the-art security measures against control flow
+hijacking attacks, strongly focusing on Control Flow Integrity. Lastly, we present
+related projects discussing what differentiates them from our approach.
 
 In chapter \ref{cha:threatmodel} we provide the threat model and assumptions for
 this project. We state the problem and the target of our security measures. Also,
@@ -119,49 +119,48 @@ we discuss assumptions we made about the threat scenario and the capabilities of
 an attacker.
 
 Chapter \ref{cha:riscv} presents the foundational concepts of the \textit{RISC-V}
-Instruction Set Architecture. In this chapter, we focus only on essential
-information needed for a complete understanding of the architectural basis of
-the project.
+Instruction Set Architecture. In this chapter, we focus only on essential information
+needed for a complete understanding of the architectural basis of the project.
 
-Chapter \ref{cha:project} details the implementation specifics of the Control
-Flow Integrity enforcer, discussing critical features such as forward and backward
-edge control mechanisms and the use of Physical Memory Protection to create secure
-memory spaces. To validate the effectiveness of the project in real-world
-scenarios, this chapter also introduces a Proof of Concept which will exemplify how
-the project addresses critical security threats, illustrating its impact on
-device resilience and system integrity.
+Chapter \ref{cha:project} details the implementation specifics of the Control Flow
+Integrity enforcer, discussing critical features such as forward and backward
+edge control mechanisms and the use of Physical Memory Protection to create
+secure memory spaces. To validate the effectiveness of the project in real-world
+scenarios, this chapter also introduces a Proof of Concept which will exemplify
+how the project addresses critical security threats, illustrating its impact on device
+resilience and system integrity.
 
 A subsequent security analysis, discussed in chapter \ref{cha:ta}, will describe
-the testing methodologies used to assess the project's effectiveness in
-identifying and preventing control flow hijacking attacks. Moreover, we discuss
-the security limitations of the Control Flow Integrity enforcer identifying any
-potential vulnerabilities that may need further consideration.
+the testing methodologies used to assess the project's effectiveness in identifying
+and preventing control flow hijacking attacks. Moreover, we discuss the security
+limitations of the Control Flow Integrity enforcer identifying any potential vulnerabilities
+that may need further consideration.
 
-A performance analysis is also provided in chapter \ref{cha:pa}, where the trade-offs
-between security and system efficiency are evaluated. This analysis will help
-highlight the strengths and limitations of the project and explain why it
-represents a feasible solution for enhancing the security of \textit{RISC-V}-based
-embedded devices. During this chapter we showcase test results for time and
-memory consumption, showcasing the average overhead of the project. Lastly, we provide
-insights on optimization ideas to further enhance performance.
+A performance analysis is provided in chapter \ref{cha:pa}, where the trade-offs
+between security and system efficiency are evaluated. This analysis will help highlight
+the strengths and limitations of the project and explain why it represents a feasible
+solution for enhancing the security of \textit{RISC-V}-based embedded devices. During
+this chapter we showcase test results for time and memory consumption, depicting
+the average overhead of the project. Lastly, we provide insights on optimization
+ideas to further enhance performance.
 
-Additionally, the thesis explores the potential integration of a Real-Time
-Operating System (RTOS) for embedded devices during chapter \ref{cha:rtos}. In particular,
-we propose the integration of \textit{FreeRTOS} and \textit{Zephyr RTOS}, two widely-used
-Real-Time Operating Systems. This integration could extend the project's
-applicability, enabling more complex programs to operate under the Control Flow Integrity
-enforcer. By supporting an established RTOS like \textit{FreeRTOS}, the project
-could broaden its reach and utility, making it suitable for a larger variety of use
-cases in the embedded device domain.
+Additionally, the thesis explores the potential integration of a Real-Time Operating
+System (RTOS) during chapter \ref{cha:rtos}. In particular, we propose the integration
+of \textit{FreeRTOS} and \textit{Zephyr RTOS}, two widely-used Real-Time
+Operating Systems. Such integration could extend the project's applicability,
+enabling more complex programs to operate under the Control Flow Integrity
+enforcer. By supporting an established RTOS like \textit{FreeRTOS}, the project could
+broaden its reach and utility, making it suitable for a larger variety of use
+cases within the embedded device domain.
 
-Finally, in chapter \ref{cha:future}, we discuss future enhancements we plan to integrate.
-In this chapter, we mainly focus on security and performance-oriented solutions that
-could broaden the security of the project while reducing its impact on the device's
-performance.
+Finally, in chapter \ref{cha:future}, we discuss future enhancements we plan to
+integrate. In this chapter, we mainly focus on security and performance-oriented
+solutions that could broaden the security of the project while reducing its
+impact on the device's performance.
 
-In summary, this thesis presents a novel approach to securing \textit{RISC-V} microcontrollers,
-leveraging Control Flow Integrity to protect against control flow hijacking
-attacks and providing a secure foundation for running potentially unsafe code. Through
-detailed technical exploration, demonstration, and analysis, this work aims to
-contribute a significant advancement to the field of embedded device security, addressing
-both current and emerging threats in the IoT landscape.
+In summary, this thesis presents a novel approach to securing \textit{RISC-V}
+microcontrollers, leveraging Control Flow Integrity to protect against control flow
+hijacking attacks and providing a secure foundation for running potentially unsafe
+code. Through detailed technical exploration, demonstration, and analysis, this work
+aims to contribute a significant advancement to the field of embedded device security,
+addressing both current and emerging threats in the IoT landscape.
