@@ -134,30 +134,30 @@ results obtained during testing.
 
 Two peculiar cases are the ones of the \textit{Fibonacci} and \textit{Fibonacci
 Indirect} algorithms, in these cases, the overheads are $1523.24\%$ and
-$77.97\%$ respectively. The possible reason for these enormous overheads is that
-these algorithms make two recursive calls each time, so we end up with an
-exponential amount of jump and return instructions. This leads to many invocations
-of the Control Flow Integrity enforcer, thus the execution time is strongly
-affected by this.
+$77.97\%$, respectively. The possible reason for these enormous overheads is
+that these algorithms make two recursive calls each time, so we end up with an exponential
+amount of jump and return instructions. This leads to many invocations of the
+Control Flow Integrity enforcer, thus the execution time is strongly affected by
+this.
 
-Overall, we achieved an average time overhead of $94.38\%$ with a standard deviation
-of $368.68$. However, if we do not take into account outliers, we can see that
-the median is $0.036\%$. These results clearly show that the time overhead is almost
-unnoticeable in many cases but, this also demonstrates that the project strongly
-suffers from deeply recursive algorithms and that further optimization is
+Overall, we achieved an average time overhead of $94.38\%$ with a standard
+deviation of $368.68$. However, if we do not take into account outliers, we can see
+that the median is $0.036\%$. These results clearly show that the time overhead
+is almost unnoticeable in many cases but, this also demonstrates that the project
+strongly suffers from deeply recursive algorithms and that further optimization is
 required to reduce the time impact on these types of algorithms.
 
-Lastly, in Table \ref{tab:othertimes}, we provide the times required to
-instrument the code, extract the Control Flow Graph, and perform the simulation.
-The instrumentation and CFG extraction phases always require less than a fraction
-of a second to finish. However, we must take into consideration that the tested algorithms
-are composed of few lines of code and the situation could change if we were to instrument
-a firmware composed of thousands of lines. The simulation instead requires a lot
-of time, even algorithms that run in a second or less require some seconds to simulate.
-This is due to the logging required to extract the indirect jump destinations, which
-introduces a noticeable overhead. Note that we can accept this result since the
-simulation is run only once and the logging is removed from the final binary so
-that this overhead does not affect the actual execution time.
+Lastly, in Table \ref{tab:othertimes}, we provide the times required to instrument
+the code, extract the Control Flow Graph, and perform the simulation. The
+instrumentation and CFG extraction phases always require less than a fraction of
+a second to finish. However, we must take into consideration that the tested
+algorithms are composed of few lines of code and the situation could change if
+we were to instrument a firmware composed of thousands of lines. The simulation instead
+requires a lot of time, even algorithms that run in a second or less require
+some seconds to simulate. This is due to the logging required to extract the indirect
+jump destinations, which introduces a noticeable overhead. Note that we can accept
+this result since the simulation is run only once and the logging is removed from
+the final binary so that this overhead does not affect the actual execution time.
 
 \begin{table}
   \centering
@@ -207,9 +207,8 @@ that this overhead does not affect the actual execution time.
 \section{Memory Overhead}
 \label{sec:pa_memory}
 
-In this section, we showcase how the infrastructure affects the size of the produced
-binary. A bar chart depicting test results can be seen in Figure
-\ref{fig:binsize}.
+In this section, we showcase how the infrastructure affects the size of the
+produced binary. A bar chart depicting test results can be seen in Figure \ref{fig:binsize}.
 
 \begin{figure}[htbp]
   \centering
@@ -218,33 +217,33 @@ binary. A bar chart depicting test results can be seen in Figure
   \label{fig:binsize}
 \end{figure}
 
-Table \ref{tab:binsize} depicts test results for each algorithm as well as the percentage
-of memory overhead. As we can see, in most cases, the size of the binary
-increases by $\sim 10\%$. This is due to the shadow stack, Control Flow Graph, and
-the instructions added during instrumentation.
+Table \ref{tab:binsize} depicts test results for each algorithm as well as the
+percentage of memory overhead. As we can see, in most cases, the size of the binary
+increases by $\sim 10\%$. This is due to the shadow stack, Control Flow Graph,
+and the instructions added during instrumentation.
 
 As for the time overhead analysis, there are some peculiar cases. \textit{Prime},
-\textit{Recursion} and their indirect variations \textit{Prime Indirect} and \textit{Recursion
-Indirect}, present a memory overhead of $\sim 200\%$ and $\sim 450\%$ respectively.
-This happens because these recursive algorithms perform all the jump
-instructions consecutively and then all the return instructions. This means that
-we must allocate a shadow stack big enough to store all the return addresses to ensure
-correct backward edge controls. For example, we have seen that the \textit{Recursion}
-algorithm performs $\sim 4000$ jump instructions, which means that we must create
-a shadow stack able to store at least $4000$ addresses. Given that an address is
-stored as an \textit{unsigned int}, we can easily see that a shadow stack that
-can store $4000$ addresses occupies $4000*4 = 16000 \ \textit{Bytes}$\footnote{We
-multiply by $4$ because it is the size of an \textit{unsigned int} in C.}. Now, if
-we take the size of the secure binary for the \textit{Recursion} algorithm, we can
-calculate $19808 - 16000 = 3808 \ \textit{Bytes}$, so, apart from the shadow stack,
-the binary has a memory overhead of $\frac{3808-3568}{3568}*100 = \sim 6. 73\%$
-which is similar to other ones.
+\textit{Recursion} and their indirect variations \textit{Prime Indirect} and
+\textit{Recursion Indirect}, present a memory overhead of $\sim 200\%$ and
+$\sim 450\%$ respectively. This happens because these recursive algorithms perform
+all the jump instructions consecutively and then all the return instructions.
+This means that we must allocate a shadow stack big enough to store all the
+return addresses to ensure correct backward edge controls. For example, we have
+seen that the \textit{Recursion} algorithm performs $\sim 4000$ jump instructions,
+which means that we must create a shadow stack able to store at least $4000$
+addresses. Given that an address is stored as an \textit{unsigned int}, we can easily
+see that a shadow stack that can store $4000$ addresses occupies $4000*4 = 16000
+\ \textit{Bytes}$\footnote{We multiply by $4$ because it is the size of an
+\textit{unsigned int} in C.}. Now, if we take the size of the secure binary for
+the \textit{Recursion} algorithm, we can calculate
+$19808 - 16000 = 3808 \ \textit{Bytes}$, so, apart from the shadow stack, the binary
+has a memory overhead of $\frac{3808-3568}{3568}*100 = \sim 6. 73\%$ which is similar
+to other ones.
 
-Note that this problem is related strictly to recursive algorithms as they
-perform a high number of jumps and then they start performing the first return
-instruction. However, we could have a similar problem with the Control Flow
-Graph as for big binaries like firmwares, we can have many different jump instructions,
-increasing the CFG'size.
+Note that this problem is related strictly to recursive algorithms as they perform
+a high number of jumps and then they start performing the first return instruction.
+However, we could have a similar problem with the Control Flow Graph as for big binaries
+like firmwares, we can have many different jump instructions, increasing the CFG'size.
 
 \begin{table}
   \centering
@@ -290,65 +289,64 @@ increasing the CFG'size.
   \label{tab:binsize}
 \end{table}
 
-Overall, we achieved an average memory overhead of $88.06\%$ with a standard
-deviation of $152.77$. However, similarly to the time overhead, if we do not take
-into consideration outliers, we can see that the median is $12.09 \%$. These results
-show that, in most cases, the project can produce a secure binary without affecting
-too much memory consumption. Even in this case, the project suffers from deeply recursive
-algorithms as we need to allocate a bigger shadow stack to accommodate space for
-secure storage of each return address.
+Overall, we achieved an average memory overhead of $88.06\%$ with a standard deviation
+of $152.77$. However, similarly to the time overhead, if we do not take into
+consideration outliers, we can see that the median is $12.09 \%$. These results
+show that, in most cases, the project can produce a secure binary without
+affecting too much memory consumption. Even in this case, the project suffers
+from deeply recursive algorithms as we need to allocate a bigger shadow stack to
+accommodate space for secure storage of each return address.
 
 \section{Results and Analysis}
 \label{sec:pa_results}
 
-In this section, we discuss the obtained result and showcase the weak points of the
-implementation.
+In this section, we discuss the obtained result and showcase the weak points of
+the implementation.
 
-As we have seen in the previous sections, the project showcases promising
-performances in most cases. In almost all the tested algorithms, time overhead
-was barely noticeable and memory consumption was acceptable. Overall, the
-project infrastructure does not impact the performance of an executable.
+As we have seen in the previous sections, the project showcases promising performances
+in most cases. In almost all the tested algorithms, time overhead was barely noticeable
+and memory consumption was acceptable. Overall, the project infrastructure does not
+impact the performance of an executable.
 
-However, in the case of deeply recursive algorithms, we have seen that the time
-overhead grows exponentially due to the high number of control transfer
-instructions and the related forward and backward edge controls. Also, the size
-of the binary grows as we need a bigger shadow stack to store all the addresses
-needed to perform the backward edge controls.
+However, in the case of deeply recursive algorithms, we have seen that the time overhead
+grows exponentially due to the high number of control transfer instructions and the
+related forward and backward edge controls. Also, the size of the binary grows as
+we need a bigger shadow stack to store all the addresses needed to perform the backward
+edge controls.
 
 Moreover, we have seen that if the code is composed of thousands of lines, it is
-likely that the Control Flow Graph will be very big. This is because if we have many
-jump instructions from different sources to different destinations, we must
+likely that the Control Flow Graph will be very big. This is because if we have
+many jump instructions from different sources to different destinations, we must
 store each pair, thus increasing the space occupied by the CFG.
 
 Similar results have been obtained in the already cited paper \textit{PROLEPSIS:
 Binary Analysis and Instrumentation of IoT Software for Control-Flow Integrity}\cite{article2}
 where the writers introduced an average instruction overhead of $\sim 4\%$\footnote{Note
 that the writers provided the instruction overhead and not the total binary size
-overhead.}. Unfortunately, given the fact that the writers proposed a
-preliminary prototype, they do not provide the execution time overhead introduced
-with their technology. Moreover, the paper \textit{Efficient CFI Enforcement for
-Embedded Systems Using ARM TrustZone-M}\cite{article1} presents an average execution
-time overhead of $1 59.3 \%$, with the lowest overhead being $0.2 \%$ and the
-highest being $652.2 7 \%$. Additionally, the writers say that they saw an
-average $7.36\%$ increase in memory consumption. With these results, we can
-effectively say that the proposed solution to enforce Control Flow Integrity
-achieved standard overheads in both execution time and memory consumption, making
-it a valuable choice for embedded systems.
+overhead.}. Unfortunately, given the fact that the writers proposed a preliminary
+prototype, they do not provide the execution time overhead introduced with their
+technology. Moreover, the paper \textit{Efficient CFI Enforcement for Embedded
+Systems Using ARM TrustZone-M}\cite{article1} presents an average execution time
+overhead of $1 59.3 \%$, with the lowest overhead being $0.2 \%$ and the highest
+being $652.2 7 \%$. Additionally, the writers say that they saw an average $7.36\%$
+increase in memory consumption. With these results, we can effectively say that the
+proposed solution to enforce Control Flow Integrity achieved standard overheads in
+both execution time and memory consumption, making it a valuable choice for
+embedded systems.
 
-In the following section, we provide some optimization techniques that could be
-applied to further increase the performance. Specifically, we provide
-alternative solutions to improve the project's weak points.
+In the following section, we provide some optimization techniques that could be applied
+to further increase the performance. Specifically, we provide alternative solutions
+to improve the project's weak points.
 
 \section{Optimization Techniques}
 \label{sec:pa_optimization}
 
 Since optimization is a key factor when developing projects on embedded devices,
-given their hardware limitations, we tried to provide an infrastructure as fast as
-possible while preserving memory usage. However, as test results show, there are
+given their hardware limitations, we tried to provide an infrastructure as fast
+as possible while preserving memory usage. However, as test results show, there are
 some aspects of the project that require further improvement to be acceptable.
 
-The two identified cases in which the project strongly impacts the performances
-are:
+The two identified cases in which the project strongly impacts the performances are:
 \begin{itemize}
   \item Deeply recursive algorithms: we have seen that deeply recursive
     algorithms require a big shadow stack to hold all the return addresses, thus
@@ -374,26 +372,26 @@ are:
     Control Flow Graph from $\mathcal{O}(\log{n})$ to $\mathcal{O}(1)$.
 \end{itemize}
 
-Lastly, we provide a space optimization solution that could be implemented for very
-small source code. Say, for example, that the \textit{.text} section that we want
-to instrument starts at address $0x4038A0 00$ and ends at address $0x4038F000$.
-Since the first part of the address stays the same it provides no useful
-information, thus we could apply a bit-mask to remove $4038$ from the address,
-storing only the last $16$ bits. This means that we would be able to store an address
-as an \textit{unsigned short} instead of an \textit{unsigned int}. As a result, we
-would be able to halve the space required to store the Control Flow Graph and the
-shadow stack, resulting in a great improvement in memory consumption. However,
-this solution only works when the user code is very small because if the \textit{.text}
-section starts at address $0x4038A000$ and ends at address $0x4039F000$, we
-would still need an \textit{unsigned int} to store a correct representation of the
-address.
+Lastly, we provide a space optimization solution that could be implemented for
+very small source code. Say, for example, that the \textit{.text} section that
+we want to instrument starts at address $0x4038A0 00$ and ends at address
+$0x4038F000$. Since the first part of the address stays the same it provides no useful
+information, thus we could apply a bit-mask to remove $4038$ from the address, storing
+only the last $16$ bits. This means that we would be able to store an address as
+an \textit{unsigned short} instead of an \textit{unsigned int}. As a result, we
+would be able to halve the space required to store the Control Flow Graph and
+the shadow stack, resulting in a great improvement in memory consumption.
+However, this solution only works when the user code is very small because if the
+\textit{.text} section starts at address $0x4038A000$ and ends at address
+$0x4039F000$, we would still need an \textit{unsigned int} to store a correct
+representation of the address.
 
-In conclusion, this analysis has demonstrated that our project exhibits
-commendable performance in a variety of scenarios. Nevertheless, there are
-specific edge cases where its efficiency can be significantly compromised, leading
-to suboptimal results. These instances reveal potential vulnerabilities in the
-system that could hinder its overall effectiveness. To address these challenges,
-we suggest implementing the proposed solutions, which aim to refine the project's
-functionality. By fine-tuning the system to better adapt to particular
-situations, we can effectively minimize both memory usage and execution time,
-thereby enhancing the overall performance and reliability.
+In conclusion, this analysis has demonstrated that our project exhibits commendable
+performance in a variety of scenarios. Nevertheless, there are specific edge cases
+where its efficiency can be significantly compromised, leading to suboptimal
+results. These instances reveal potential vulnerabilities in the system that could
+hinder its overall effectiveness. To address these challenges, we suggest implementing
+the proposed solutions, which aim to refine the project's functionality. By fine-tuning
+the system to better adapt to particular situations, we can effectively minimize
+both memory usage and execution time, thereby enhancing the overall performance and
+reliability.

@@ -25,11 +25,10 @@ attacks, a common type of vulnerability in programs. It involves placing a small
 random value in memory right before the stack's return address. This value acts as
 a sentinel and is checked for integrity before the function returns control to its
 caller. The \textit{Stack Canary} is simple yet effective as it provides a straightforward
-way to detect stack corruption caused by buffer overflows. However, placing and checking
-canaries adds slight computational and memory overhead. Overall, we think that introducing
-a \textit{Stack Canary} in the project would be a good addition to the security
-features as it would provide a slight increase in security and would be easy to
-implement.
+way to detect stack corruption caused by buffer overflows. Overall, we think that
+introducing a \textit{Stack Canary} in the project would be a good addition to
+the security features as it would provide a slight increase in security for
+environments that require a high degree of protection.
 
 Since the project suffers from source code modification, as we have no way of telling
 if the code was modified or not, and this could affect the correctness of
@@ -186,7 +185,7 @@ files related to the RTOS to the list \textit{files\_to\_instrument} inside the
 capabilities to delegate CSR instructions to the interrupt vector table of the project.
 This is needed if we want the RTOS to run as supervisor since, from such a privilege
 level, it has no access to Control and Status Registers. A solution to this implementation
-is deeply discussed in section \ref{sec:rtos_limitations} where we discuss each step
+is deeply discussed in section \ref{sec:rtos_limitations} where we list each step
 needed to effectively modify the instrumentation phase to address the CSR access
 limitation.
 
